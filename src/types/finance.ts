@@ -9,6 +9,17 @@ export type BankAccount = {
   face?: string | null;
 };
 
+export type FinanceCategoryOption = {
+  id: string;
+  type: "RECEITA" | "DESPESA";
+  name: string;
+  icon: string;
+  color: string;
+  parentId?: string | null;
+  level?: number;
+  fullPath?: string;
+};
+
 export type FinanceItem = {
   id: string;
   type: "RECEITA" | "DESPESA";
