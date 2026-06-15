@@ -1,7 +1,7 @@
 import { useEffect, useState, useCallback } from "react";
 import {
   View, Text, StyleSheet, ScrollView, TouchableOpacity,
-  Modal, TextInput, Alert, ActivityIndicator, Pressable,
+  Modal, TextInput, Alert, ActivityIndicator, Pressable, Dimensions,
 } from "react-native";
 import { SafeAreaView } from "react-native-safe-area-context";
 import type { FinanceCategoryOption } from "../../types/finance";
@@ -37,6 +37,10 @@ type EditState = {
 const EMPTY_EDIT: EditState = {
   name: "", icon: "💼", color: "#60a5fa", parentId: "", type: "RECEITA",
 };
+
+const COL_GAP = 12;
+const H_PAD = 16;
+const CARD_W = (Dimensions.get("window").width - H_PAD * 2 - COL_GAP) / 2;
 
 export default function CategoriasScreen() {
   const [categories, setCategories] = useState<FinanceCategoryOption[]>([]);
@@ -80,19 +84,16 @@ export default function CategoriasScreen() {
     setModalOpen(true);
   }
 
-  function onLongPress(cat: FinanceCategoryOption) {
+  function onMenuPress(cat: FinanceCategoryOption) {
     Alert.alert(cat.name, undefined, [
       { text: "Editar", onPress: () => openEdit(cat) },
-      {
-        text: "Adicionar subcategoria",
-        onPress: () => openCreate(cat.id, cat.type),
-      },
+      { text: "Adicionar subcategoria", onPress: () => openCreate(cat.id, cat.type) },
       {
         text: "Excluir", style: "destructive",
         onPress: () => {
           Alert.alert(
             "Excluir categoria",
-            `Tem certeza que deseja excluir "${cat.name}"? As subcategorias serão desvinculadas.`,
+            `Excluir "${cat.name}"? As subcategorias serão desvinculadas.`,
             [
               { text: "Cancelar", style: "cancel" },
               {
@@ -123,18 +124,13 @@ export default function CategoriasScreen() {
       setSaving(true);
       if (edit.id) {
         const updated = await updateFinanceCategory(edit.id, {
-          name: edit.name.trim(),
-          icon: edit.icon,
-          color: edit.color,
+          name: edit.name.trim(), icon: edit.icon, color: edit.color,
         });
         setCategories(prev => prev.map(c => c.id === updated.id ? updated : c));
       } else {
         const created = await createFinanceCategory({
-          type: edit.type,
-          name: edit.name.trim(),
-          parentId: edit.parentId || null,
-          icon: edit.icon,
-          color: edit.color,
+          type: edit.type, name: edit.name.trim(),
+          parentId: edit.parentId || null, icon: edit.icon, color: edit.color,
         });
         setCategories(prev => [...prev, created]);
       }
@@ -148,18 +144,21 @@ export default function CategoriasScreen() {
 
   const parentOptions = visible.filter(c => !c.parentId && c.id !== edit.id);
 
+  // Build pairs of root cats for 2-column grid
+  const pairs: Array<[FinanceCategoryOption, FinanceCategoryOption | null]> = [];
+  for (let i = 0; i < roots.length; i += 2) {
+    pairs.push([roots[i], roots[i + 1] ?? null]);
+  }
+
   return (
     <SafeAreaView style={s.root}>
       {/* Header */}
       <View style={s.header}>
         <Text style={s.headerTitle}>Categorias</Text>
-        <TouchableOpacity style={s.addBtn} onPress={() => openCreate()}>
-          <Text style={s.addBtnTxt}>+ Nova</Text>
-        </TouchableOpacity>
       </View>
 
       {/* Tabs */}
-      <View style={s.tabs}>
+      <View style={s.tabBar}>
         {(["RECEITA", "DESPESA"] as TabType[]).map(t => (
           <TouchableOpacity
             key={t}
@@ -173,51 +172,38 @@ export default function CategoriasScreen() {
         ))}
       </View>
 
-      {/* List */}
       {loading ? (
-        <View style={s.center}>
-          <ActivityIndicator color="#3B82F6" />
-        </View>
+        <View style={s.center}><ActivityIndicator color="#3B82F6" size="large" /></View>
       ) : (
-        <ScrollView contentContainerStyle={s.list}>
-          {roots.length === 0 ? (
-            <View style={s.empty}>
-              <Text style={s.emptyTxt}>Nenhuma categoria cadastrada.</Text>
-              <TouchableOpacity style={s.emptyBtn} onPress={() => openCreate()}>
-                <Text style={s.emptyBtnTxt}>+ Criar primeira categoria</Text>
-              </TouchableOpacity>
+        <ScrollView contentContainerStyle={s.scroll}>
+          {/* Nova categoria card */}
+          <TouchableOpacity style={s.newCard} onPress={() => openCreate()}>
+            <View style={s.newIconWrap}>
+              <Text style={s.newIconTxt}>+</Text>
             </View>
-          ) : (
-            roots.map(root => (
-              <View key={root.id}>
-                <TouchableOpacity
-                  style={s.catRow}
-                  onLongPress={() => onLongPress(root)}
-                  delayLongPress={400}
-                  onPress={() => onLongPress(root)}
-                >
-                  <View style={[s.dot, { backgroundColor: root.color }]} />
-                  <Text style={s.catIcon}>{root.icon}</Text>
-                  <Text style={s.catName}>{root.name}</Text>
-                  <Text style={s.catChevron}>›</Text>
-                </TouchableOpacity>
-                {childrenOf(root.id).map(sub => (
-                  <TouchableOpacity
-                    key={sub.id}
-                    style={s.subRow}
-                    onLongPress={() => onLongPress(sub)}
-                    delayLongPress={400}
-                    onPress={() => onLongPress(sub)}
-                  >
-                    <View style={s.subIndent} />
-                    <View style={[s.dot, s.dotSm, { backgroundColor: sub.color }]} />
-                    <Text style={s.subName}>{sub.name}</Text>
-                    <Text style={s.catChevron}>›</Text>
-                  </TouchableOpacity>
-                ))}
-              </View>
-            ))
+            <View style={{ flex: 1 }}>
+              <Text style={s.newCardTitle}>Nova categoria</Text>
+              <Text style={s.newCardSub}>Toque para criar</Text>
+            </View>
+          </TouchableOpacity>
+
+          {roots.length === 0 && (
+            <View style={s.empty}>
+              <Text style={s.emptyTxt}>Nenhuma categoria ainda.</Text>
+            </View>
           )}
+
+          {/* Grid de cards */}
+          {pairs.map(([a, b], idx) => (
+            <View key={idx} style={s.row}>
+              <CategoryCard cat={a} subs={childrenOf(a.id)} onMenu={onMenuPress} />
+              {b ? (
+                <CategoryCard cat={b} subs={childrenOf(b.id)} onMenu={onMenuPress} />
+              ) : (
+                <View style={{ width: CARD_W }} />
+              )}
+            </View>
+          ))}
         </ScrollView>
       )}
 
@@ -231,12 +217,12 @@ export default function CategoriasScreen() {
             </Pressable>
           </View>
 
-          <ScrollView contentContainerStyle={s.modalBody}>
+          <ScrollView contentContainerStyle={s.modalBody} keyboardShouldPersistTaps="handled">
             {/* Tipo (só na criação) */}
             {!edit.id && (
               <View style={s.field}>
                 <Text style={s.label}>Tipo</Text>
-                <View style={s.tabs}>
+                <View style={s.tabBar}>
                   {(["RECEITA", "DESPESA"] as TabType[]).map(t => (
                     <TouchableOpacity
                       key={t}
@@ -252,7 +238,6 @@ export default function CategoriasScreen() {
               </View>
             )}
 
-            {/* Nome */}
             <View style={s.field}>
               <Text style={s.label}>Nome</Text>
               <TextInput
@@ -265,7 +250,6 @@ export default function CategoriasScreen() {
               />
             </View>
 
-            {/* Ícone */}
             <View style={s.field}>
               <Text style={s.label}>Ícone</Text>
               <View style={s.iconGrid}>
@@ -281,7 +265,6 @@ export default function CategoriasScreen() {
               </View>
             </View>
 
-            {/* Cor */}
             <View style={s.field}>
               <Text style={s.label}>Cor</Text>
               <View style={s.colorRow}>
@@ -295,7 +278,6 @@ export default function CategoriasScreen() {
               </View>
             </View>
 
-            {/* Categoria pai (só na criação e se tiver opções) */}
             {!edit.id && parentOptions.length > 0 && (
               <View style={s.field}>
                 <Text style={s.label}>Subcategoria de (opcional)</Text>
@@ -331,53 +313,93 @@ export default function CategoriasScreen() {
   );
 }
 
+function CategoryCard({
+  cat, subs, onMenu,
+}: {
+  cat: FinanceCategoryOption;
+  subs: FinanceCategoryOption[];
+  onMenu: (cat: FinanceCategoryOption) => void;
+}) {
+  return (
+    <View style={c.card}>
+      {/* Top row: icon + menu */}
+      <View style={c.topRow}>
+        <View style={[c.iconWrap, { backgroundColor: cat.color + "30" }]}>
+          <Text style={c.iconTxt}>{cat.icon}</Text>
+        </View>
+        <TouchableOpacity style={c.menuBtn} onPress={() => onMenu(cat)} hitSlop={8}>
+          <Text style={c.menuDots}>•••</Text>
+        </TouchableOpacity>
+      </View>
+
+      {/* Name */}
+      <Text style={c.catName} numberOfLines={2}>{cat.name}</Text>
+
+      {/* Sub count */}
+      {subs.length > 0 && (
+        <Text style={c.subCount}>{subs.length} subcategor{subs.length === 1 ? "ia" : "ias"}</Text>
+      )}
+
+      {/* Color bar */}
+      <View style={[c.bar, { backgroundColor: cat.color }]} />
+
+      {/* Sub chips */}
+      {subs.length > 0 && (
+        <View style={c.chips}>
+          {subs.slice(0, 4).map(sub => (
+            <View key={sub.id} style={c.chip}>
+              <View style={[c.chipDot, { backgroundColor: sub.color }]} />
+              <Text style={c.chipTxt} numberOfLines={1}>{sub.name}</Text>
+            </View>
+          ))}
+          {subs.length > 4 && (
+            <Text style={c.moreTxt}>+{subs.length - 4} mais</Text>
+          )}
+        </View>
+      )}
+    </View>
+  );
+}
+
 const s = StyleSheet.create({
-  root: { flex: 1, backgroundColor: "#0F172A" },
+  root: { flex: 1, backgroundColor: "#0A1628" },
 
-  header: { flexDirection: "row", alignItems: "center", justifyContent: "space-between", paddingHorizontal: 20, paddingTop: 12, paddingBottom: 8 },
+  header: { paddingHorizontal: H_PAD, paddingTop: 8, paddingBottom: 4 },
   headerTitle: { fontSize: 22, fontWeight: "800", color: "#F1F5F9" },
-  addBtn: { backgroundColor: "#3B82F6", borderRadius: 20, paddingHorizontal: 14, paddingVertical: 7 },
-  addBtnTxt: { color: "#fff", fontWeight: "700", fontSize: 14 },
 
-  tabs: { flexDirection: "row", marginHorizontal: 20, marginBottom: 12, backgroundColor: "#1E293B", borderRadius: 10, padding: 3 },
-  tab: { flex: 1, paddingVertical: 8, borderRadius: 8, alignItems: "center" },
+  tabBar: { flexDirection: "row", marginHorizontal: H_PAD, marginBottom: 16, backgroundColor: "#1E293B", borderRadius: 10, padding: 3 },
+  tab: { flex: 1, paddingVertical: 9, borderRadius: 8, alignItems: "center" },
   tabActive: { backgroundColor: "#3B82F6" },
   tabTxt: { color: "#64748B", fontWeight: "600", fontSize: 14 },
   tabTxtActive: { color: "#fff" },
 
   center: { flex: 1, justifyContent: "center", alignItems: "center" },
 
-  list: { paddingHorizontal: 20, paddingBottom: 32 },
+  scroll: { paddingHorizontal: H_PAD, paddingBottom: 40 },
 
-  empty: { alignItems: "center", marginTop: 60, gap: 16 },
+  newCard: {
+    flexDirection: "row", alignItems: "center", gap: 12,
+    borderWidth: 1.5, borderColor: "#3B82F6", borderStyle: "dashed",
+    borderRadius: 14, padding: 14, marginBottom: 14,
+    backgroundColor: "rgba(59,130,246,0.06)",
+  },
+  newIconWrap: {
+    width: 42, height: 42, borderRadius: 12,
+    backgroundColor: "#3B82F6", alignItems: "center", justifyContent: "center",
+  },
+  newIconTxt: { color: "#fff", fontSize: 22, fontWeight: "700", lineHeight: 26 },
+  newCardTitle: { color: "#F1F5F9", fontWeight: "700", fontSize: 15 },
+  newCardSub: { color: "#64748B", fontSize: 12, marginTop: 2 },
+
+  empty: { alignItems: "center", marginTop: 40 },
   emptyTxt: { color: "#64748B", fontSize: 15 },
-  emptyBtn: { backgroundColor: "#1E293B", borderRadius: 10, paddingHorizontal: 20, paddingVertical: 12, borderWidth: 1, borderColor: "#334155" },
-  emptyBtnTxt: { color: "#3B82F6", fontWeight: "700", fontSize: 14 },
 
-  catRow: {
-    flexDirection: "row", alignItems: "center", backgroundColor: "#1E293B",
-    borderRadius: 12, paddingHorizontal: 14, paddingVertical: 14,
-    marginBottom: 8, gap: 10,
-  },
-  dot: { width: 10, height: 10, borderRadius: 5 },
-  dotSm: { width: 8, height: 8, borderRadius: 4 },
-  catIcon: { fontSize: 18 },
-  catName: { flex: 1, color: "#F1F5F9", fontSize: 15, fontWeight: "600" },
-  catChevron: { color: "#475569", fontSize: 18 },
-
-  subRow: {
-    flexDirection: "row", alignItems: "center", backgroundColor: "#1E293B",
-    borderRadius: 10, paddingHorizontal: 14, paddingVertical: 11,
-    marginBottom: 6, gap: 8,
-  },
-  subIndent: { width: 20 },
-  subName: { flex: 1, color: "#94A3B8", fontSize: 14, fontWeight: "500" },
+  row: { flexDirection: "row", gap: COL_GAP, marginBottom: COL_GAP },
 
   modal: { flex: 1, backgroundColor: "#0F172A" },
   modalHeader: {
     flexDirection: "row", alignItems: "center", justifyContent: "space-between",
-    paddingHorizontal: 20, paddingVertical: 16,
-    borderBottomWidth: 1, borderBottomColor: "#1E293B",
+    paddingHorizontal: 20, paddingVertical: 16, borderBottomWidth: 1, borderBottomColor: "#1E293B",
   },
   modalTitle: { fontSize: 18, fontWeight: "700", color: "#F1F5F9" },
   modalClose: { fontSize: 18, color: "#64748B", padding: 4 },
@@ -398,7 +420,7 @@ const s = StyleSheet.create({
   iconOptTxt: { fontSize: 22 },
 
   colorRow: { flexDirection: "row", gap: 10, flexWrap: "wrap" },
-  colorOpt: { width: 32, height: 32, borderRadius: 16, borderWidth: 2, borderColor: "transparent" },
+  colorOpt: { width: 34, height: 34, borderRadius: 17, borderWidth: 2, borderColor: "transparent" },
   colorOptSel: { borderColor: "#fff", transform: [{ scale: 1.2 }] },
 
   parentChip: {
@@ -411,4 +433,24 @@ const s = StyleSheet.create({
 
   saveBtn: { backgroundColor: "#3B82F6", borderRadius: 12, padding: 16, alignItems: "center", marginTop: 8 },
   saveBtnTxt: { color: "#fff", fontWeight: "700", fontSize: 16 },
+});
+
+const c = StyleSheet.create({
+  card: {
+    width: CARD_W, backgroundColor: "#1E293B", borderRadius: 16,
+    padding: 14, borderWidth: 1, borderColor: "#334155",
+  },
+  topRow: { flexDirection: "row", justifyContent: "space-between", alignItems: "flex-start", marginBottom: 10 },
+  iconWrap: { width: 44, height: 44, borderRadius: 12, alignItems: "center", justifyContent: "center" },
+  iconTxt: { fontSize: 22 },
+  menuBtn: { padding: 4 },
+  menuDots: { color: "#64748B", fontSize: 13, letterSpacing: 1 },
+  catName: { color: "#F1F5F9", fontSize: 14, fontWeight: "800", textTransform: "uppercase", letterSpacing: 0.3, marginBottom: 2 },
+  subCount: { color: "#64748B", fontSize: 11, marginBottom: 8 },
+  bar: { height: 3, borderRadius: 2, marginBottom: 10 },
+  chips: { gap: 6 },
+  chip: { flexDirection: "row", alignItems: "center", gap: 6, backgroundColor: "#0F172A", borderRadius: 8, paddingHorizontal: 8, paddingVertical: 5 },
+  chipDot: { width: 7, height: 7, borderRadius: 4 },
+  chipTxt: { color: "#94A3B8", fontSize: 12, fontWeight: "500", flex: 1 },
+  moreTxt: { color: "#475569", fontSize: 11, marginTop: 2 },
 });
