@@ -373,7 +373,10 @@ function BankCarousel({ accounts, hidden, onSaved, items }: { accounts: BankAcco
             return (
               <AnimatedCard key={acc.id}>
                 <TouchableOpacity activeOpacity={0.92}
-                  onPress={noBalance ? () => { setEditBalanceAcc(acc); setEditBalanceVal(""); } : undefined}
+                  onPress={noBalance
+                    ? () => { setEditBalanceAcc(acc); setEditBalanceVal(""); }
+                    : () => setAccountsOpen(true)
+                  }
                 >
                   <BankCardVisual account={acc} hidden={hidden} computedCents={computed} />
                 </TouchableOpacity>
@@ -403,7 +406,10 @@ function BankCarousel({ accounts, hidden, onSaved, items }: { accounts: BankAcco
                   const noBalance = acc.balanceCents === 0 && computed === 0;
                   return (
                     <TouchableOpacity key={acc.id} activeOpacity={0.92}
-                      onPress={noBalance ? () => { setEditBalanceAcc(acc); setEditBalanceVal(""); } : undefined}
+                      onPress={noBalance
+                        ? () => { setEditBalanceAcc(acc); setEditBalanceVal(""); }
+                        : () => setAccountsOpen(true)
+                      }
                     >
                       <BankCardVisual account={acc} hidden={hidden} computedCents={computed} />
                     </TouchableOpacity>
