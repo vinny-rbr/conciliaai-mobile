@@ -266,9 +266,11 @@ function BankCardVisual({ account, hidden, dimmed = false, bgOverride, showBalan
                 {hidden ? (
                   <Text style={{ color: "#fff", fontSize: 22, fontWeight: "800", marginTop: 3 }}>R$ ••••••</Text>
                 ) : displayCents === 0 ? (
-                  <Text style={{ color: "rgba(255,255,255,0.4)", fontSize: 16, fontWeight: "600", marginTop: 4, fontStyle: "italic" }}>
-                    Não definido · toque em Gerenciar
-                  </Text>
+                  <View style={{ flexDirection: "row", alignItems: "center", marginTop: 6, gap: 8 }}>
+                    <View style={{ backgroundColor: "rgba(255,255,255,0.15)", borderRadius: 10, paddingHorizontal: 12, paddingVertical: 7 }}>
+                      <Text style={{ color: "rgba(255,255,255,0.9)", fontSize: 13, fontWeight: "700" }}>+ Definir saldo</Text>
+                    </View>
+                  </View>
                 ) : (
                   <Text style={{ color: "#fff", fontSize: 22, fontWeight: "800", marginTop: 3 }}>{fmt(displayCents)}</Text>
                 )}
@@ -365,13 +367,19 @@ function BankCarousel({ accounts, hidden, onSaved, items }: { accounts: BankAcco
       {/* ── Carousel ou Expandido ── */}
       {expanded ? (
         <View style={{ gap: 12 }}>
-          {accounts.map(acc => (
-            <AnimatedCard key={acc.id}>
-              <TouchableOpacity activeOpacity={0.92}>
-                <BankCardVisual account={acc} hidden={hidden} computedCents={computeAccountBalance(acc.id, items)} />
-              </TouchableOpacity>
-            </AnimatedCard>
-          ))}
+          {accounts.map(acc => {
+            const computed = computeAccountBalance(acc.id, items);
+            const noBalance = acc.balanceCents === 0 && computed === 0;
+            return (
+              <AnimatedCard key={acc.id}>
+                <TouchableOpacity activeOpacity={0.92}
+                  onPress={noBalance ? () => { setEditBalanceAcc(acc); setEditBalanceVal(""); } : undefined}
+                >
+                  <BankCardVisual account={acc} hidden={hidden} computedCents={computed} />
+                </TouchableOpacity>
+              </AnimatedCard>
+            );
+          })}
         </View>
       ) : (
         <View style={{ paddingTop: 14 }}>
@@ -390,11 +398,17 @@ function BankCarousel({ accounts, hidden, onSaved, items }: { accounts: BankAcco
                   setActiveIdx(Math.max(0, Math.min(idx, accounts.length - 1)));
                 }}
               >
-                {accounts.map(acc => (
-                  <TouchableOpacity key={acc.id} activeOpacity={0.92}>
-                    <BankCardVisual account={acc} hidden={hidden} computedCents={computeAccountBalance(acc.id, items)} />
-                  </TouchableOpacity>
-                ))}
+                {accounts.map(acc => {
+                  const computed = computeAccountBalance(acc.id, items);
+                  const noBalance = acc.balanceCents === 0 && computed === 0;
+                  return (
+                    <TouchableOpacity key={acc.id} activeOpacity={0.92}
+                      onPress={noBalance ? () => { setEditBalanceAcc(acc); setEditBalanceVal(""); } : undefined}
+                    >
+                      <BankCardVisual account={acc} hidden={hidden} computedCents={computed} />
+                    </TouchableOpacity>
+                  );
+                })}
               </ScrollView>
             </View>
           </View>
