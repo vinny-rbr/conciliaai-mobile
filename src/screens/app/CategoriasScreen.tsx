@@ -547,6 +547,11 @@ function CategoryCard({
   onMenu: (cat: FinanceCategoryOption) => void;
   onLongPress: () => void;
 }) {
+  const [expanded, setExpanded] = useState(false);
+  const LIMIT = 4;
+  const visibleSubs = expanded ? subs : subs.slice(0, LIMIT);
+  const hiddenCount = subs.length - LIMIT;
+
   return (
     <TouchableOpacity
       activeOpacity={0.85}
@@ -568,13 +573,30 @@ function CategoryCard({
       <View style={[c.bar, { backgroundColor: cat.color }]} />
       {subs.length > 0 && (
         <View style={c.chips}>
-          {subs.slice(0, 4).map(sub => (
+          {visibleSubs.map(sub => (
             <View key={sub.id} style={c.chip}>
               <View style={[c.chipDot, { backgroundColor: sub.color }]} />
               <Text style={c.chipTxt} numberOfLines={1}>{sub.name}</Text>
             </View>
           ))}
-          {subs.length > 4 && <Text style={c.moreTxt}>+{subs.length - 4} mais</Text>}
+          {!expanded && hiddenCount > 0 && (
+            <TouchableOpacity
+              style={c.moreBtn}
+              onPress={e => { e.stopPropagation(); setExpanded(true); }}
+              hitSlop={8}
+            >
+              <Text style={c.moreTxt}>+{hiddenCount} mais</Text>
+            </TouchableOpacity>
+          )}
+          {expanded && subs.length > LIMIT && (
+            <TouchableOpacity
+              style={c.moreBtn}
+              onPress={e => { e.stopPropagation(); setExpanded(false); }}
+              hitSlop={8}
+            >
+              <Text style={c.moreTxt}>ver menos ▲</Text>
+            </TouchableOpacity>
+          )}
         </View>
       )}
     </TouchableOpacity>
@@ -662,5 +684,6 @@ const c = StyleSheet.create({
   chip: { flexDirection: "row", alignItems: "center", gap: 6, backgroundColor: "#0F172A", borderRadius: 8, paddingHorizontal: 8, paddingVertical: 5 },
   chipDot: { width: 7, height: 7, borderRadius: 4 },
   chipTxt: { color: "#94A3B8", fontSize: 12, fontWeight: "500", flex: 1 },
-  moreTxt: { color: "#475569", fontSize: 11, marginTop: 2 },
+  moreBtn: { marginTop: 2, alignSelf: "flex-start" },
+  moreTxt: { color: "#60a5fa", fontSize: 11, fontWeight: "600" },
 });
