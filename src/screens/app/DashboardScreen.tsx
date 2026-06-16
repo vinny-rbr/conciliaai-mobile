@@ -1,4 +1,6 @@
 import { useEffect, useState, useCallback, useMemo } from "react";
+import { useFocusEffect } from "@react-navigation/native";
+import { rootNavigate } from "../../navigation/rootNav";
 import {
   View, Text, StyleSheet, ScrollView, TouchableOpacity,
   ActivityIndicator, RefreshControl, Modal,
@@ -6,7 +8,7 @@ import {
 import { SafeAreaView } from "react-native-safe-area-context";
 import DonutCounter from "../../components/DonutCounter";
 import { fetchFinanceItems, fmt } from "../../lib/financeService";
-import { listBankAccounts } from "../../lib/bankAccountsService";
+import { listBankAccounts, updateBankAccount } from "../../lib/bankAccountsService";
 import { getPlanName } from "../../lib/auth";
 import { useAuth } from "../../context/AuthContext";
 import { onTabBarScroll } from "../../navigation/tabBarScroll";
@@ -89,14 +91,30 @@ export default function DashboardScreen() {
       listBankAccounts(),
       getPlanName(),
     ]);
+
+    // Auto-sync: se só uma conta tem saldo definido, alinha com cumRec-cumDes
+    // Usa o mesmo filtro do heroData: itens com dateISO < próximo mês
+    const _now = new Date();
+    const _next = new Date(_now.getFullYear(), _now.getMonth() + 1, 1);
+    const _endExcl = `${_next.getFullYear()}-${String(_next.getMonth() + 1).padStart(2, "0")}`;
+    const cumBalance = data
+      .filter(it => it.dateISO < _endExcl)
+      .reduce((s, it) => s + (it.type === "RECEITA" ? it.amountCents : -it.amountCents), 0);
+    const nonZero = accs.filter(a => a.balanceCents !== 0);
+    if (nonZero.length === 1 && nonZero[0].balanceCents !== cumBalance) {
+      nonZero[0].balanceCents = cumBalance;
+      void updateBankAccount(nonZero[0].id, { balanceCents: cumBalance });
+    }
+
     setItems(data);
-    setAccounts(accs);
+    setAccounts([...accs]);
     setPlanName(plan);
     setLoading(false);
     setRefreshing(false);
   }
 
   useEffect(() => { void load(); }, []);
+  useFocusEffect(useCallback(() => { void load(true); }, []));
   const onRefresh = useCallback(() => { setRefreshing(true); void load(true); }, []);
 
   // Hero card data
@@ -113,8 +131,7 @@ export default function DashboardScreen() {
         if (item.type === "DESPESA") cumDes += item.amountCents;
       }
     }
-    const storedSum = accounts.reduce((s, a) => s + a.balanceCents, 0);
-    const displayBalance = accounts.length > 0 && storedSum !== 0 ? storedSum : cumRec - cumDes;
+    const displayBalance = cumRec - cumDes;
     return { rec, des, saldo: displayBalance };
   }, [items, heroMonth, accounts]);
 
@@ -291,19 +308,19 @@ export default function DashboardScreen() {
               <Text style={[s.heroBal, { color: heroData.saldo < 0 ? "#FFCBC6" : "#fff" }]}>
                 {balanceHidden ? "R$ •••••" : fmt(Math.abs(heroData.saldo))}
               </Text>
-              {accounts.length > 0 && (
-                <Text style={s.heroAccountsHint}>
-                  somando {accounts.length} {accounts.length === 1 ? "conta" : "contas"}
-                </Text>
-              )}
+              <Text style={s.heroAccountsHint}>receitas − despesas acumuladas</Text>
             </View>
             <TouchableOpacity onPress={() => setBalanceHidden(h => !h)} style={s.eyeBtn}>
               <Text style={{ fontSize: 18 }}>{balanceHidden ? "🙈" : "👁"}</Text>
             </TouchableOpacity>
           </View>
 
-          <View style={s.heroStats}>
-            <View style={s.heroStat}>
+          <View style={{ flexDirection: "row", gap: 8 }}>
+            <View
+              style={{ flex: 1, flexDirection: "row", alignItems: "center", gap: 10, backgroundColor: "rgba(0,0,0,.18)", borderRadius: 14, padding: 14 }}
+              onStartShouldSetResponder={() => true}
+              onResponderRelease={() => rootNavigate("Receitas")}
+            >
               <View style={[s.heroStatIc, { backgroundColor: "rgba(74,222,128,.25)" }]}>
                 <Text style={{ color: "#4ADE80", fontSize: 11, fontWeight: "800" }}>↑</Text>
               </View>
@@ -314,8 +331,11 @@ export default function DashboardScreen() {
                 </Text>
               </View>
             </View>
-            <View style={s.heroDivider} />
-            <View style={s.heroStat}>
+            <View
+              style={{ flex: 1, flexDirection: "row", alignItems: "center", gap: 10, backgroundColor: "rgba(0,0,0,.18)", borderRadius: 14, padding: 14 }}
+              onStartShouldSetResponder={() => true}
+              onResponderRelease={() => rootNavigate("Despesas")}
+            >
               <View style={[s.heroStatIc, { backgroundColor: "rgba(248,113,113,.25)" }]}>
                 <Text style={{ color: "#F87171", fontSize: 11, fontWeight: "800" }}>↓</Text>
               </View>
@@ -369,16 +389,24 @@ export default function DashboardScreen() {
             { lab: "Despesas",  val: totDes,  color: "#FB7185", spark: sparklines.des,  cmp: cmpLine(monthCmp.des, true) },
             { lab: "Crédito",   val: totCred, color: "#F97316", spark: sparklines.cred, cmp: "gastos no crédito" },
             { lab: "Saldo",     val: saldo,   color: "#60A5FA", spark: sparklines.sal,  cmp: cmpLine(monthCmp.sal) },
-          ] as const).map(card => (
-            <View key={card.lab} style={[s.statCard, { borderBottomColor: card.color, borderBottomWidth: 3 }]}>
-              <Text style={s.statLab}>{card.lab}</Text>
-              <Text style={[s.statVal, { color: card.color }]} numberOfLines={1}>
-                {balanceHidden ? "•••" : fmt(Math.abs(card.val))}
-              </Text>
-              <Sparkline vals={card.spark} color={card.color} />
-              <Text style={s.statSub}>{card.cmp}</Text>
-            </View>
-          ))}
+          ] as const).map(card => {
+            const dest = card.lab === "Receitas" ? "Receitas" : card.lab === "Despesas" ? "Despesas" : null;
+            return (
+              <TouchableOpacity
+                key={card.lab}
+                style={[s.statCard, { borderBottomColor: card.color, borderBottomWidth: 3 }]}
+                activeOpacity={dest ? 0.7 : 1}
+                onPress={() => dest && rootNavigate(dest)}
+              >
+                <Text style={s.statLab}>{card.lab}</Text>
+                <Text style={[s.statVal, { color: card.color }]} numberOfLines={1}>
+                  {balanceHidden ? "•••" : fmt(Math.abs(card.val))}
+                </Text>
+                <Sparkline vals={card.spark} color={card.color} />
+                <Text style={s.statSub}>{card.cmp}</Text>
+              </TouchableOpacity>
+            );
+          })}
         </View>
 
         {/* Analytics tabs */}

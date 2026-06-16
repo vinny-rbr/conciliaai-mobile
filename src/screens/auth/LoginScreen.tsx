@@ -5,6 +5,7 @@ import {
 } from "react-native";
 import { apiUrl } from "../../lib/api";
 import { useAuth } from "../../context/AuthContext";
+import { saveEmail } from "../../lib/auth";
 
 export default function LoginScreen() {
   const { signIn } = useAuth();
@@ -31,6 +32,7 @@ export default function LoginScreen() {
       }
       const token = (data.token ?? data.accessToken ?? data.jwt) as string;
       if (!token) { Alert.alert("Erro", "Token não recebido."); return; }
+      await saveEmail(email.trim().toLowerCase());
       await signIn(token, data.user as Record<string, unknown>, data.planName as string);
     } catch {
       Alert.alert("Erro", "Não foi possível conectar ao servidor.");

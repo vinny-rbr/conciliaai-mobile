@@ -2,6 +2,7 @@ import { View, Text, TouchableOpacity, StyleSheet, Animated } from "react-native
 import type { BottomTabBarProps } from "@react-navigation/bottom-tabs";
 import { leftTranslateX, rightTranslateX, fabScale, fabOpacity } from "./tabBarScroll";
 import { fabRotation, fabTranslate, openFabAnim } from "./fabAnimState";
+import { getGroupFabAction } from "./groupFabAction";
 
 const ICONS: Record<string, string> = {
   Home: "⌂", Categorias: "◈", Grupos: "⊕", Planejamento: "≡",
@@ -72,8 +73,14 @@ function renderTab(route: typeof state.routes[0]) {
           style={s.fab}
           activeOpacity={0.85}
           onPress={() => {
-            openFabAnim();
-            setTimeout(() => navigation.getParent()?.navigate("AddTransaction" as never), 120);
+            const groupAction = getGroupFabAction();
+            const onGrupos = state.routes[state.index]?.name === "Grupos";
+            if (groupAction && onGrupos) {
+              groupAction();
+            } else {
+              openFabAnim();
+              setTimeout(() => navigation.getParent()?.navigate("AddTransaction" as never), 120);
+            }
           }}
         >
           <Animated.Text

@@ -1,0 +1,374 @@
+import { useCallback, useEffect, useMemo, useRef, useState } from "react";
+import {
+  ActivityIndicator, Animated, RefreshControl, ScrollView,
+  StyleSheet, Text, TouchableOpacity, View,
+} from "react-native";
+import { SafeAreaView } from "react-native-safe-area-context";
+import { useNavigation, useFocusEffect } from "@react-navigation/native";
+import type { NativeStackNavigationProp } from "@react-navigation/native-stack";
+import { fetchFinanceItems, fmt } from "../../lib/financeService";
+import { addMonthsYM, ymToLabel } from "../../lib/dateUtils";
+import { catIcon } from "../../lib/catUtils";
+import type { FinanceItem } from "../../types/finance";
+import type { RootStackParamList } from "../../navigation";
+
+type Props = { type: "RECEITA" | "DESPESA" };
+type NavProp = NativeStackNavigationProp<RootStackParamList>;
+
+const WEEK = ["Domingo","Segunda-Feira","Terça-Feira","Quarta-Feira","Quinta-Feira","Sexta-Feira","Sábado"];
+const MONTHS_PT = ["Janeiro","Fevereiro","Março","Abril","Maio","Junho",
+  "Julho","Agosto","Setembro","Outubro","Novembro","Dezembro"];
+
+function fullDateLabel(iso: string): string {
+  const [y, m, d] = iso.split("-").map(Number);
+  const date = new Date(y, m - 1, d);
+  return `${WEEK[date.getDay()]}, ${d} De ${MONTHS_PT[m - 1]}`;
+}
+
+function currentYM(): string {
+  const d = new Date();
+  return `${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, "0")}`;
+}
+
+const TABS = [
+  { name: "Home",        icon: "⌂",  label: "Início",    color: "#60A5FA", side: "left"  },
+  { name: "Categorias",  icon: "◈",  label: "Categorias",color: "#A78BFA", side: "left"  },
+  { name: "Grupos",      icon: "⊕",  label: "Grupos",    color: "#34D399", side: "right" },
+  { name: "Planejamento",icon: "≡",  label: "Planos",    color: "#FBBF24", side: "right" },
+] as const;
+
+export default function FinanceListScreen({ type }: Props) {
+  const isReceita = type === "RECEITA";
+  const navigation = useNavigation<NavProp>();
+  const [all, setAll] = useState<FinanceItem[]>([]);
+  const [loading, setLoading] = useState(true);
+  const [refreshing, setRefreshing] = useState(false);
+  const [month, setMonth] = useState(currentYM);
+
+  const fabTranslate = useRef(new Animated.Value(0)).current;
+  const fabRotation  = useRef(new Animated.Value(0)).current;
+
+  const load = useCallback(async (silent = false) => {
+    if (!silent) setLoading(true);
+    const data = await fetchFinanceItems();
+    setAll(data);
+    setLoading(false);
+    setRefreshing(false);
+  }, []);
+
+  useEffect(() => { void load(); }, [load]);
+
+  useFocusEffect(useCallback(() => { void load(true); }, [load]));
+
+  const onRefresh = useCallback(() => { setRefreshing(true); void load(true); }, [load]);
+
+  const monthItems = useMemo(
+    () => all.filter(it => it.type === type && it.dateISO.startsWith(month)),
+    [all, type, month],
+  );
+
+  const paid   = useMemo(() => monthItems.filter(it => it.status === "paid"),   [monthItems]);
+  const unpaid = useMemo(() => monthItems.filter(it => it.status !== "paid"),   [monthItems]);
+  const totalPaid   = paid.reduce((s, it) => s + it.amountCents, 0);
+  const totalUnpaid = unpaid.reduce((s, it) => s + it.amountCents, 0);
+
+  const groups = useMemo(() => {
+    const map = new Map<string, FinanceItem[]>();
+    for (const it of monthItems) {
+      const g = map.get(it.dateISO) ?? [];
+      g.push(it);
+      map.set(it.dateISO, g);
+    }
+    return [...map.entries()]
+      .sort(([a], [b]) => b.localeCompare(a))
+      .map(([date, items]) => ({
+        date,
+        items,
+        total: items.reduce((s, it) => s + it.amountCents, 0),
+      }));
+  }, [monthItems]);
+
+  const today = currentYM();
+  const maxMonth = addMonthsYM(today, 12);
+  const canNext = month < maxMonth;
+
+  const handleFabPress = () => {
+    Animated.parallel([
+      Animated.spring(fabRotation,  { toValue: 1, useNativeDriver: true, tension: 70, friction: 8 }),
+      Animated.spring(fabTranslate, { toValue: -60, useNativeDriver: true, tension: 70, friction: 8 }),
+    ]).start();
+    setTimeout(() => {
+      Animated.parallel([
+        Animated.spring(fabRotation,  { toValue: 0, useNativeDriver: true, tension: 70, friction: 8 }),
+        Animated.spring(fabTranslate, { toValue: 0,  useNativeDriver: true, tension: 70, friction: 8 }),
+      ]).start();
+      navigation.navigate("AddTransaction", { defaultType: type });
+    }, 120);
+  };
+
+  return (
+    <SafeAreaView style={s.root}>
+      {/* Header */}
+      <View style={s.header}>
+        <Text style={s.headerTitle}>{isReceita ? "Receitas" : "Despesas"}</Text>
+      </View>
+
+      {/* Month nav */}
+      <View style={s.monthNav}>
+        <TouchableOpacity style={s.monthBtn} onPress={() => setMonth(m => addMonthsYM(m, -1))}>
+          <Text style={s.monthBtnTxt}>‹</Text>
+        </TouchableOpacity>
+        <View style={s.monthCenter}>
+          <Text style={s.monthLabel}>{ymToLabel(month).split(" ")[0]}</Text>
+          <Text style={s.monthYear}>{ymToLabel(month).split(" ")[1]}</Text>
+        </View>
+        <TouchableOpacity
+          style={[s.monthBtn, !canNext && { opacity: 0.3 }]}
+          onPress={() => canNext && setMonth(m => addMonthsYM(m, 1))}
+          disabled={!canNext}
+        >
+          <Text style={s.monthBtnTxt}>›</Text>
+        </TouchableOpacity>
+      </View>
+
+      {/* Summary */}
+      <View style={s.summaryRow}>
+        <View style={s.summaryCard}>
+          <View style={s.summaryTop}>
+            <Text style={s.summaryIcon}>⏱</Text>
+            <Text style={s.summaryLbl}>{isReceita ? "A receber" : "A pagar"}</Text>
+          </View>
+          <Text style={[s.summaryVal, { color: "#F59E0B" }]}>{fmt(totalUnpaid)}</Text>
+        </View>
+        <View style={s.summaryDivider} />
+        <View style={s.summaryCard}>
+          <View style={s.summaryTop}>
+            <Text style={s.summaryIcon}>✓</Text>
+            <Text style={s.summaryLbl}>{isReceita ? "Recebido" : "Pago"}</Text>
+          </View>
+          <Text style={[s.summaryVal, { color: isReceita ? "#4ADE80" : "#60A5FA" }]}>{fmt(totalPaid)}</Text>
+        </View>
+      </View>
+
+      {/* List */}
+      {loading ? (
+        <View style={s.center}><ActivityIndicator color="#3B82F6" size="large" /></View>
+      ) : (
+        <ScrollView
+          contentContainerStyle={s.scroll}
+          refreshControl={<RefreshControl refreshing={refreshing} onRefresh={onRefresh} tintColor="#60A5FA" />}
+        >
+          {groups.length === 0 ? (
+            <View style={s.empty}>
+              <Text style={s.emptyTxt}>Nenhum lançamento em {ymToLabel(month)}.</Text>
+            </View>
+          ) : (
+            groups.map(({ date, items, total }) => (
+              <View key={date}>
+                <View style={s.dateHeader}>
+                  <Text style={s.dateLabel}>{fullDateLabel(date)}</Text>
+                  <Text style={s.dateTotal}>{fmt(total)}</Text>
+                </View>
+                {items.map(it => (
+                  <TouchableOpacity
+                    key={it.id}
+                    style={s.item}
+                    activeOpacity={0.7}
+                    onPress={() => navigation.navigate("AddTransaction", { editItem: it })}
+                  >
+                    <View style={[s.itemIcon, { backgroundColor: isReceita ? "rgba(74,222,128,.15)" : "rgba(248,113,113,.15)" }]}>
+                      <Text style={s.itemEmoji}>{catIcon(it.category)}</Text>
+                    </View>
+                    <View style={s.itemBody}>
+                      <Text style={s.itemTitle} numberOfLines={2}>{it.title}</Text>
+                      <Text style={s.itemCat}>{it.category}</Text>
+                    </View>
+                    <View style={s.itemRight}>
+                      <Text style={[s.itemAmt, { color: isReceita ? "#4ADE80" : "#F87171" }]}>
+                        {fmt(it.amountCents)}
+                      </Text>
+                      {it.status === "paid" && (
+                        <View style={[s.checkBadge, { backgroundColor: isReceita ? "rgba(74,222,128,.18)" : "rgba(96,165,250,.18)" }]}>
+                          <Text style={[s.checkTxt, { color: isReceita ? "#4ADE80" : "#60A5FA" }]}>✓</Text>
+                        </View>
+                      )}
+                    </View>
+                  </TouchableOpacity>
+                ))}
+              </View>
+            ))
+          )}
+        </ScrollView>
+      )}
+
+      {/* Tab bar */}
+      <View style={s.tabBarWrapper} pointerEvents="box-none">
+        <View style={s.pillRow}>
+          <View style={s.halfLeft}>
+            {TABS.filter(t => t.side === "left").map(t => (
+              <TouchableOpacity
+                key={t.name}
+                style={s.tab}
+                activeOpacity={0.7}
+                onPress={() => navigation.navigate("Tabs")}
+              >
+                <Text style={[s.tabIcon, { color: "#475569" }]}>{t.icon}</Text>
+                <Text style={[s.tabLabel, { color: "#475569" }]}>{t.label}</Text>
+              </TouchableOpacity>
+            ))}
+          </View>
+          <View style={s.halfRight}>
+            {TABS.filter(t => t.side === "right").map(t => (
+              <TouchableOpacity
+                key={t.name}
+                style={s.tab}
+                activeOpacity={0.7}
+                onPress={() => navigation.navigate("Tabs")}
+              >
+                <Text style={[s.tabIcon, { color: "#475569" }]}>{t.icon}</Text>
+                <Text style={[s.tabLabel, { color: "#475569" }]}>{t.label}</Text>
+              </TouchableOpacity>
+            ))}
+          </View>
+        </View>
+
+        <Animated.View
+          style={[s.fabWrap, { transform: [{ translateY: fabTranslate }] }]}
+          pointerEvents="box-none"
+        >
+          <TouchableOpacity style={s.fab} activeOpacity={0.85} onPress={handleFabPress}>
+            <Animated.Text
+              style={[s.fabTxt, {
+                transform: [{
+                  rotate: fabRotation.interpolate({ inputRange: [0, 1], outputRange: ["0deg", "45deg"] }),
+                }],
+              }]}
+            >
+              +
+            </Animated.Text>
+          </TouchableOpacity>
+        </Animated.View>
+      </View>
+    </SafeAreaView>
+  );
+}
+
+const PILL_BG   = "#0F172A";
+const PILL_BORD = "#1E293B";
+
+const s = StyleSheet.create({
+  root: { flex: 1, backgroundColor: "#0F172A" },
+  header: { paddingHorizontal: 20, paddingTop: 8, paddingBottom: 4 },
+  headerTitle: { fontSize: 24, fontWeight: "800", color: "#F1F5F9" },
+
+  monthNav: { flexDirection: "row", alignItems: "center", justifyContent: "center", paddingVertical: 12, gap: 24 },
+  monthBtn: { width: 36, height: 36, borderRadius: 18, backgroundColor: "#1E293B", alignItems: "center", justifyContent: "center" },
+  monthBtnTxt: { color: "#60A5FA", fontSize: 20, fontWeight: "700", lineHeight: 24 },
+  monthCenter: { alignItems: "center", minWidth: 140 },
+  monthLabel: { color: "#F1F5F9", fontSize: 18, fontWeight: "800" },
+  monthYear: { color: "#64748B", fontSize: 13, fontWeight: "500", marginTop: 1 },
+
+  summaryRow: { flexDirection: "row", marginHorizontal: 16, backgroundColor: "#1E293B", borderRadius: 16, marginBottom: 16, borderWidth: 1, borderColor: "#334155" },
+  summaryCard: { flex: 1, padding: 16 },
+  summaryDivider: { width: 1, backgroundColor: "#334155", marginVertical: 12 },
+  summaryTop: { flexDirection: "row", alignItems: "center", gap: 6, marginBottom: 8 },
+  summaryIcon: { fontSize: 14, color: "#94A3B8" },
+  summaryLbl: { color: "#94A3B8", fontSize: 13, fontWeight: "600" },
+  summaryVal: { fontSize: 18, fontWeight: "800" },
+
+  center: { flex: 1, justifyContent: "center", alignItems: "center" },
+  scroll: { paddingHorizontal: 16, paddingBottom: 120 },
+
+  empty: { alignItems: "center", marginTop: 60 },
+  emptyTxt: { color: "#64748B", fontSize: 15 },
+
+  dateHeader: { flexDirection: "row", justifyContent: "space-between", alignItems: "center", paddingVertical: 10, paddingHorizontal: 4 },
+  dateLabel: { color: "#94A3B8", fontSize: 13, fontWeight: "700" },
+  dateTotal: { color: "#64748B", fontSize: 13 },
+
+  item: { flexDirection: "row", alignItems: "center", backgroundColor: "#1E293B", borderRadius: 14, padding: 14, marginBottom: 8, gap: 12, borderWidth: 1, borderColor: "#334155" },
+  itemIcon: { width: 44, height: 44, borderRadius: 12, alignItems: "center", justifyContent: "center" },
+  itemEmoji: { fontSize: 20 },
+  itemBody: { flex: 1 },
+  itemTitle: { color: "#F1F5F9", fontSize: 14, fontWeight: "600", lineHeight: 20 },
+  itemCat: { color: "#64748B", fontSize: 12, marginTop: 2 },
+  itemRight: { alignItems: "flex-end", gap: 6 },
+  itemAmt: { fontSize: 15, fontWeight: "700" },
+  checkBadge: { width: 22, height: 22, borderRadius: 11, alignItems: "center", justifyContent: "center" },
+  checkTxt: { fontSize: 12, fontWeight: "800" },
+
+  // Tab bar
+  tabBarWrapper: {
+    position: "absolute",
+    bottom: 20,
+    left: 12,
+    right: 12,
+    alignItems: "center",
+  },
+  pillRow: {
+    width: "100%",
+    flexDirection: "row",
+    shadowColor: "#000",
+    shadowOpacity: 0.4,
+    shadowRadius: 16,
+    shadowOffset: { width: 0, height: 6 },
+    elevation: 12,
+  },
+  halfLeft: {
+    flex: 1,
+    flexDirection: "row",
+    backgroundColor: PILL_BG,
+    borderTopLeftRadius: 28,
+    borderBottomLeftRadius: 28,
+    borderTopRightRadius: 0,
+    borderBottomRightRadius: 0,
+    borderWidth: 1,
+    borderRightWidth: 0,
+    borderColor: PILL_BORD,
+    paddingVertical: 10,
+    paddingLeft: 4,
+    paddingRight: 4,
+    marginRight: -1,
+    zIndex: 1,
+  },
+  halfRight: {
+    flex: 1,
+    flexDirection: "row",
+    backgroundColor: PILL_BG,
+    borderTopRightRadius: 28,
+    borderBottomRightRadius: 28,
+    borderTopLeftRadius: 0,
+    borderBottomLeftRadius: 0,
+    borderWidth: 1,
+    borderLeftWidth: 0,
+    borderColor: PILL_BORD,
+    paddingVertical: 10,
+    paddingLeft: 4,
+    paddingRight: 4,
+  },
+  tab: { flex: 1, alignItems: "center", gap: 3, paddingVertical: 4 },
+  tabIcon:  { fontSize: 18, fontWeight: "600" },
+  tabLabel: { fontSize: 10, fontWeight: "700" },
+
+  fabWrap: {
+    position: "absolute",
+    top: -16,
+    alignSelf: "center",
+  },
+  fab: {
+    width: 60,
+    height: 60,
+    borderRadius: 30,
+    backgroundColor: "#3B82F6",
+    justifyContent: "center",
+    alignItems: "center",
+    borderWidth: 3,
+    borderColor: "#1e3a8a",
+    shadowColor: "#3B82F6",
+    shadowOpacity: 0.65,
+    shadowRadius: 18,
+    shadowOffset: { width: 0, height: 4 },
+    elevation: 16,
+  },
+  fabTxt: { color: "#fff", fontSize: 30, fontWeight: "300", lineHeight: 34 },
+});

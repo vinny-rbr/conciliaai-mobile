@@ -37,3 +37,17 @@ export async function updateBankAccount(id: string, data: {
   });
   return res.ok;
 }
+
+export async function transferBetweenAccounts(fromId: string, toId: string, amountCents: number): Promise<void> {
+  const token = await getToken();
+  if (!token) throw new Error("Não autenticado.");
+  const res = await fetch(apiUrl("/api/bank-accounts/transfer"), {
+    method: "POST",
+    headers: { Authorization: `Bearer ${token}`, "Content-Type": "application/json" },
+    body: JSON.stringify({ fromId, toId, amountCents }),
+  });
+  if (!res.ok) {
+    const err = await res.json().catch(() => ({})) as { message?: string };
+    throw new Error(err.message ?? `Erro ${res.status}`);
+  }
+}

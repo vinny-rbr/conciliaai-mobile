@@ -1,8 +1,9 @@
 import { useState } from "react";
 import {
   View, Text, ScrollView, TouchableOpacity,
-  Modal, TextInput, ActivityIndicator, Dimensions,
+  Modal, TextInput, ActivityIndicator, Dimensions, Alert,
 } from "react-native";
+import TransferenciaModal from "../TransferenciaModal";
 import { fmt } from "../../lib/financeService";
 import { createBankAccount, updateBankAccount } from "../../lib/bankAccountsService";
 import type { BankAccount, FinanceItem } from "../../types/finance";
@@ -91,12 +92,11 @@ export function BankCardVisual({ account, hidden, dimmed = false, bgOverride, sh
       {showBalance && (
         <View style={{ flex: 1, justifyContent: "flex-end", paddingBottom: 10 }}>
           {(() => {
-            const displayCents = account.balanceCents !== 0 ? account.balanceCents : (computedCents ?? 0);
-            const isComputed = account.balanceCents === 0 && (computedCents ?? 0) !== 0;
+            const displayCents = account.balanceCents + (computedCents ?? 0);
             return (
               <>
                 <Text style={{ color: "rgba(255,255,255,0.5)", fontSize: 10, fontWeight: "700", letterSpacing: 1, textTransform: "uppercase" }}>
-                  {isComputed ? "Saldo calculado" : "Saldo disponível"}
+                  Saldo disponível
                 </Text>
                 {hidden ? (
                   <Text style={{ color: "#fff", fontSize: 22, fontWeight: "800", marginTop: 3 }}>R$ ••••••</Text>
@@ -140,6 +140,140 @@ export function computeAccountBalance(accountId: string, items: FinanceItem[]): 
   return rec - des;
 }
 
+export function NovoBancoModal({ visible, onClose, onSaved }: { visible: boolean; onClose: () => void; onSaved: () => void }) {
+  const [step, setStep]           = useState<0 | 1>(0);
+  const [selBank, setSelBank]     = useState<BankListItem | null>(null);
+  const [nick, setNick]           = useState("");
+  const [type, setType]           = useState<"corrente" | "poupanca" | "credito">("corrente");
+  const [color, setColor]         = useState("default");
+  const [balance, setBalance]     = useState("");
+  const [saving, setSaving]       = useState(false);
+
+  function reset() { setStep(0); setSelBank(null); setNick(""); setType("corrente"); setColor("default"); setBalance(""); }
+  function close() { reset(); onClose(); }
+
+  async function handleSave() {
+    if (!selBank || !nick.trim()) return;
+    setSaving(true);
+    const balanceCents = balance.trim() ? Math.round(parseFloat(balance.replace(",", ".")) * 100) : 0;
+    const ok = await createBankAccount({
+      bank: selBank.name, nick: nick.trim(), accountType: type,
+      face: color !== "default" ? color : undefined,
+      balanceCents: isNaN(balanceCents) ? 0 : balanceCents,
+    });
+    setSaving(false);
+    if (ok) { close(); onSaved(); }
+    else Alert.alert("Erro", "Não foi possível salvar a conta.");
+  }
+
+  const previewAcc: BankAccount = {
+    id: "preview", userId: "", nick: nick || selBank?.name || "",
+    bank: selBank?.name ?? "", accountType: type, last4: "0000", balanceCents: 0,
+  };
+
+  return (
+    <Modal visible={visible} transparent animationType="slide" onRequestClose={close}>
+      <View style={{ flex: 1, backgroundColor: "rgba(0,0,0,0.65)", justifyContent: "flex-end" }}>
+        <View style={{ backgroundColor: "#0F172A", borderTopLeftRadius: 24, borderTopRightRadius: 24, maxHeight: "92%" }}>
+          <View style={{ width: 40, height: 4, borderRadius: 2, backgroundColor: "#334155", alignSelf: "center", marginTop: 12, marginBottom: 4 }} />
+
+          {step === 0 ? (
+            <>
+              <View style={{ flexDirection: "row", justifyContent: "space-between", alignItems: "center", paddingHorizontal: 20, paddingTop: 10, paddingBottom: 6 }}>
+                <View>
+                  <Text style={{ color: "#F1F5F9", fontSize: 18, fontWeight: "800" }}>Adicionar banco</Text>
+                  <Text style={{ color: "#64748B", fontSize: 12, marginTop: 3 }}>Escolha a instituição. Pode cadastrar quantos quiser.</Text>
+                </View>
+                <TouchableOpacity onPress={close}
+                  style={{ width: 36, height: 36, borderRadius: 18, backgroundColor: "#1E293B", justifyContent: "center", alignItems: "center", borderWidth: 1, borderColor: "#334155" }}>
+                  <Text style={{ color: "#94A3B8", fontSize: 16, fontWeight: "700" }}>✕</Text>
+                </TouchableOpacity>
+              </View>
+              <ScrollView contentContainerStyle={{ paddingHorizontal: 16, paddingBottom: 40, paddingTop: 8 }} showsVerticalScrollIndicator={false}>
+                <View style={{ flexDirection: "row", flexWrap: "wrap", gap: 10 }}>
+                  {BANKS_LIST.map(bank => (
+                    <TouchableOpacity key={bank.key}
+                      style={{ width: "47%", flexDirection: "row", alignItems: "center", gap: 10, backgroundColor: "#1E293B", borderRadius: 14, padding: 14, borderWidth: 1, borderColor: "#334155" }}
+                      activeOpacity={0.7}
+                      onPress={() => { setSelBank(bank); setNick(bank.name); setStep(1); }}
+                    >
+                      <View style={{ width: 40, height: 40, borderRadius: 10, backgroundColor: bank.logoBg, justifyContent: "center", alignItems: "center" }}>
+                        <Text style={{ color: bank.logoColor, fontSize: bank.logoText.length <= 2 ? 14 : 10, fontWeight: "900" }}>{bank.logoText}</Text>
+                      </View>
+                      <Text style={{ color: "#F1F5F9", fontSize: 14, fontWeight: "700", flex: 1 }} numberOfLines={1}>{bank.name}</Text>
+                    </TouchableOpacity>
+                  ))}
+                </View>
+              </ScrollView>
+            </>
+          ) : (
+            <ScrollView contentContainerStyle={{ paddingHorizontal: 20, paddingBottom: 40 }} showsVerticalScrollIndicator={false} keyboardShouldPersistTaps="handled">
+              <View style={{ flexDirection: "row", alignItems: "center", gap: 12, paddingTop: 10, paddingBottom: 16 }}>
+                <TouchableOpacity onPress={() => setStep(0)}
+                  style={{ width: 36, height: 36, borderRadius: 12, backgroundColor: "#1E293B", justifyContent: "center", alignItems: "center" }}>
+                  <Text style={{ color: "#94A3B8", fontSize: 18, fontWeight: "700" }}>‹</Text>
+                </TouchableOpacity>
+                <View>
+                  <Text style={{ color: "#F1F5F9", fontSize: 18, fontWeight: "800" }}>{selBank?.name}</Text>
+                  <Text style={{ color: "#64748B", fontSize: 12 }}>Como você quer chamar essa conta?</Text>
+                </View>
+              </View>
+
+              <View style={{ alignItems: "center", marginBottom: 20 }}>
+                <BankCardVisual account={previewAcc} hidden={false} bgOverride={color !== "default" ? color : undefined} showBalance={false} />
+              </View>
+
+              <Text style={{ color: "#94A3B8", fontSize: 13, fontWeight: "700", marginBottom: 8 }}>Apelido da conta</Text>
+              <TextInput value={nick} onChangeText={setNick} placeholder="Ex: Conta pessoal" placeholderTextColor="#475569"
+                style={{ backgroundColor: "#1E293B", borderRadius: 14, padding: 16, color: "#F1F5F9", fontSize: 15, fontWeight: "600", marginBottom: 16, borderWidth: 1, borderColor: "#334155" }} />
+
+              <Text style={{ color: "#94A3B8", fontSize: 13, fontWeight: "700", marginBottom: 8 }}>Saldo inicial <Text style={{ color: "#475569", fontWeight: "400" }}>(opcional)</Text></Text>
+              <View style={{ backgroundColor: "#1E293B", borderRadius: 14, marginBottom: 16, borderWidth: 1, borderColor: "#334155", flexDirection: "row", alignItems: "center", paddingHorizontal: 16 }}>
+                <Text style={{ color: "#64748B", fontSize: 16, fontWeight: "700", marginRight: 4 }}>R$</Text>
+                <TextInput value={balance} onChangeText={t => setBalance(t.replace(/[^0-9.,]/g, ""))} placeholder="0,00"
+                  placeholderTextColor="#475569" keyboardType="decimal-pad"
+                  style={{ flex: 1, padding: 14, color: "#F1F5F9", fontSize: 18, fontWeight: "700" }} />
+              </View>
+
+              <Text style={{ color: "#94A3B8", fontSize: 13, fontWeight: "700", marginBottom: 8 }}>Tipo de conta</Text>
+              <View style={{ flexDirection: "row", gap: 8, marginBottom: 16 }}>
+                {(["corrente", "poupanca", "credito"] as const).map(t => {
+                  const label = t === "corrente" ? "Conta corrente" : t === "poupanca" ? "Poupança" : "Cartão de crédito";
+                  const active = type === t;
+                  return (
+                    <TouchableOpacity key={t} onPress={() => setType(t)}
+                      style={{ flex: 1, paddingVertical: 10, borderRadius: 12, alignItems: "center", backgroundColor: active ? "#2563EB" : "#1E293B", borderWidth: 1, borderColor: active ? "#3B82F6" : "#334155" }}>
+                      <Text style={{ color: active ? "#fff" : "#94A3B8", fontSize: 11, fontWeight: "700" }}>{label}</Text>
+                    </TouchableOpacity>
+                  );
+                })}
+              </View>
+
+              <Text style={{ color: "#94A3B8", fontSize: 13, fontWeight: "700", marginBottom: 10 }}>Cor do cartão</Text>
+              <View style={{ flexDirection: "row", gap: 10, marginBottom: 24 }}>
+                {CARD_COLORS.map(c => {
+                  const active = color === c.key;
+                  return (
+                    <TouchableOpacity key={c.key} onPress={() => setColor(c.key)}
+                      style={{ width: 44, height: 44, borderRadius: 14, overflow: "hidden", borderWidth: active ? 2.5 : 1.5, borderColor: active ? "#F1F5F9" : "transparent" }}>
+                      <View style={{ flex: 1, backgroundColor: c.key === "default" ? (selBank?.bg ?? "#334155") : c.key }} />
+                    </TouchableOpacity>
+                  );
+                })}
+              </View>
+
+              <TouchableOpacity onPress={() => void handleSave()} disabled={saving || !nick.trim()}
+                style={{ backgroundColor: saving || !nick.trim() ? "#1E293B" : "#D97706", borderRadius: 16, padding: 17, alignItems: "center" }}>
+                {saving ? <ActivityIndicator color="#fff" size="small" /> : <Text style={{ color: saving || !nick.trim() ? "#475569" : "#fff", fontSize: 16, fontWeight: "800" }}>Salvar conta</Text>}
+              </TouchableOpacity>
+            </ScrollView>
+          )}
+        </View>
+      </View>
+    </Modal>
+  );
+}
+
 export function BankCarousel({ accounts, hidden, onSaved, items }: { accounts: BankAccount[]; hidden: boolean; onSaved: () => void; items: FinanceItem[] }) {
   const [activeIdx, setActiveIdx]   = useState(0);
   const [expanded, setExpanded]     = useState(false);
@@ -154,6 +288,7 @@ export function BankCarousel({ accounts, hidden, onSaved, items }: { accounts: B
   const [addColor, setAddColor]     = useState("default");
   const [addBalance, setAddBalance] = useState("");
   const [saving, setSaving]         = useState(false);
+  const [showTransferencia, setShowTransferencia] = useState(false);
   // Editar saldo de conta existente
   const [editBalanceAcc, setEditBalanceAcc]   = useState<BankAccount | null>(null);
   const [editBalanceVal, setEditBalanceVal]   = useState("");
@@ -307,8 +442,7 @@ export function BankCarousel({ accounts, hidden, onSaved, items }: { accounts: B
               {accounts.map(acc => {
                 const cfg = getBankCfg(acc.bank);
                 const computedAcc = computeAccountBalance(acc.id, items);
-                const displayBalance = acc.balanceCents !== 0 ? acc.balanceCents : computedAcc;
-                const isComputed = acc.balanceCents === 0 && computedAcc !== 0;
+                const displayBalance = acc.balanceCents + computedAcc;
                 const hasAnyBalance = displayBalance !== 0;
                 return (
                   <View key={acc.id} style={{ backgroundColor: "#1E293B", borderRadius: 14, marginBottom: 8, borderWidth: 1, borderColor: "#334155", overflow: "hidden" }}>
@@ -323,31 +457,31 @@ export function BankCarousel({ accounts, hidden, onSaved, items }: { accounts: B
                         <Text style={{ color: "#64748B", fontSize: 12, marginTop: 2 }}>
                           {acc.accountType === "credito" ? "Cartão de crédito" : acc.accountType === "poupanca" ? "Poupança" : "Conta corrente"} · •••{acc.last4 || "----"}
                         </Text>
-                        {isComputed && <Text style={{ color: "#475569", fontSize: 10, marginTop: 1 }}>calculado dos lançamentos</Text>}
                       </View>
                       <View style={{ alignItems: "flex-end", gap: 4 }}>
-                        <Text style={{ color: hasAnyBalance ? (isComputed ? "#94A3B8" : "#F1F5F9") : "#475569", fontSize: 15, fontWeight: "700" }}>
+                        <Text style={{ color: hasAnyBalance ? "#F1F5F9" : "#475569", fontSize: 15, fontWeight: "700" }}>
                           {hidden ? "•••" : hasAnyBalance ? fmt(displayBalance) : "—"}
                         </Text>
                         <Text style={{ color: "#475569", fontSize: 18, lineHeight: 18 }}>›</Text>
                       </View>
                     </TouchableOpacity>
-                    {/* Botão definir saldo só quando nem saldo real nem calculado existe */}
-                    {!hasAnyBalance && (
-                      <TouchableOpacity
-                        onPress={() => { setEditBalanceAcc(acc); setEditBalanceVal(""); setAccountsOpen(false); }}
-                        style={{ backgroundColor: "#1D4ED822", borderTopWidth: 1, borderTopColor: "#334155", paddingVertical: 10, alignItems: "center", flexDirection: "row", justifyContent: "center", gap: 6 }}
-                        activeOpacity={0.7}
-                      >
-                        <Text style={{ color: "#60A5FA", fontSize: 12, fontWeight: "700" }}>✏ Definir saldo desta conta</Text>
-                      </TouchableOpacity>
-                    )}
+                    <TouchableOpacity
+                      onPress={() => { setEditBalanceAcc(acc); setEditBalanceVal(""); setAccountsOpen(false); }}
+                      style={{ backgroundColor: "#1D4ED822", borderTopWidth: 1, borderTopColor: "#334155", paddingVertical: 10, alignItems: "center", flexDirection: "row", justifyContent: "center", gap: 6 }}
+                      activeOpacity={0.7}
+                    >
+                      <Text style={{ color: "#60A5FA", fontSize: 12, fontWeight: "700" }}>
+                        {hasAnyBalance ? "✏ Atualizar saldo" : "✏ Definir saldo desta conta"}
+                      </Text>
+                    </TouchableOpacity>
                   </View>
                 );
               })}
-              <TouchableOpacity style={{ backgroundColor: "#1E293B", borderRadius: 14, padding: 16, alignItems: "center", marginTop: 4, marginBottom: 8, borderWidth: 1, borderColor: "#1D4ED844", flexDirection: "row", justifyContent: "center", gap: 10 }}>
-                <Text style={{ color: "#60A5FA", fontSize: 17 }}>⇄</Text>
-                <Text style={{ color: "#60A5FA", fontSize: 14, fontWeight: "700" }}>Transferência entre contas</Text>
+              <TouchableOpacity
+                onPress={() => { setAccountsOpen(false); setShowTransferencia(true); }}
+                style={{ backgroundColor: "#1E293B", borderRadius: 14, padding: 16, alignItems: "center", marginTop: 4, marginBottom: 8, borderWidth: 1, borderColor: "#14B8A633", flexDirection: "row", justifyContent: "center", gap: 10 }}>
+                <Text style={{ color: "#2DD4BF", fontSize: 17 }}>⇄</Text>
+                <Text style={{ color: "#2DD4BF", fontSize: 14, fontWeight: "700" }}>Transferência entre contas</Text>
               </TouchableOpacity>
               <TouchableOpacity onPress={() => { setAccountsOpen(false); openAdd(); }}
                 style={{ backgroundColor: "#2563EB", borderRadius: 14, padding: 16, alignItems: "center" }}>
@@ -537,6 +671,12 @@ export function BankCarousel({ accounts, hidden, onSaved, items }: { accounts: B
           </View>
         </View>
       </Modal>
+
+      <TransferenciaModal
+        visible={showTransferencia}
+        onClose={() => setShowTransferencia(false)}
+        onDone={() => { setShowTransferencia(false); onSaved(); }}
+      />
     </View>
   );
 }
