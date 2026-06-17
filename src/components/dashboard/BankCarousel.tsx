@@ -274,7 +274,7 @@ export function NovoBancoModal({ visible, onClose, onSaved }: { visible: boolean
   );
 }
 
-export function BankCarousel({ accounts, hidden, onSaved, items }: { accounts: BankAccount[]; hidden: boolean; onSaved: () => void; items: FinanceItem[] }) {
+export function BankCarousel({ accounts, hidden, onSaved, onBalanceSaved, items }: { accounts: BankAccount[]; hidden: boolean; onSaved: () => void; onBalanceSaved?: () => void; items: FinanceItem[] }) {
   const [activeIdx, setActiveIdx]   = useState(0);
   const [expanded, setExpanded]     = useState(false);
   // Modal: lista de contas
@@ -322,7 +322,7 @@ export function BankCarousel({ accounts, hidden, onSaved, items }: { accounts: B
     const cents = Math.round(parseFloat(editBalanceVal.replace(",", ".")) * 100);
     const ok = await updateBankAccount(editBalanceAcc.id, { balanceCents: isNaN(cents) ? 0 : cents });
     setSavingBalance(false);
-    if (ok) { setEditBalanceAcc(null); setEditBalanceVal(""); onSaved(); }
+    if (ok) { setEditBalanceAcc(null); setEditBalanceVal(""); (onBalanceSaved ?? onSaved)(); }
   }
 
   // Preview account for step 2

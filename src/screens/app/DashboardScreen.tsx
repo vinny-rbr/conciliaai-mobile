@@ -84,7 +84,7 @@ export default function DashboardScreen() {
     return `${d.getFullYear()}-${String(d.getMonth()+1).padStart(2,"0")}`;
   }, []);
 
-  async function load(silent = false) {
+  async function load(silent = false, skipAutoSync = false) {
     if (!silent) setLoading(true);
     const [data, accs, plan] = await Promise.all([
       fetchFinanceItems(),
@@ -92,18 +92,20 @@ export default function DashboardScreen() {
       getPlanName(),
     ]);
 
-    // Auto-sync: se só uma conta tem saldo definido, alinha com cumRec-cumDes
-    // Usa o mesmo filtro do heroData: itens com dateISO < próximo mês
-    const _now = new Date();
-    const _next = new Date(_now.getFullYear(), _now.getMonth() + 1, 1);
-    const _endExcl = `${_next.getFullYear()}-${String(_next.getMonth() + 1).padStart(2, "0")}`;
-    const cumBalance = data
-      .filter(it => it.dateISO < _endExcl)
-      .reduce((s, it) => s + (it.type === "RECEITA" ? it.amountCents : -it.amountCents), 0);
-    const nonZero = accs.filter(a => a.balanceCents !== 0);
-    if (nonZero.length === 1 && nonZero[0].balanceCents !== cumBalance) {
-      nonZero[0].balanceCents = cumBalance;
-      void updateBankAccount(nonZero[0].id, { balanceCents: cumBalance });
+    // Auto-sync: alinha saldo do único banco com cumRec-cumDes.
+    // Não roda quando skipAutoSync=true (ex: após salvar saldo manual).
+    if (!skipAutoSync) {
+      const _now = new Date();
+      const _next = new Date(_now.getFullYear(), _now.getMonth() + 1, 1);
+      const _endExcl = `${_next.getFullYear()}-${String(_next.getMonth() + 1).padStart(2, "0")}`;
+      const cumBalance = data
+        .filter(it => it.dateISO < _endExcl)
+        .reduce((s, it) => s + (it.type === "RECEITA" ? it.amountCents : -it.amountCents), 0);
+      const nonZero = accs.filter(a => a.balanceCents !== 0);
+      if (nonZero.length === 1 && nonZero[0].balanceCents !== cumBalance) {
+        nonZero[0].balanceCents = cumBalance;
+        void updateBankAccount(nonZero[0].id, { balanceCents: cumBalance });
+      }
     }
 
     setItems(data);
@@ -114,7 +116,7 @@ export default function DashboardScreen() {
   }
 
   useEffect(() => { void load(); }, []);
-  useFocusEffect(useCallback(() => { void load(true); }, []));
+  useFocusEffect(useCallback(() => { void load(true, true); }, [])); // skipAutoSync=true: preserva saldo manual
   const onRefresh = useCallback(() => { setRefreshing(true); void load(true); }, []);
 
   // Hero card data
@@ -379,7 +381,7 @@ export default function DashboardScreen() {
             <Text style={s.bankCardAddTxt}>Adicionar banco</Text>
           </TouchableOpacity>
         ) : (
-          <BankCarousel accounts={accounts} hidden={balanceHidden} onSaved={() => void load(true)} items={items} />
+          <BankCarousel accounts={accounts} hidden={balanceHidden} onSaved={() => void load(true)} onBalanceSaved={() => void load(true, true)} items={items} />
         )}
 
         {/* 4 summary cards */}

@@ -10,10 +10,11 @@ import {
   listGroups, createGroup, deleteGroup,
   fetchMembers, addMember, removeMember,
   fetchExpenses, fetchBalances, createExpense, updateExpense, deleteExpense,
-  recordSettlement, createPersonalExpense,
+  recordSettlement, createPersonalExpense, deletePersonalExpense, fetchPersonalExpenseAmount, cleanupLegacyExpenseType,
 } from "../../lib/groupsService";
 import { getEmailFromAnySource } from "../../lib/auth";
-import { fmt } from "../../lib/financeService";
+import { fmt, fetchFinanceItems } from "../../lib/financeService";
+import { listBankAccounts } from "../../lib/bankAccountsService";
 import type { GroupDto, GroupMember, GroupExpense, GroupMemberBalance, ExpenseParticipantInput } from "../../lib/groupsService";
 import Svg, { Circle, Path } from "react-native-svg";
 import { setGroupFabAction } from "../../navigation/groupFabAction";
@@ -26,7 +27,7 @@ type ExpTab     = "avulsa" | "casa";
 
 // ── Storage helpers (split config per group) ─────────────────────────
 function storageKey(groupId: string, suffix: string) {
-  return `conciliaai:g:${groupId}:${suffix}`;
+  return `conciliaai.g.${groupId}.${suffix}`;
 }
 async function loadSplitMode(groupId: string): Promise<SplitMode> {
   const v = await SecureStore.getItemAsync(storageKey(groupId, "mode")).catch(() => null);
@@ -314,6 +315,9 @@ export default function GruposScreen() {
 
   // ── Current user in group context ────────────────────────────────
   const [myUserId, setMyUserId] = useState<string | null>(null);
+  const [primaryAccountId,   setPrimaryAccountId]   = useState<string | null>(null);
+  const [primaryAccountName, setPrimaryAccountName] = useState<string | null>(null);
+  const [myPaidAccountName,  setMyPaidAccountName]  = useState<string | null>(null);
 
   // ── Donut selection ─────────────────────────────────────────────
   const [selectedDonutId, setSelectedDonutId] = useState<string | null>(null);
@@ -339,8 +343,11 @@ export default function GruposScreen() {
   const [savingExp,     setSavingExp]     = useState(false);
 
   const [showBase,      setShowBase]      = useState(false);
-  const [confirmPay,    setConfirmPay]    = useState<{ label: string; onConfirm: () => Promise<void> } | null>(null);
+  const [confirmPay,    setConfirmPay]    = useState<{ title?: string; label: string; confirmLabel?: string; danger?: boolean; onConfirm: () => Promise<void> } | null>(null);
   const [confirmLoading, setConfirmLoading] = useState(false);
+  // expenseId created when creditor confirms payment — persisted to avoid double payment
+  const [myPaidExpenseId,    setMyPaidExpenseId]    = useState<string | null>(null);
+  const [myPaidAmountCents,  setMyPaidAmountCents]  = useState<number | null>(null);
   const [editSalaries,  setEditSalaries]  = useState<Record<string, string>>({});
   const [editPercents,  setEditPercents]  = useState<Record<string, string>>({});
   const [savingBase,    setSavingBase]    = useState(false);
@@ -362,7 +369,21 @@ export default function GruposScreen() {
     finally { setLoadingGroups(false); setRefreshing(false); }
   }, []);
 
-  useEffect(() => { void loadGroups(); }, []);
+  useEffect(() => {
+    void loadGroups();
+    void listBankAccounts().then(accs => {
+      const first = accs.find(a => a.accountType !== "credito") ?? accs[0];
+      if (first) { setPrimaryAccountId(first.id); setPrimaryAccountName(first.nick || first.bank); }
+    });
+    // One-time cleanup: delete legacy finance items with type "expense"/"income" (lowercase)
+    // created during early testing before type was normalized to "DESPESA"/"RECEITA"
+    void SecureStore.getItemAsync("conciliaai.cleanup.legacyType.v1").then(done => {
+      if (done) return;
+      void cleanupLegacyExpenseType().then(n => {
+        if (n >= 0) void SecureStore.setItemAsync("conciliaai.cleanup.legacyType.v1", "1");
+      });
+    });
+  }, []);
 
   // Register FAB action while inside a group detail; clear when back to list
   useEffect(() => {
@@ -414,12 +435,32 @@ export default function GruposScreen() {
 
   function openGroup(g: GroupDto) {
     setSelected(g); setDetailTab("resumo");
+    setMyPaidExpenseId(null); setMyPaidAmountCents(null); setMyPaidAccountName(null);
+    void Promise.all([
+      SecureStore.getItemAsync(`conciliaai.g.${g.id}.mypaid`),
+      SecureStore.getItemAsync(`conciliaai.g.${g.id}.mypacc`),
+      SecureStore.getItemAsync(`conciliaai.g.${g.id}.mypaidamt`),
+    ]).then(async ([expId, accName, paidAmt]) => {
+      if (expId) setMyPaidExpenseId(expId);
+      if (accName) setMyPaidAccountName(accName);
+      if (paidAmt) {
+        setMyPaidAmountCents(parseInt(paidAmt, 10));
+      } else if (expId) {
+        // Old payment — amount not yet tracked. Search in full finance list.
+        const amt = await fetchPersonalExpenseAmount(expId).catch(() => null)
+          ?? await fetchFinanceItems().then(items => items.find(i => i.id === expId)?.amountCents ?? null).catch(() => null);
+        if (amt !== null) {
+          setMyPaidAmountCents(amt);
+          await SecureStore.setItemAsync(`conciliaai.g.${g.id}.mypaidamt`, String(amt)).catch(() => {});
+        }
+      }
+    });
     void loadDetail(g);
   }
 
   function closeDetail() {
     setSelected(null); setMembers([]); setExpenses([]); setBalances([]);
-    setSelectedDonutId(null);
+    setSelectedDonutId(null); setMyPaidExpenseId(null); setMyPaidAmountCents(null); setMyPaidAccountName(null);
   }
 
   // ── Month split calculation ───────────────────────────────────────
@@ -563,15 +604,18 @@ export default function GruposScreen() {
     finally { setSavingExp(false); }
   }
 
-  async function handleDeleteExp(exp: GroupExpense) {
+  function handleDeleteExp(exp: GroupExpense) {
     if (!selected) return;
-    Alert.alert("Excluir despesa?", `"${exp.description}" — ${fmt(exp.amountCents)}`, [
-      { text: "Cancelar", style: "cancel" },
-      { text: "Excluir", style: "destructive", onPress: async () => {
-        try { await deleteExpense(exp.id); await loadDetail(selected); }
-        catch (e) { Alert.alert("Erro", e instanceof Error ? e.message : "Erro ao excluir."); }
-      }},
-    ]);
+    setConfirmPay({
+      title: "Excluir despesa?",
+      label: `"${exp.description}" — ${fmt(exp.amountCents)}\n\nEssa ação não pode ser desfeita.`,
+      confirmLabel: "Excluir",
+      danger: true,
+      onConfirm: async () => {
+        await deleteExpense(exp.id);
+        await loadDetail(selected);
+      },
+    });
   }
 
   // ── Mark settlement as paid ──────────────────────────────────────
@@ -584,12 +628,19 @@ export default function GruposScreen() {
           fromUserId: st.fromId, toUserId: st.toId,
           amountCents: st.cents, date: new Date().toISOString(),
         });
-        await createPersonalExpense({
+        const { id } = await createPersonalExpense({
           title: `Acerto grupo "${selected.name}" → ${st.to}`,
           amountCents: st.cents,
           date: new Date().toISOString().slice(0, 10),
           category: "Transferências",
+          accountId: primaryAccountId ?? undefined,
         });
+        setMyPaidExpenseId(id);
+        setMyPaidAmountCents(st.cents);
+        setMyPaidAccountName(primaryAccountName);
+        await SecureStore.setItemAsync(`conciliaai.g.${selected.id}.mypaid`, id);
+        await SecureStore.setItemAsync(`conciliaai.g.${selected.id}.mypaidamt`, String(st.cents));
+        if (primaryAccountName) await SecureStore.setItemAsync(`conciliaai.g.${selected.id}.mypacc`, primaryAccountName);
         await loadDetail(selected);
       },
     });
@@ -600,12 +651,61 @@ export default function GruposScreen() {
     setConfirmPay({
       label: `Registrar sua parte de ${fmt(shareCents)} no grupo?\n\nSerá lançado como saída na sua conta.`,
       onConfirm: async () => {
-        await createPersonalExpense({
+        const { id } = await createPersonalExpense({
           title: `Minha parte grupo "${selected.name}"`,
           amountCents: shareCents,
           date: new Date().toISOString().slice(0, 10),
           category: "Transferências",
+          accountId: primaryAccountId ?? undefined,
         });
+        setMyPaidExpenseId(id);
+        setMyPaidAmountCents(shareCents);
+        setMyPaidAccountName(primaryAccountName);
+        await SecureStore.setItemAsync(`conciliaai.g.${selected.id}.mypaid`, id);
+        await SecureStore.setItemAsync(`conciliaai.g.${selected.id}.mypaidamt`, String(shareCents));
+        if (primaryAccountName) await SecureStore.setItemAsync(`conciliaai.g.${selected.id}.mypacc`, primaryAccountName);
+        await loadDetail(selected);
+      },
+    });
+  }
+
+  function handlePayRemaining(remainingCents: number, totalCents: number) {
+    if (!selected) return;
+    setConfirmPay({
+      label: `Complementar com ${fmt(remainingCents)}?\n\nSerá lançado como saída na sua conta.`,
+      onConfirm: async () => {
+        const { id } = await createPersonalExpense({
+          title: `Complemento grupo "${selected.name}"`,
+          amountCents: remainingCents,
+          date: new Date().toISOString().slice(0, 10),
+          category: "Transferências",
+          accountId: primaryAccountId ?? undefined,
+        });
+        setMyPaidExpenseId(id);
+        setMyPaidAmountCents(totalCents);
+        setMyPaidAccountName(primaryAccountName);
+        await SecureStore.setItemAsync(`conciliaai.g.${selected.id}.mypaid`, id);
+        await SecureStore.setItemAsync(`conciliaai.g.${selected.id}.mypaidamt`, String(totalCents));
+        if (primaryAccountName) await SecureStore.setItemAsync(`conciliaai.g.${selected.id}.mypacc`, primaryAccountName);
+        await loadDetail(selected);
+      },
+    });
+  }
+
+  function handleEstornar() {
+    if (!selected || !myPaidExpenseId) return;
+    setConfirmPay({
+      title: "Estornar pagamento",
+      label: `Isso vai remover o lançamento da sua conta e marcar sua parte como pendente novamente.`,
+      confirmLabel: "Estornar",
+      onConfirm: async () => {
+        await deletePersonalExpense(myPaidExpenseId);
+        await SecureStore.deleteItemAsync(`conciliaai.g.${selected.id}.mypaid`);
+        await SecureStore.deleteItemAsync(`conciliaai.g.${selected.id}.mypacc`);
+        await SecureStore.deleteItemAsync(`conciliaai.g.${selected.id}.mypaidamt`);
+        setMyPaidExpenseId(null);
+        setMyPaidAmountCents(null);
+        setMyPaidAccountName(null);
         await loadDetail(selected);
       },
     });
@@ -1039,8 +1139,15 @@ export default function GruposScreen() {
                   <SectionLabel title="Quem já pagou sua parte" />
                   {balances.map((b, i) => {
                     const isMe    = b.userId === myUserId;
-                    // Fully settled = balance is exactly zero → show ✓ Pago
-                    const isPaid  = b.balanceCents === 0;
+                    const isPaidByApi = b.balanceCents === 0;
+                    const iMeRegistered = isMe && myPaidExpenseId !== null;
+                    // How much the local user has actually paid vs what they owe now
+                    // paidAmt=null means old payment where amount wasn't yet tracked → skip partial detection
+                    const paidAmt   = myPaidAmountCents;
+                    const remaining = (iMeRegistered && paidAmt !== null) ? Math.max(0, b.totalOwesCents - paidAmt) : 0;
+                    const iMeFullyPaid = iMeRegistered && (paidAmt === null || remaining < 50);
+                    const iMePartial   = iMeRegistered && paidAmt !== null && remaining >= 50;
+                    const showPago = isPaidByApi || iMeFullyPaid;
                     // Settlement where this member owes (is the FROM payer)
                     const st = settlements.find(s => s.fromId === b.userId);
                     return (
@@ -1055,9 +1162,27 @@ export default function GruposScreen() {
                           </Text>
                         </View>
                         <View style={{ alignItems: "flex-end" }}>
-                          {isPaid ? (
-                            <View style={{ backgroundColor: "#14532D55", borderRadius: 10, paddingHorizontal: 10, paddingVertical: 6, borderWidth: 1, borderColor: "#22C55E44" }}>
-                              <Text style={{ color: "#22C55E", fontSize: 12, fontWeight: "800" }}>✓ Pago</Text>
+                          {showPago ? (
+                            <TouchableOpacity
+                              activeOpacity={isMe ? 0.7 : 1}
+                              onPress={() => { if (isMe) handleEstornar(); }}
+                              style={{ backgroundColor: "#14532D55", borderRadius: 10, paddingHorizontal: 10, paddingVertical: 6, borderWidth: 1, borderColor: "#22C55E44" }}
+                            >
+                              <Text style={{ color: "#22C55E", fontSize: 12, fontWeight: "800" }}>✓ Pago{isMe ? " · estornar" : ""}</Text>
+                              {isMe && myPaidAccountName ? (
+                                <Text style={{ color: "#22C55E88", fontSize: 10, marginTop: 2 }}>{myPaidAccountName}</Text>
+                              ) : null}
+                            </TouchableOpacity>
+                          ) : iMePartial ? (
+                            <View style={{ alignItems: "flex-end", gap: 4 }}>
+                              <TouchableOpacity
+                                activeOpacity={0.8}
+                                onPress={() => handlePayRemaining(remaining, b.totalOwesCents)}
+                                style={{ backgroundColor: "#92400E55", borderRadius: 10, paddingHorizontal: 10, paddingVertical: 6, borderWidth: 1, borderColor: "#F59E0B66" }}
+                              >
+                                <Text style={{ color: "#F59E0B", fontSize: 12, fontWeight: "800" }}>+ {fmt(remaining)}</Text>
+                              </TouchableOpacity>
+                              <Text style={{ color: "#F59E0B88", fontSize: 10 }}>{fmt(paidAmt ?? 0)} pago</Text>
                             </View>
                           ) : isMe ? (
                             <TouchableOpacity style={s.pagueiBtn} activeOpacity={0.8}
@@ -1312,7 +1437,7 @@ export default function GruposScreen() {
 
       {/* ═══ MODAL: Confirmar pagamento ═══ */}
       <ModalSheet visible={!!confirmPay} onClose={() => { if (!confirmLoading) setConfirmPay(null); }}>
-        <Text style={s.modalTitle}>Confirmar pagamento</Text>
+        <Text style={s.modalTitle}>{confirmPay?.title ?? "Confirmar pagamento"}</Text>
         <Text style={{ color: "#94A3B8", fontSize: 14, lineHeight: 22, marginBottom: 28 }}>
           {confirmPay?.label ?? ""}
         </Text>
@@ -1321,7 +1446,7 @@ export default function GruposScreen() {
             <Text style={s.btnCancelTxt}>Cancelar</Text>
           </TouchableOpacity>
           <TouchableOpacity
-            style={[s.btnConfirm, confirmLoading && { opacity: 0.5 }]}
+            style={[s.btnConfirm, confirmPay?.danger && { backgroundColor: "#DC2626" }, confirmLoading && { opacity: 0.5 }]}
             disabled={confirmLoading}
             onPress={async () => {
               if (!confirmPay) return;
@@ -1338,7 +1463,7 @@ export default function GruposScreen() {
           >
             {confirmLoading
               ? <ActivityIndicator color="#fff" size="small" />
-              : <Text style={s.btnConfirmTxt}>Confirmar</Text>}
+              : <Text style={s.btnConfirmTxt}>{confirmPay?.confirmLabel ?? "Confirmar"}</Text>}
           </TouchableOpacity>
         </View>
       </ModalSheet>

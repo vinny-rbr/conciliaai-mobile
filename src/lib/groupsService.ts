@@ -211,21 +211,55 @@ export async function recordSettlement(groupId: string, payload: {
 }
 
 export async function createPersonalExpense(payload: {
-  title: string; amountCents: number; date: string; category?: string;
-}): Promise<void> {
+  title: string; amountCents: number; date: string; category?: string; accountId?: string;
+}): Promise<{ id: string }> {
   const h = await authHeader();
   const r = await fetch(apiUrl("/api/finance"), {
     method: "POST",
     headers: h,
     body: JSON.stringify({
-      type: "expense",
+      type: "DESPESA",
       title: payload.title,
       category: payload.category ?? "Transferências",
       amountCents: payload.amountCents,
       date: payload.date,
-      paymentType: "pix",
+      paymentType: "transfer",
       status: "paid",
+      ...(payload.accountId ? { accountId: payload.accountId } : {}),
     }),
   });
   if (!r.ok) throw new Error(await apiErr(r, "Erro ao criar lançamento pessoal."));
+  const json = await r.json() as { id: string };
+  return json;
+}
+
+export async function fetchPersonalExpenseAmount(expenseId: string): Promise<number | null> {
+  const h = await authHeader();
+  const r = await fetch(apiUrl(`/api/finance/${encodeURIComponent(expenseId)}`), { headers: h });
+  if (!r.ok) return null;
+  const json = await r.json() as { amountCents?: number; amount_cents?: number };
+  const amt = json.amountCents ?? json.amount_cents;
+  return typeof amt === "number" ? amt : null;
+}
+
+export async function deletePersonalExpense(expenseId: string): Promise<void> {
+  const h = await authHeader();
+  const r = await fetch(apiUrl(`/api/finance/${encodeURIComponent(expenseId)}`), { method: "DELETE", headers: h });
+  if (r.status === 404) return; // already gone — treat as success
+  if (!r.ok) throw new Error(await apiErr(r, "Erro ao estornar lançamento."));
+}
+
+export async function cleanupLegacyExpenseType(): Promise<number> {
+  const h = await authHeader();
+  const r = await fetch(apiUrl("/api/finance"), { headers: h });
+  if (!r.ok) return 0;
+  const raw = await r.json() as unknown;
+  const items: Array<{ id: string; type: string }> = Array.isArray(raw)
+    ? (raw as Array<{ id: string; type: string }>)
+    : ((raw as { data?: unknown; items?: unknown }).data ?? (raw as { items?: unknown }).items ?? []) as Array<{ id: string; type: string }>;
+  const stale = items.filter(it => it.type === "expense" || it.type === "income");
+  await Promise.all(stale.map(it =>
+    fetch(apiUrl(`/api/finance/${encodeURIComponent(it.id)}`), { method: "DELETE", headers: h }).catch(() => {})
+  ));
+  return stale.length;
 }
