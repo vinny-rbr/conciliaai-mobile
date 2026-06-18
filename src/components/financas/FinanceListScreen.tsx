@@ -174,8 +174,14 @@ export default function FinanceListScreen({ type }: Props) {
           refreshControl={<RefreshControl refreshing={refreshing} onRefresh={onRefresh} tintColor="#60A5FA" />}
         >
           {groups.length === 0 ? (
-            <View style={s.empty}>
-              <Text style={s.emptyTxt}>Nenhum lançamento em {ymToLabel(month)}.</Text>
+            <View style={{ alignItems: "center", paddingVertical: 60 }}>
+              <Text style={{ fontSize: 44, marginBottom: 16 }}>{isReceita ? "💰" : "💸"}</Text>
+              <Text style={{ color: "#F1F5F9", fontSize: 16, fontWeight: "700", marginBottom: 8 }}>
+                Nenhum lançamento
+              </Text>
+              <Text style={{ color: "#64748B", fontSize: 14, textAlign: "center", lineHeight: 20, maxWidth: 260 }}>
+                Não há {isReceita ? "receitas" : "despesas"} em {ymToLabel(month)}
+              </Text>
             </View>
           ) : (
             groups.map(({ date, items, total }) => (

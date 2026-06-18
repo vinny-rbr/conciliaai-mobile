@@ -27,6 +27,8 @@ export default function PerfilScreen() {
   const [loading, setLoading]           = useState(true);
   const [savingName, setSavingName]     = useState(false);
   const [savingCpf, setSavingCpf]       = useState(false);
+  const [savedName, setSavedName]       = useState(false);
+  const [savedCpf, setSavedCpf]         = useState(false);
   const [suggestion, setSuggestion]     = useState("");
   const [suggesting, setSuggesting]     = useState(false);
   const [suggestionSent, setSuggestionSent] = useState(false);
@@ -102,11 +104,15 @@ export default function PerfilScreen() {
     if (!token || !name.trim()) return;
     setSavingName(true);
     try {
-      await fetch(apiUrl("/api/users/me"), {
+      const res = await fetch(apiUrl("/api/users/me"), {
         method: "PATCH",
         headers: { Authorization: `Bearer ${token}`, "Content-Type": "application/json" },
         body: JSON.stringify({ name: name.trim() }),
       });
+      if (res.ok) {
+        setSavedName(true);
+        setTimeout(() => setSavedName(false), 2000);
+      }
     } catch { /* ignore */ }
     setSavingName(false);
   }
@@ -116,11 +122,15 @@ export default function PerfilScreen() {
     if (!token) return;
     setSavingCpf(true);
     try {
-      await fetch(apiUrl("/api/users/me"), {
+      const res = await fetch(apiUrl("/api/users/me"), {
         method: "PATCH",
         headers: { Authorization: `Bearer ${token}`, "Content-Type": "application/json" },
         body: JSON.stringify({ cpfCnpj: cpf }),
       });
+      if (res.ok) {
+        setSavedCpf(true);
+        setTimeout(() => setSavedCpf(false), 2000);
+      }
     } catch { /* ignore */ }
     setSavingCpf(false);
   }
@@ -224,6 +234,7 @@ export default function PerfilScreen() {
           <DadosPessoaisSection
             name={name} email={email} cpf={cpf}
             savingName={savingName} savingCpf={savingCpf}
+            savedName={savedName} savedCpf={savedCpf}
             onChangeName={setName} onChangeCpf={setCpf}
             onSaveName={() => void saveName()}
             onSaveCpf={() => void saveCpf()}

@@ -1,8 +1,8 @@
-import { useCallback, useEffect, useMemo, useState } from "react";
+import { useCallback, useEffect, useMemo, useRef, useState } from "react";
 import { useFocusEffect } from "@react-navigation/native";
 import { rootNavigate } from "../../navigation/rootNav";
 import {
-  ActivityIndicator, Modal, RefreshControl, ScrollView,
+  Animated, ActivityIndicator, Modal, RefreshControl, ScrollView,
   Text, TouchableOpacity, View,
 } from "react-native";
 import { SafeAreaView } from "react-native-safe-area-context";
@@ -25,6 +25,21 @@ import {
 } from "./dashboard/shared";
 import { HeroCard } from "./dashboard/HeroCard";
 import { AnalyticsSection } from "./dashboard/AnalyticsSection";
+
+function SkeletonBox({ style }: { style?: object }) {
+  const opacity = useRef(new Animated.Value(0.4)).current;
+  useEffect(() => {
+    const anim = Animated.loop(
+      Animated.sequence([
+        Animated.timing(opacity, { toValue: 0.75, duration: 700, useNativeDriver: true }),
+        Animated.timing(opacity, { toValue: 0.3,  duration: 700, useNativeDriver: true }),
+      ])
+    );
+    anim.start();
+    return () => anim.stop();
+  }, [opacity]);
+  return <Animated.View style={[{ backgroundColor: "#1E293B", borderRadius: 10, opacity }, style]} />;
+}
 
 export default function DashboardScreen() {
   const { signOut } = useAuth();
@@ -183,7 +198,52 @@ export default function DashboardScreen() {
   if (loading) {
     return (
       <SafeAreaView style={s.root}>
-        <View style={s.center}><ActivityIndicator size="large" color="#60A5FA" /></View>
+        <ScrollView contentContainerStyle={s.scroll} scrollEnabled={false}>
+          {/* Brand bar */}
+          <View style={s.brandBar}>
+            <View style={s.brandLeft}>
+              <View style={s.brandMark}><Text style={{ color: "#fff", fontSize: 13, fontWeight: "800" }}>C</Text></View>
+              <View>
+                <Text style={s.brandName}>Conciliaaí</Text>
+                <Text style={s.brandSub}>FINANÇAS</Text>
+              </View>
+            </View>
+            <SkeletonBox style={{ width: 36, height: 36, borderRadius: 18 }} />
+          </View>
+          {/* Hero card */}
+          <SkeletonBox style={{ height: 160, borderRadius: 22, marginBottom: 12 }} />
+          {/* Period row */}
+          <View style={{ flexDirection: "row", justifyContent: "space-between", alignItems: "center", marginBottom: 16 }}>
+            <SkeletonBox style={{ width: 90, height: 14, borderRadius: 6 }} />
+            <SkeletonBox style={{ width: 130, height: 36, borderRadius: 10 }} />
+          </View>
+          {/* Section header */}
+          <SkeletonBox style={{ width: 140, height: 18, borderRadius: 6, marginBottom: 12 }} />
+          {/* Accounts carousel */}
+          <View style={{ flexDirection: "row", gap: 12, marginBottom: 16 }}>
+            <SkeletonBox style={{ width: 160, height: 100, borderRadius: 16 }} />
+            <SkeletonBox style={{ width: 160, height: 100, borderRadius: 16 }} />
+          </View>
+          {/* Stats grid */}
+          <View style={{ flexDirection: "row", flexWrap: "wrap", gap: 10, marginBottom: 16 }}>
+            <SkeletonBox style={{ flex: 1, minWidth: "45%", height: 80, borderRadius: 16 }} />
+            <SkeletonBox style={{ flex: 1, minWidth: "45%", height: 80, borderRadius: 16 }} />
+            <SkeletonBox style={{ flex: 1, minWidth: "45%", height: 80, borderRadius: 16 }} />
+            <SkeletonBox style={{ flex: 1, minWidth: "45%", height: 80, borderRadius: 16 }} />
+          </View>
+          {/* Transaction rows */}
+          <SkeletonBox style={{ width: 160, height: 18, borderRadius: 6, marginBottom: 12 }} />
+          {[0, 1, 2, 3].map(i => (
+            <View key={i} style={{ flexDirection: "row", alignItems: "center", gap: 12, paddingVertical: 10 }}>
+              <SkeletonBox style={{ width: 42, height: 42, borderRadius: 12 }} />
+              <View style={{ flex: 1, gap: 8 }}>
+                <SkeletonBox style={{ height: 13, borderRadius: 5, width: "65%" }} />
+                <SkeletonBox style={{ height: 10, borderRadius: 4, width: "40%" }} />
+              </View>
+              <SkeletonBox style={{ width: 58, height: 13, borderRadius: 5 }} />
+            </View>
+          ))}
+        </ScrollView>
       </SafeAreaView>
     );
   }
@@ -410,7 +470,15 @@ export default function DashboardScreen() {
           <Text style={s.sectionTitle}>Últimas transações</Text>
         </View>
         {latest.length === 0
-          ? <Text style={s.emptyTxt}>Nenhuma transação ainda.</Text>
+          ? (
+            <View style={{ alignItems: "center", paddingVertical: 32 }}>
+              <Text style={{ fontSize: 36, marginBottom: 12 }}>📋</Text>
+              <Text style={{ color: "#F1F5F9", fontSize: 15, fontWeight: "700", marginBottom: 6 }}>Nenhuma transação ainda</Text>
+              <Text style={{ color: "#64748B", fontSize: 13, textAlign: "center", lineHeight: 18, maxWidth: 240 }}>
+                Toque em + para adicionar sua primeira receita ou despesa
+              </Text>
+            </View>
+          )
           : latest.map(it => (
             <View key={it.id} style={s.txRow}>
               <View style={[s.txIcon, { backgroundColor: it.type==="RECEITA" ? "rgba(74,222,128,.14)" : "rgba(248,113,113,.14)" }]}>

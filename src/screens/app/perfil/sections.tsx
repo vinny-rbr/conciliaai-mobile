@@ -179,13 +179,15 @@ type DadosPessoaisProps = {
   cpf: string;
   savingName: boolean;
   savingCpf: boolean;
+  savedName: boolean;
+  savedCpf: boolean;
   onChangeName: (v: string) => void;
   onChangeCpf: (v: string) => void;
   onSaveName: () => void;
   onSaveCpf: () => void;
 };
 
-export function DadosPessoaisSection({ name, email, cpf, savingName, savingCpf, onChangeName, onChangeCpf, onSaveName, onSaveCpf }: DadosPessoaisProps) {
+export function DadosPessoaisSection({ name, email, cpf, savingName, savingCpf, savedName, savedCpf, onChangeName, onChangeCpf, onSaveName, onSaveCpf }: DadosPessoaisProps) {
   return (
     <View style={s.card}>
       <View style={s.row}>
@@ -207,7 +209,9 @@ export function DadosPessoaisSection({ name, email, cpf, savingName, savingCpf, 
         </View>
         {savingName
           ? <ActivityIndicator color="#60A5FA" size="small" />
-          : <IcoEdit size={16} color="#6b82a6" />}
+          : savedName
+            ? <Text style={{ color: "#4ADE80", fontSize: 12, fontWeight: "700" }}>Salvo ✓</Text>
+            : <IcoEdit size={16} color="#6b82a6" />}
       </View>
       <View style={s.divider} />
       <View style={s.row}>
@@ -240,7 +244,9 @@ export function DadosPessoaisSection({ name, email, cpf, savingName, savingCpf, 
         </View>
         {savingCpf
           ? <ActivityIndicator color="#60A5FA" size="small" />
-          : !cpf ? <IcoPlus size={18} color="#60A5FA" /> : null}
+          : savedCpf
+            ? <Text style={{ color: "#4ADE80", fontSize: 12, fontWeight: "700" }}>Salvo ✓</Text>
+            : !cpf ? <IcoPlus size={18} color="#60A5FA" /> : null}
       </View>
     </View>
   );
