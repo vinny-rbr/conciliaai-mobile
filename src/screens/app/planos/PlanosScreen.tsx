@@ -1,10 +1,11 @@
-import { useEffect, useState } from "react";
-import { ActivityIndicator, Alert, Linking, Modal, ScrollView, StyleSheet, Text, TextInput, TouchableOpacity, View } from "react-native";
+import { useEffect, useRef, useState } from "react";
+import { ActivityIndicator, Alert, AppState, Linking, Modal, ScrollView, StyleSheet, Text, TextInput, TouchableOpacity, View } from "react-native";
 import { SafeAreaView } from "react-native-safe-area-context";
 import { useNavigation } from "@react-navigation/native";
 import Svg, { Path } from "react-native-svg";
 import { getToken, getUser } from "../../../lib/auth";
 import { apiUrl } from "../../../lib/api";
+import { showToast } from "../../../components/Toast";
 
 type Plan = {
   id: string;
@@ -47,8 +48,63 @@ export default function PlanosScreen() {
   const [cpfInput, setCpfInput]         = useState("");
   const [cpfError, setCpfError]         = useState("");
   const [showCpfModal, setShowCpfModal] = useState(false);
+  const [verifying, setVerifying]       = useState(false);
+
+  const awaitingPayment = useRef(false);
+  const appStateRef     = useRef(AppState.currentState);
+  const pollInterval    = useRef<ReturnType<typeof setInterval> | null>(null);
 
   useEffect(() => { void load(); }, []);
+
+  useEffect(() => {
+    const sub = AppState.addEventListener("change", async (next) => {
+      const prev = appStateRef.current;
+      appStateRef.current = next;
+      if (prev.match(/inactive|background/) && next === "active" && awaitingPayment.current) {
+        awaitingPayment.current = false;
+        void startPolling();
+      }
+    });
+    return () => {
+      sub.remove();
+      if (pollInterval.current) clearInterval(pollInterval.current);
+    };
+  }, []);
+
+  async function startPolling() {
+    setVerifying(true);
+    let attempts = 0;
+    const token = await getToken();
+    if (!token) { setVerifying(false); return; }
+
+    pollInterval.current = setInterval(async () => {
+      attempts++;
+      try {
+        const res = await fetch(apiUrl("/api/subscriptions/me"), {
+          headers: { Authorization: `Bearer ${token}` },
+        });
+        if (res.ok) {
+          const data = await res.json() as { status?: string };
+          if (data.status === "active" || data.status === "Active") {
+            clearInterval(pollInterval.current!);
+            setVerifying(false);
+            showToast("Assinatura ativada com sucesso! 🎉", "success");
+            setTimeout(() => navigation.goBack(), 1500);
+            return;
+          }
+        }
+      } catch { /* aguarda próxima tentativa */ }
+
+      if (attempts >= 12) {
+        clearInterval(pollInterval.current!);
+        setVerifying(false);
+        Alert.alert(
+          "Pagamento em processamento",
+          "Se o pagamento foi confirmado, sua assinatura será ativada em alguns minutos. Feche e reabra o app para atualizar.",
+        );
+      }
+    }, 5000);
+  }
 
   async function load() {
     setLoading(true);
@@ -93,8 +149,12 @@ export default function PlanosScreen() {
       });
       if (res.ok) {
         const data = await res.json() as { invoiceUrl?: string };
-        if (data.invoiceUrl) await Linking.openURL(data.invoiceUrl);
-        else Alert.alert("Pagamento", "Link de pagamento não disponível. Tente novamente.");
+        if (data.invoiceUrl) {
+          awaitingPayment.current = true;
+          await Linking.openURL(data.invoiceUrl);
+        } else {
+          Alert.alert("Pagamento", "Link de pagamento não disponível. Tente novamente.");
+        }
       } else {
         Alert.alert("Erro", "Não foi possível iniciar o pagamento. Tente novamente.");
       }
@@ -180,6 +240,17 @@ export default function PlanosScreen() {
 
         <View style={{ height: 40 }} />
       </ScrollView>
+
+      {/* Verificando pagamento overlay */}
+      {verifying && (
+        <View style={{ position: "absolute", top: 0, left: 0, right: 0, bottom: 0, backgroundColor: "rgba(7,13,26,0.92)", alignItems: "center", justifyContent: "center", gap: 16 }}>
+          <ActivityIndicator color="#3B82F6" size="large" />
+          <Text style={{ color: "#F1F5F9", fontSize: 16, fontWeight: "700" }}>Verificando pagamento...</Text>
+          <Text style={{ color: "#64748B", fontSize: 13, textAlign: "center", maxWidth: 260 }}>
+            Aguarde enquanto confirmamos sua assinatura
+          </Text>
+        </View>
+      )}
 
       {/* CPF Modal */}
       <Modal visible={showCpfModal} transparent animationType="slide" onRequestClose={() => setShowCpfModal(false)}>
