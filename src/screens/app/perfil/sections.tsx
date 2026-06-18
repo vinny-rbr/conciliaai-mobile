@@ -1,8 +1,29 @@
+import { useState } from "react";
 import { ActivityIndicator, Image, Linking, Text, TextInput, TouchableOpacity, View } from "react-native";
 import Svg, { Circle, Path, Rect } from "react-native-svg";
 import type { Sub } from "./shared";
 import { s, fmtDate, chipInfo } from "./shared";
 import { rootNavigate } from "../../../navigation/rootNav";
+
+function maskEmail(email: string): string {
+  const at = email.indexOf("@");
+  if (at <= 0) return email;
+  return email[0] + "•••" + email.slice(at);
+}
+
+function maskCpf(cpf: string): string {
+  const d = cpf.replace(/\D/g, "");
+  if (d.length !== 11) return cpf;
+  return `•••.•••.${d[6]}${d[7]}${d[8]}-${d[9]}${d[10]}`;
+}
+
+function fmtCpf(text: string): string {
+  const d = text.replace(/\D/g, "").slice(0, 11);
+  if (d.length <= 3) return d;
+  if (d.length <= 6) return `${d.slice(0, 3)}.${d.slice(3)}`;
+  if (d.length <= 9) return `${d.slice(0, 3)}.${d.slice(3, 6)}.${d.slice(6)}`;
+  return `${d.slice(0, 3)}.${d.slice(3, 6)}.${d.slice(6, 9)}-${d.slice(9)}`;
+}
 
 // ── SVG Icons ─────────────────────────────────────────────────────────────────
 function IcoUser({ size = 19, color = "#fff" }: { size?: number; color?: string }) {
@@ -162,7 +183,7 @@ export function AvatarSection({ photo, initials, name, email, sub, onPickPhoto }
       </TouchableOpacity>
 
       <Text style={s.avatarName}>{name || "—"}</Text>
-      <Text style={s.avatarEmail}>{email}</Text>
+      <Text style={s.avatarEmail}>{email ? maskEmail(email) : ""}</Text>
 
       <View style={[s.badge, { backgroundColor: badgeBg, borderColor: badgeBorder }]}>
         <View style={[s.badgeDot, { backgroundColor: badgeColor }]} />
@@ -188,6 +209,8 @@ type DadosPessoaisProps = {
 };
 
 export function DadosPessoaisSection({ name, email, cpf, savingName, savingCpf, savedName, savedCpf, onChangeName, onChangeCpf, onSaveName, onSaveCpf }: DadosPessoaisProps) {
+  const [cpfFocused, setCpfFocused] = useState(false);
+
   return (
     <View style={s.card}>
       <View style={s.row}>
@@ -220,7 +243,7 @@ export function DadosPessoaisSection({ name, email, cpf, savingName, savingCpf, 
         </View>
         <View style={s.rowBody}>
           <Text style={s.rowLabel}>E-MAIL</Text>
-          <Text style={s.rowValue}>{email || "—"}</Text>
+          <Text style={s.rowValue}>{email ? maskEmail(email) : "—"}</Text>
         </View>
       </View>
       <View style={s.divider} />
@@ -232,14 +255,15 @@ export function DadosPessoaisSection({ name, email, cpf, savingName, savingCpf, 
           <Text style={s.rowLabel}>CPF</Text>
           <TextInput
             style={s.rowInput}
-            value={cpf}
-            onChangeText={onChangeCpf}
+            value={cpfFocused ? cpf : (cpf ? maskCpf(cpf) : "")}
+            onFocus={() => setCpfFocused(true)}
+            onChangeText={text => onChangeCpf(fmtCpf(text))}
+            onBlur={() => { setCpfFocused(false); onSaveCpf(); }}
+            onSubmitEditing={() => { setCpfFocused(false); onSaveCpf(); }}
             placeholder="Adicionar CPF"
             placeholderTextColor="#9db4d6"
             keyboardType="numeric"
             returnKeyType="done"
-            onBlur={onSaveCpf}
-            onSubmitEditing={onSaveCpf}
           />
         </View>
         {savingCpf
@@ -357,7 +381,7 @@ export function JuridicoSection() {
       <TouchableOpacity
         style={s.menuRow}
         activeOpacity={0.7}
-        onPress={() => void Linking.openURL("https://conciliaai.app.br/privacidade")}
+        onPress={() => void Linking.openURL("https://site-conciliaai.vercel.app/politica-de-privacidade.html")}
       >
         <View style={[s.rowIcon, { backgroundColor: "rgba(255,255,255,0.08)" }]}>
           <IcoShield color="#aebfd9" />

@@ -1,5 +1,6 @@
 import { useEffect, useState } from "react";
 import { ActivityIndicator, Alert, Platform, ScrollView, Text, TouchableOpacity, View } from "react-native";
+import Constants from "expo-constants";
 import { SafeAreaView } from "react-native-safe-area-context";
 import { useNavigation } from "@react-navigation/native";
 import Svg, { Path } from "react-native-svg";
@@ -267,7 +268,7 @@ export default function PerfilScreen() {
           />
         </View>
 
-        <Text style={s.footer}>ConciliaAI · Versão 1.0</Text>
+        <Text style={s.footer}>ConciliaAI · Versão {Constants.expoConfig?.version ?? "1.0.0"}</Text>
       </ScrollView>
     </SafeAreaView>
   );

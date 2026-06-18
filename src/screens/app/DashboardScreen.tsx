@@ -1,4 +1,5 @@
 import { useCallback, useEffect, useMemo, useRef, useState } from "react";
+import { showToast } from "../../components/Toast";
 import { useFocusEffect } from "@react-navigation/native";
 import { rootNavigate } from "../../navigation/rootNav";
 import {
@@ -72,33 +73,38 @@ export default function DashboardScreen() {
 
   async function load(silent = false, skipAutoSync = false) {
     if (!silent) setLoading(true);
-    const [data, accs, plan, emailVal, cachedUser] = await Promise.all([fetchFinanceItems(), listBankAccounts(), getPlanName(), getEmailFromAnySource(), getUser()]);
-    const nameOrEmail = (cachedUser && typeof cachedUser.name === "string" && cachedUser.name.trim()) ? cachedUser.name.trim() : (emailVal ?? "");
-    if (nameOrEmail) {
-      const part = nameOrEmail.includes("@") ? nameOrEmail.split("@")[0] : nameOrEmail;
-      const words = part.split(/[\s._-]+/).filter(Boolean);
-      setUserInitials(words.length >= 2 ? (words[0][0] + words[1][0]).toUpperCase() : words[0]?.slice(0, 2).toUpperCase() ?? "US");
-    }
-
-    if (!skipAutoSync) {
-      const _now = new Date();
-      const _next = new Date(_now.getFullYear(), _now.getMonth() + 1, 1);
-      const _endExcl = `${_next.getFullYear()}-${String(_next.getMonth() + 1).padStart(2, "0")}`;
-      const cumBalance = data
-        .filter(it => it.dateISO < _endExcl)
-        .reduce((sum, it) => sum + (it.type === "RECEITA" ? it.amountCents : -it.amountCents), 0);
-      const nonZero = accs.filter(a => a.balanceCents !== 0);
-      if (nonZero.length === 1 && nonZero[0].balanceCents !== cumBalance) {
-        nonZero[0].balanceCents = cumBalance;
-        void updateBankAccount(nonZero[0].id, { balanceCents: cumBalance });
+    try {
+      const [data, accs, plan, emailVal, cachedUser] = await Promise.all([fetchFinanceItems(), listBankAccounts(), getPlanName(), getEmailFromAnySource(), getUser()]);
+      const nameOrEmail = (cachedUser && typeof cachedUser.name === "string" && cachedUser.name.trim()) ? cachedUser.name.trim() : (emailVal ?? "");
+      if (nameOrEmail) {
+        const part = nameOrEmail.includes("@") ? nameOrEmail.split("@")[0] : nameOrEmail;
+        const words = part.split(/[\s._-]+/).filter(Boolean);
+        setUserInitials(words.length >= 2 ? (words[0][0] + words[1][0]).toUpperCase() : words[0]?.slice(0, 2).toUpperCase() ?? "US");
       }
-    }
 
-    setItems(data);
-    setAccounts([...accs]);
-    setPlanName(plan);
-    setLoading(false);
-    setRefreshing(false);
+      if (!skipAutoSync) {
+        const _now = new Date();
+        const _next = new Date(_now.getFullYear(), _now.getMonth() + 1, 1);
+        const _endExcl = `${_next.getFullYear()}-${String(_next.getMonth() + 1).padStart(2, "0")}`;
+        const cumBalance = data
+          .filter(it => it.dateISO < _endExcl)
+          .reduce((sum, it) => sum + (it.type === "RECEITA" ? it.amountCents : -it.amountCents), 0);
+        const nonZero = accs.filter(a => a.balanceCents !== 0);
+        if (nonZero.length === 1 && nonZero[0].balanceCents !== cumBalance) {
+          nonZero[0].balanceCents = cumBalance;
+          void updateBankAccount(nonZero[0].id, { balanceCents: cumBalance });
+        }
+      }
+
+      setItems(data);
+      setAccounts([...accs]);
+      setPlanName(plan);
+    } catch {
+      showToast("Sem conexão. Verifique sua internet.");
+    } finally {
+      setLoading(false);
+      setRefreshing(false);
+    }
   }
 
   useEffect(() => { void load(); }, []);

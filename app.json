@@ -1,14 +1,23 @@
 {
   "expo": {
-    "name": "conciliaai-mobile",
+    "name": "ConciliaAI",
     "slug": "conciliaai-mobile",
     "version": "1.0.0",
     "orientation": "portrait",
     "icon": "./assets/icon.png",
     "userInterfaceStyle": "dark",
     "backgroundColor": "#0F172A",
+    "splash": {
+      "image": "./assets/icon.png",
+      "resizeMode": "contain",
+      "backgroundColor": "#070d1a"
+    },
     "ios": {
-      "supportsTablet": true
+      "supportsTablet": true,
+      "bundleIdentifier": "com.conciliaai.mobile",
+      "infoPlist": {
+        "NSFaceIDUsageDescription": "O ConciliaAI usa Face ID para proteger suas informações financeiras."
+      }
     },
     "android": {
       "adaptiveIcon": {
@@ -18,7 +27,7 @@
         "monochromeImage": "./assets/android-icon-monochrome.png"
       },
       "predictiveBackGestureEnabled": false,
-      "package": "com.anonymous.conciliaaimobile"
+      "package": "com.conciliaai.mobile"
     },
     "web": {
       "favicon": "./assets/favicon.png"

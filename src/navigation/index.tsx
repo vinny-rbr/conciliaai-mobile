@@ -1,5 +1,6 @@
 import { NavigationContainer } from "@react-navigation/native";
 import { navigationRef } from "./rootNav";
+import { BiometricGate } from "../components/BiometricGate";
 import type { FinanceItem } from "../types/finance";
 import { createNativeStackNavigator } from "@react-navigation/native-stack";
 import { createBottomTabNavigator } from "@react-navigation/bottom-tabs";
@@ -103,7 +104,7 @@ export default function Navigation() {
       ref={navigationRef}
       theme={{ dark: true, colors: { background: "#0F172A", card: "#0F172A", text: "#F1F5F9", border: "#1E293B", primary: "#3B82F6", notification: "#EF4444" }, fonts: { regular: { fontFamily: "System", fontWeight: "400" }, medium: { fontFamily: "System", fontWeight: "500" }, bold: { fontFamily: "System", fontWeight: "700" }, heavy: { fontFamily: "System", fontWeight: "900" } } }}
     >
-      {isLoggedIn ? <AppNavigator /> : <AuthNavigator />}
+      {isLoggedIn ? <BiometricGate><AppNavigator /></BiometricGate> : <AuthNavigator />}
     </NavigationContainer>
   );
 }
