@@ -110,7 +110,22 @@ export default function FinanceListScreen({ type }: Props) {
     <SafeAreaView style={s.root}>
       {/* Header */}
       <View style={s.header}>
-        <Text style={s.headerTitle}>{isReceita ? "Receitas" : "Despesas"}</Text>
+        <View style={s.typePill}>
+          <TouchableOpacity
+            style={[s.typePillBtn, isReceita && s.typePillBtnActive, isReceita && { backgroundColor: "#166534" }]}
+            onPress={() => { if (!isReceita) navigation.replace("Receitas"); }}
+            activeOpacity={0.8}
+          >
+            <Text style={[s.typePillTxt, isReceita && { color: "#4ADE80" }]}>↑ Receitas</Text>
+          </TouchableOpacity>
+          <TouchableOpacity
+            style={[s.typePillBtn, !isReceita && s.typePillBtnActive, !isReceita && { backgroundColor: "#7F1D1D" }]}
+            onPress={() => { if (isReceita) navigation.replace("Despesas"); }}
+            activeOpacity={0.8}
+          >
+            <Text style={[s.typePillTxt, !isReceita && { color: "#F87171" }]}>↓ Despesas</Text>
+          </TouchableOpacity>
+        </View>
       </View>
 
       {/* Month nav */}
@@ -258,8 +273,11 @@ const PILL_BORD = "#1E293B";
 
 const s = StyleSheet.create({
   root: { flex: 1, backgroundColor: "#0F172A" },
-  header: { paddingHorizontal: 20, paddingTop: 8, paddingBottom: 4 },
-  headerTitle: { fontSize: 24, fontWeight: "800", color: "#F1F5F9" },
+  header: { paddingHorizontal: 16, paddingTop: 8, paddingBottom: 4, alignItems: "center" },
+  typePill: { flexDirection: "row", backgroundColor: "#1E293B", borderRadius: 14, borderWidth: 1, borderColor: "#334155", overflow: "hidden" },
+  typePillBtn: { flex: 1, paddingVertical: 10, paddingHorizontal: 20, alignItems: "center" },
+  typePillBtnActive: { borderRadius: 12 },
+  typePillTxt: { fontSize: 15, fontWeight: "800", color: "#475569" },
 
   monthNav: { flexDirection: "row", alignItems: "center", justifyContent: "center", paddingVertical: 12, gap: 24 },
   monthBtn: { width: 36, height: 36, borderRadius: 18, backgroundColor: "#1E293B", alignItems: "center", justifyContent: "center" },
