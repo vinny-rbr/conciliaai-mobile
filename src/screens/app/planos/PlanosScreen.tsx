@@ -84,8 +84,8 @@ export default function PlanosScreen() {
           headers: { Authorization: `Bearer ${token}` },
         });
         if (res.ok) {
-          const data = await res.json() as { status?: string };
-          if (data.status === "active" || data.status === "Active") {
+          const data = await res.json() as { subscriptionStatus?: string; hasActiveSubscription?: boolean };
+          if (data.subscriptionStatus === "active" || data.hasActiveSubscription === true) {
             clearInterval(pollInterval.current!);
             setVerifying(false);
             showToast("Assinatura ativada com sucesso! 🎉", "success");
