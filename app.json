@@ -27,7 +27,7 @@
         "monochromeImage": "./assets/android-icon-monochrome.png"
       },
       "predictiveBackGestureEnabled": false,
-      "package": "com.conciliaai.mobile"
+      "package": "br.app.conciliaai.www.twa"
     },
     "web": {
       "favicon": "./assets/favicon.png"
