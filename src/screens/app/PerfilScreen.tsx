@@ -71,7 +71,8 @@ export default function PerfilScreen() {
           const d = await sRes.json() as Record<string, unknown>;
           setSub({
             isLifetime: d.isLifetime === true || d.lifetime === true,
-            status: typeof d.status === "string" ? d.status : "inactive",
+            status: typeof d.subscriptionStatus === "string" ? d.subscriptionStatus :
+                    typeof d.status === "string" ? d.status : "inactive",
             startDateUtc: typeof d.startDateUtc === "string" ? d.startDateUtc : null,
             endDateUtc: typeof d.subscriptionEndDateUtc === "string" ? d.subscriptionEndDateUtc :
                         typeof d.endDateUtc === "string" ? d.endDateUtc : null,
