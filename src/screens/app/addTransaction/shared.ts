@@ -12,7 +12,7 @@ export const QUICK = [
 export const MORE = [
   { icon: "🏦", color: "#3B82F6", title: "Novo banco",             subtitle: "Cadastrar conta ou cartão"          },
   { icon: "💳", color: "#F59E0B", title: "Novo cartão de crédito", subtitle: "Limite, fatura e vencimento"        },
-  { icon: "⬇",  color: "#6366F1", title: "Importar extrato",       subtitle: "OFX, CSV, XLSX ou PDF"             },
+  { icon: "⬇",  color: "#6366F1", title: "Importar extrato",       subtitle: "OFX ou CSV do seu banco"           },
   { icon: "⇅",  color: "#14B8A6", title: "Transferência",          subtitle: "Mover entre suas contas"           },
   { icon: "📷", color: "#3B82F6", title: "Lançar por foto",        subtitle: "IA lê o recibo automaticamente", badge: "NOVO" },
   { icon: "📊", color: "#8B5CF6", title: "Relatórios",             subtitle: "Gráficos e exportar PDF"           },

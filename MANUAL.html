@@ -1,0 +1,772 @@
+<!DOCTYPE html>
+<html lang="pt-BR">
+<head>
+<meta charset="UTF-8" />
+<title>Manual Técnico — ConciliaAI Mobile</title>
+<style>
+  * { box-sizing: border-box; margin: 0; padding: 0; }
+  body { font-family: 'Segoe UI', Arial, sans-serif; font-size: 13px; color: #1e293b; background: #fff; }
+  .cover { page-break-after: always; display: flex; flex-direction: column; justify-content: center; align-items: center; height: 100vh; background: #070d1a; color: #fff; text-align: center; padding: 40px; }
+  .cover h1 { font-size: 42px; font-weight: 900; letter-spacing: -1px; margin-bottom: 12px; }
+  .cover .sub { font-size: 18px; color: #93a7c6; margin-bottom: 32px; }
+  .cover .badge { background: rgba(59,130,246,0.2); border: 1px solid rgba(96,165,250,0.4); border-radius: 999px; padding: 6px 18px; font-size: 13px; color: #93c5fd; margin: 4px; display: inline-block; }
+  .cover .meta { margin-top: 48px; color: #475569; font-size: 12px; }
+  h1.section { font-size: 28px; font-weight: 900; color: #0f172a; margin: 40px 0 8px; padding-bottom: 8px; border-bottom: 3px solid #3b82f6; }
+  h2.group { font-size: 18px; font-weight: 800; color: #1e40af; margin: 32px 0 8px; }
+  h3.file { font-size: 14px; font-weight: 700; color: #0f172a; margin: 20px 0 4px; }
+  .path { font-family: 'Consolas', monospace; font-size: 11px; color: #6366f1; background: #eef2ff; padding: 2px 8px; border-radius: 4px; display: inline-block; margin-bottom: 8px; }
+  .desc { color: #334155; line-height: 1.7; margin-bottom: 6px; }
+  .tag { display: inline-block; font-size: 10px; font-weight: 700; padding: 2px 7px; border-radius: 4px; margin-right: 4px; margin-bottom: 4px; }
+  .tag.screen { background: #dcfce7; color: #166534; }
+  .tag.component { background: #dbeafe; color: #1e40af; }
+  .tag.lib { background: #fef9c3; color: #854d0e; }
+  .tag.nav { background: #f3e8ff; color: #6b21a8; }
+  .tag.config { background: #fee2e2; color: #991b1b; }
+  .tag.context { background: #ffedd5; color: #9a3412; }
+  .tag.type { background: #e0f2fe; color: #075985; }
+  .flow { background: #f8fafc; border-left: 4px solid #3b82f6; padding: 12px 16px; margin: 12px 0; border-radius: 0 8px 8px 0; font-family: 'Consolas', monospace; font-size: 12px; line-height: 1.8; color: #1e293b; }
+  .arch-box { display: grid; grid-template-columns: 1fr 1fr 1fr; gap: 12px; margin: 16px 0; }
+  .arch-card { background: #f1f5f9; border-radius: 10px; padding: 14px; border: 1px solid #e2e8f0; }
+  .arch-card h4 { font-size: 12px; font-weight: 800; color: #475569; text-transform: uppercase; letter-spacing: 0.5px; margin-bottom: 8px; }
+  .arch-card ul { list-style: none; }
+  .arch-card ul li { font-size: 12px; color: #334155; padding: 2px 0; }
+  .arch-card ul li::before { content: "▸ "; color: #3b82f6; }
+  .divider { border: none; border-top: 1px solid #e2e8f0; margin: 24px 0; }
+  .page-break { page-break-before: always; }
+  .highlight { background: #fffbeb; border: 1px solid #fde68a; border-radius: 6px; padding: 10px 14px; margin: 8px 0; font-size: 12px; color: #92400e; }
+  .toc { background: #f8fafc; border: 1px solid #e2e8f0; border-radius: 10px; padding: 20px 24px; margin: 24px 0; }
+  .toc h3 { font-size: 14px; font-weight: 800; color: #0f172a; margin-bottom: 12px; }
+  .toc ol { padding-left: 20px; }
+  .toc li { font-size: 12px; color: #475569; padding: 3px 0; }
+  .stack { display: flex; gap: 8px; flex-wrap: wrap; margin: 12px 0; }
+  .stack-item { background: #0f172a; color: #93c5fd; font-size: 11px; font-weight: 700; padding: 4px 10px; border-radius: 6px; font-family: monospace; }
+  section { padding: 0 48px; }
+  @media print {
+    .cover { height: 100vh; }
+    .page-break { page-break-before: always; }
+  }
+</style>
+</head>
+<body>
+
+<!-- CAPA -->
+<div class="cover">
+  <div style="font-size:64px;margin-bottom:24px;">📱</div>
+  <h1>ConciliaAI</h1>
+  <div class="sub">Manual Técnico do Aplicativo Mobile</div>
+  <div>
+    <span class="badge">React Native</span>
+    <span class="badge">Expo SDK 54</span>
+    <span class="badge">TypeScript</span>
+    <span class="badge">EAS Build</span>
+  </div>
+  <div class="meta">
+    Gerado em junho de 2026 · Versão 1.0.0 · Package: br.app.conciliaai.www.twa
+  </div>
+</div>
+
+<section>
+
+<!-- ÍNDICE -->
+<h1 class="section">Índice</h1>
+<div class="toc">
+  <h3>Conteúdo</h3>
+  <ol>
+    <li>Visão Geral do Projeto</li>
+    <li>Stack Tecnológica</li>
+    <li>Arquitetura do App</li>
+    <li>Fluxos Principais</li>
+    <li>Arquivos de Configuração</li>
+    <li>Ponto de Entrada</li>
+    <li>Navegação</li>
+    <li>Contextos (Estado Global)</li>
+    <li>Bibliotecas (lib/)</li>
+    <li>Componentes Globais</li>
+    <li>Componentes do Dashboard</li>
+    <li>Componentes de Categorias</li>
+    <li>Telas de Autenticação</li>
+    <li>Telas do App — Dashboard</li>
+    <li>Telas do App — Transações</li>
+    <li>Telas do App — Cartão</li>
+    <li>Telas do App — Categorias</li>
+    <li>Telas do App — Grupos</li>
+    <li>Telas do App — Planejamento</li>
+    <li>Telas do App — Relatórios</li>
+    <li>Telas do App — Perfil</li>
+    <li>Telas do App — Planos e Notificações</li>
+    <li>Tipos TypeScript</li>
+  </ol>
+</div>
+
+<hr class="divider" />
+
+<!-- 1. VISÃO GERAL -->
+<h1 class="section">1. Visão Geral do Projeto</h1>
+<p class="desc">O <strong>ConciliaAI Mobile</strong> é um aplicativo de finanças pessoais desenvolvido em React Native com Expo. Ele é a versão mobile do sistema web ConciliaAI, permitindo que os usuários gerenciem receitas, despesas, cartões, grupos financeiros e planejamento diretamente pelo celular.</p>
+<p class="desc">O app se comunica com o backend via API REST hospedada no Render, utiliza JWT para autenticação e Asaas como gateway de pagamento para assinaturas.</p>
+
+<div class="arch-box">
+  <div class="arch-card">
+    <h4>O que o usuário pode fazer</h4>
+    <ul>
+      <li>Lançar receitas e despesas</li>
+      <li>Ver dashboard com saldo</li>
+      <li>Gerenciar categorias</li>
+      <li>Controlar cartão de crédito</li>
+      <li>Importar extrato OFX</li>
+      <li>Lançar por foto (IA)</li>
+      <li>Ver relatórios</li>
+      <li>Gerenciar grupos</li>
+      <li>Planejar finanças</li>
+      <li>Assinar planos</li>
+    </ul>
+  </div>
+  <div class="arch-card">
+    <h4>Segurança implementada</h4>
+    <ul>
+      <li>JWT no SecureStore</li>
+      <li>Biometria (FaceID/digital)</li>
+      <li>Lock após 5min background</li>
+      <li>Email/CPF mascarados</li>
+      <li>Error boundary</li>
+      <li>Logout automático</li>
+    </ul>
+  </div>
+  <div class="arch-card">
+    <h4>Infraestrutura</h4>
+    <ul>
+      <li>Backend: Node.js / Render</li>
+      <li>Banco: PostgreSQL / Render</li>
+      <li>Pagamentos: Asaas</li>
+      <li>Build: EAS (Expo)</li>
+      <li>Distribuição: Play Store</li>
+      <li>Notificações: Web Push</li>
+    </ul>
+  </div>
+</div>
+
+<hr class="divider" />
+
+<!-- 2. STACK -->
+<h1 class="section">2. Stack Tecnológica</h1>
+<div class="stack">
+  <span class="stack-item">React Native 0.81.5</span>
+  <span class="stack-item">Expo SDK 54</span>
+  <span class="stack-item">TypeScript 5.9</span>
+  <span class="stack-item">React Navigation 7</span>
+  <span class="stack-item">expo-secure-store</span>
+  <span class="stack-item">expo-local-authentication</span>
+  <span class="stack-item">expo-image-picker</span>
+  <span class="stack-item">expo-document-picker</span>
+  <span class="stack-item">expo-file-system</span>
+  <span class="stack-item">expo-constants</span>
+  <span class="stack-item">react-native-svg</span>
+  <span class="stack-item">react-native-safe-area-context</span>
+  <span class="stack-item">@react-native-community/netinfo</span>
+  <span class="stack-item">EAS Build</span>
+</div>
+
+<hr class="divider" />
+
+<!-- 3. ARQUITETURA -->
+<h1 class="section">3. Arquitetura do App</h1>
+<div class="flow">
+index.ts (ponto de entrada)
+  └── App.tsx
+        ├── ErrorBoundary        ← captura crashes
+        ├── AuthProvider         ← estado de login global
+        ├── Navigation           ← decide qual tela mostrar
+        │     ├── [não logado] LoginScreen
+        │     └── [logado] BiometricGate
+        │                  └── AppNavigator (todas as telas)
+        ├── ToastContainer       ← mensagens flutuantes
+        └── OfflineBanner        ← aviso de sem internet
+</div>
+
+<hr class="divider" />
+
+<!-- 4. FLUXOS -->
+<h1 class="section">4. Fluxos Principais</h1>
+
+<h2 class="group">Fluxo de Login</h2>
+<div class="flow">
+LoginScreen → POST /api/auth/login → recebe JWT
+  → salva token no SecureStore (expo-secure-store)
+  → AuthContext.signIn() → isLoggedIn = true
+  → Navigation redireciona para AppNavigator
+  → BiometricGate solicita FaceID/digital
+  → DashboardScreen carrega
+</div>
+
+<h2 class="group">Fluxo de Pagamento / Assinatura</h2>
+<div class="flow">
+PlanosScreen → usuário toca "Assinar"
+  → verifica CPF (se não tiver, abre modal para informar)
+  → POST /api/payments/checkout → recebe invoiceUrl
+  → Linking.openURL(invoiceUrl) → abre Asaas no browser
+  → usuário paga → Asaas chama webhook do backend
+  → backend atualiza subscription para "Active"
+  → usuário volta ao app → AppState detecta retorno
+  → polling /api/subscriptions/me a cada 5s
+  → quando "active" → toast "Assinatura ativada!" → volta ao Perfil
+</div>
+
+<h2 class="group">Fluxo de Biometria</h2>
+<div class="flow">
+App abre (usuário logado)
+  → BiometricGate verifica disponibilidade de hardware
+  → [disponível] solicita FaceID/digital
+  → [aprovado] exibe app normalmente
+  → App vai para background → salva timestamp no SecureStore
+  → App volta para foreground → verifica se passou 5min
+  → [passou] bloqueia + solicita autenticação novamente
+</div>
+
+<h2 class="group">Fluxo de Importação OFX</h2>
+<div class="flow">
+ImportarExtratoScreen → usuário seleciona arquivo .ofx
+  → ofxParser.ts faz parse do arquivo localmente
+  → exibe prévia das transações encontradas
+  → usuário confirma → POST /api/finance-items (lote)
+  → salva saldo do extrato na conta bancária
+</div>
+
+</section>
+
+<div class="page-break"></div>
+<section>
+
+<!-- 5. CONFIGURAÇÃO -->
+<h1 class="section">5. Arquivos de Configuração</h1>
+
+<h3 class="file">app.json</h3>
+<span class="path">app.json</span> <span class="tag config">Config</span>
+<p class="desc">Configuração principal do Expo. Define nome do app, ícone, splash screen, versão, package name Android e bundle identifier iOS. Também armazena o ID do projeto EAS gerado automaticamente.</p>
+<div class="highlight">⚠️ O <strong>package name</strong> Android é <code>br.app.conciliaai.www.twa</code> — precisa ser IGUAL ao que está no Google Play Console para que o build substitua o app existente.</div>
+
+<h3 class="file">eas.json</h3>
+<span class="path">eas.json</span> <span class="tag config">Config</span>
+<p class="desc">Configuração do EAS Build (serviço de compilação do Expo). Define 3 perfis de build:</p>
+<ul style="padding-left:20px;line-height:2">
+  <li><strong>development</strong> — para testar com Expo Dev Client no celular</li>
+  <li><strong>preview</strong> — distribuição interna (APK para testar antes de publicar)</li>
+  <li><strong>production</strong> — gera o .aab para a Play Store, com auto-increment de versão</li>
+</ul>
+
+<h3 class="file">package.json</h3>
+<span class="path">package.json</span> <span class="tag config">Config</span>
+<p class="desc">Lista todas as dependências do projeto e scripts de execução. Scripts principais: <code>start</code> (inicia o servidor de desenvolvimento), <code>android</code> (roda no Android), <code>ios</code> (roda no iOS).</p>
+
+<h3 class="file">tsconfig.json</h3>
+<span class="path">tsconfig.json</span> <span class="tag config">Config</span>
+<p class="desc">Configuração do TypeScript. Define as regras de tipagem do projeto.</p>
+
+<hr class="divider" />
+
+<!-- 6. PONTO DE ENTRADA -->
+<h1 class="section">6. Ponto de Entrada</h1>
+
+<h3 class="file">index.ts</h3>
+<span class="path">index.ts</span>
+<p class="desc">Arquivo inicial do app. Registra o componente raiz usando <code>registerRootComponent</code> do Expo — equivalente ao <code>AppRegistry.registerComponent</code> do React Native puro. É o primeiro arquivo executado.</p>
+
+<h3 class="file">App.tsx</h3>
+<span class="path">App.tsx</span>
+<p class="desc">Componente raiz da aplicação. Monta toda a estrutura global:</p>
+<ul style="padding-left:20px;line-height:2">
+  <li><strong>ErrorBoundary</strong> — envolve tudo para capturar crashes inesperados</li>
+  <li><strong>StatusBar</strong> — define a barra de status do sistema como escura</li>
+  <li><strong>AuthProvider</strong> — fornece o estado de autenticação para todas as telas</li>
+  <li><strong>Navigation</strong> — componente que decide quais telas mostrar</li>
+  <li><strong>ToastContainer</strong> — renderiza mensagens flutuantes de erro/sucesso</li>
+  <li><strong>OfflineBanner</strong> — mostra banner vermelho quando sem internet</li>
+</ul>
+
+<hr class="divider" />
+
+<!-- 7. NAVEGAÇÃO -->
+<h1 class="section">7. Navegação</h1>
+
+<h3 class="file">navigation/index.tsx</h3>
+<span class="path">src/navigation/index.tsx</span> <span class="tag nav">Navegação</span>
+<p class="desc">Centro de controle de navegação do app. Define 3 navegadores:</p>
+<ul style="padding-left:20px;line-height:2">
+  <li><strong>AuthNavigator</strong> — pilha com apenas a LoginScreen (para usuários não logados)</li>
+  <li><strong>TabNavigator</strong> — barra inferior com 5 abas (Home, Categorias, Add, Grupos, Planejamento)</li>
+  <li><strong>AppNavigator</strong> — pilha principal com todas as telas do app logado</li>
+</ul>
+<p class="desc">A lógica principal: se <code>isLoggedIn</code> (do AuthContext) for verdadeiro, mostra o AppNavigator envolto no BiometricGate. Caso contrário, mostra o AuthNavigator.</p>
+
+<h3 class="file">navigation/rootNav.ts</h3>
+<span class="path">src/navigation/rootNav.ts</span> <span class="tag nav">Navegação</span>
+<p class="desc">Exporta uma referência global ao NavigationContainer (<code>navigationRef</code>) e uma função <code>rootNavigate(screenName)</code>. Isso permite navegar para qualquer tela de dentro de funções que não têm acesso ao <code>useNavigation</code> hook — por exemplo, dentro de <code>sections.tsx</code>.</p>
+
+<h3 class="file">navigation/CustomTabBar.tsx</h3>
+<span class="path">src/navigation/CustomTabBar.tsx</span> <span class="tag nav">Navegação</span>
+<p class="desc">Barra de abas inferior totalmente customizada. Diferente da tab bar padrão do React Navigation, esta tem um botão central "+" flutuante, animações de entrada/saída e integração com o scroll do dashboard para esconder/mostrar automaticamente.</p>
+
+<h3 class="file">navigation/tabBarScroll.ts</h3>
+<span class="path">src/navigation/tabBarScroll.ts</span> <span class="tag nav">Navegação</span>
+<p class="desc">Módulo que controla a visibilidade da tab bar baseado no scroll. Quando o usuário rola o dashboard para baixo, a tab bar se esconde. Quando rola para cima, ela reaparece.</p>
+
+<h3 class="file">navigation/fabAnimState.ts</h3>
+<span class="path">src/navigation/fabAnimState.ts</span> <span class="tag nav">Navegação</span>
+<p class="desc">Estado compartilhado da animação do botão FAB (Floating Action Button) central na tab bar.</p>
+
+<h3 class="file">navigation/groupFabAction.ts</h3>
+<span class="path">src/navigation/groupFabAction.ts</span> <span class="tag nav">Navegação</span>
+<p class="desc">Controla a ação do botão FAB quando o usuário está na tela de Grupos — permite criar um novo grupo diretamente pelo botão central.</p>
+
+</section>
+
+<div class="page-break"></div>
+<section>
+
+<!-- 8. CONTEXTOS -->
+<h1 class="section">8. Contextos (Estado Global)</h1>
+
+<h3 class="file">context/AuthContext.tsx</h3>
+<span class="path">src/context/AuthContext.tsx</span> <span class="tag context">Contexto</span>
+<p class="desc">Único contexto global do app. Gerencia o estado de autenticação:</p>
+<ul style="padding-left:20px;line-height:2">
+  <li><strong>isLoggedIn</strong> — booleano que define qual navegador mostrar</li>
+  <li><strong>signIn(token, user, planName)</strong> — salva token + dados do usuário no SecureStore e marca como logado</li>
+  <li><strong>signOut()</strong> — limpa todos os dados salvos e desloga</li>
+</ul>
+<p class="desc">Na inicialização, verifica se existe um token salvo no SecureStore para manter o usuário logado entre sessões.</p>
+
+<hr class="divider" />
+
+<!-- 9. BIBLIOTECAS -->
+<h1 class="section">9. Bibliotecas (lib/)</h1>
+
+<h3 class="file">lib/api.ts</h3>
+<span class="path">src/lib/api.ts</span> <span class="tag lib">Lib</span>
+<p class="desc">Exporta a função <code>apiUrl(path)</code> que monta a URL completa para chamadas à API do backend. Centraliza o endereço base da API para facilitar troca entre ambientes (desenvolvimento/produção).</p>
+
+<h3 class="file">lib/auth.ts</h3>
+<span class="path">src/lib/auth.ts</span> <span class="tag lib">Lib</span>
+<p class="desc">Funções de autenticação que interagem com o SecureStore (armazenamento seguro e criptografado do dispositivo):</p>
+<ul style="padding-left:20px;line-height:2">
+  <li><code>getToken()</code> — recupera o JWT salvo</li>
+  <li><code>saveToken(token)</code> — salva o JWT</li>
+  <li><code>saveUser(user)</code> — salva dados do usuário em cache</li>
+  <li><code>getUser()</code> — recupera dados do usuário em cache</li>
+  <li><code>getEmailFromAnySource()</code> — busca o email de qualquer fonte disponível</li>
+  <li><code>decodeUserId(token)</code> — extrai o userId do payload do JWT sem validar a assinatura</li>
+  <li><code>logout()</code> — limpa todos os dados salvos</li>
+</ul>
+
+<h3 class="file">lib/financeService.ts</h3>
+<span class="path">src/lib/financeService.ts</span> <span class="tag lib">Lib</span>
+<p class="desc">Serviço principal de transações financeiras. Exporta <code>fetchFinanceItems()</code> que busca todas as transações do usuário na API e <code>fmt(cents)</code> que formata valores em Real brasileiro (R$).</p>
+
+<h3 class="file">lib/bankAccountsService.ts</h3>
+<span class="path">src/lib/bankAccountsService.ts</span> <span class="tag lib">Lib</span>
+<p class="desc">Serviço para gerenciar contas bancárias. Funções: <code>listBankAccounts()</code>, <code>createBankAccount()</code>, <code>updateBankAccount()</code>, <code>deleteBankAccount()</code>. Usado pelo Dashboard para exibir o carrossel de cartões e sincronizar saldos.</p>
+
+<h3 class="file">lib/financeCategoriesService.ts</h3>
+<span class="path">src/lib/financeCategoriesService.ts</span> <span class="tag lib">Lib</span>
+<p class="desc">Serviço para gerenciar categorias personalizadas do usuário. CRUD completo de categorias via API.</p>
+
+<h3 class="file">lib/creditCardService.ts</h3>
+<span class="path">src/lib/creditCardService.ts</span> <span class="tag lib">Lib</span>
+<p class="desc">Serviço para operações de cartão de crédito — busca faturas, lança pagamentos de fatura, gerencia o limite e gastos do cartão.</p>
+
+<h3 class="file">lib/groupsService.ts</h3>
+<span class="path">src/lib/groupsService.ts</span> <span class="tag lib">Lib</span>
+<p class="desc">Serviço para grupos financeiros compartilhados. Funções para listar, criar, entrar, sair e gerenciar membros de grupos.</p>
+
+<h3 class="file">lib/dateUtils.ts</h3>
+<span class="path">src/lib/dateUtils.ts</span> <span class="tag lib">Lib</span>
+<p class="desc">Utilitários de data usados em todo o app:</p>
+<ul style="padding-left:20px;line-height:2">
+  <li><code>todayISO()</code> — data de hoje no formato YYYY-MM-DD</li>
+  <li><code>addMonthsYM(ym, n)</code> — adiciona N meses a uma string "YYYY-MM"</li>
+  <li><code>addDaysISO(date, n)</code> — adiciona N dias a uma data ISO</li>
+  <li><code>dateLabel(dateISO)</code> — converte data ISO para texto amigável ("Hoje", "Ontem", "15 jun")</li>
+</ul>
+
+<h3 class="file">lib/catUtils.ts</h3>
+<span class="path">src/lib/catUtils.ts</span> <span class="tag lib">Lib</span>
+<p class="desc">Utilitário que mapeia nomes de categorias para emojis. A função <code>catIcon(categoryName)</code> retorna o emoji correspondente à categoria (ex: "Alimentação" → 🍔, "Transporte" → 🚗).</p>
+
+<h3 class="file">lib/ofxParser.ts</h3>
+<span class="path">src/lib/ofxParser.ts</span> <span class="tag lib">Lib</span>
+<p class="desc">Parser de arquivos OFX (Open Financial Exchange) — formato de extrato bancário. Lê o arquivo diretamente no dispositivo (sem enviar ao servidor) e extrai as transações, datas e valores. Suporta arquivos de múltiplos bancos brasileiros.</p>
+
+</section>
+
+<div class="page-break"></div>
+<section>
+
+<!-- 10. COMPONENTES GLOBAIS -->
+<h1 class="section">10. Componentes Globais</h1>
+
+<h3 class="file">components/BiometricGate.tsx</h3>
+<span class="path">src/components/BiometricGate.tsx</span> <span class="tag component">Componente</span>
+<p class="desc">Portão de segurança biométrico. Envolve todo o app logado e:</p>
+<ul style="padding-left:20px;line-height:2">
+  <li>Na abertura do app: solicita FaceID ou impressão digital</li>
+  <li>Quando o app vai para background: salva o timestamp atual</li>
+  <li>Quando o app volta do background: se passaram mais de 5 minutos, bloqueia e pede autenticação novamente</li>
+  <li>Se o dispositivo não tem biometria configurada: deixa passar sem bloquear</li>
+  <li>Exibe tela de bloqueio com botão "Desbloquear" se a autenticação falhar</li>
+</ul>
+
+<h3 class="file">components/ErrorBoundary.tsx</h3>
+<span class="path">src/components/ErrorBoundary.tsx</span> <span class="tag component">Componente</span>
+<p class="desc">Componente de classe (obrigatório para Error Boundaries no React) que captura erros não tratados em qualquer tela. Em vez de travar o app com tela branca, exibe uma tela amigável com botão "Tentar novamente". Essencial para produção.</p>
+
+<h3 class="file">components/Toast.tsx</h3>
+<span class="path">src/components/Toast.tsx</span> <span class="tag component">Componente</span>
+<p class="desc">Sistema de mensagens flutuantes (toasts). Exporta:</p>
+<ul style="padding-left:20px;line-height:2">
+  <li><code>showToast(message, type)</code> — função global chamável de qualquer lugar do app</li>
+  <li><code>ToastContainer</code> — componente renderizado no App.tsx que exibe as mensagens</li>
+</ul>
+<p class="desc">Tipos: <code>"error"</code> (vermelho), <code>"success"</code> (verde), <code>"info"</code> (azul). A mensagem aparece no topo da tela com animação de fade e desaparece em 3,5 segundos.</p>
+
+<h3 class="file">components/OfflineBanner.tsx</h3>
+<span class="path">src/components/OfflineBanner.tsx</span> <span class="tag component">Componente</span>
+<p class="desc">Banner vermelho que aparece no topo da tela quando o dispositivo perde conexão com a internet. Usa <code>@react-native-community/netinfo</code> para monitorar a conectividade em tempo real. Desliza para baixo ao perder conexão e sobe ao reconectar.</p>
+
+<h3 class="file">components/TransferenciaModal.tsx</h3>
+<span class="path">src/components/TransferenciaModal.tsx</span> <span class="tag component">Componente</span>
+<p class="desc">Modal para registrar transferências entre contas bancárias do usuário. Lança automaticamente uma despesa em uma conta e uma receita em outra.</p>
+
+<h3 class="file">components/DonutCounter.tsx</h3>
+<span class="path">src/components/DonutCounter.tsx</span> <span class="tag component">Componente</span>
+<p class="desc">Gráfico de rosca (donut chart) animado, usado na tela de Planejamento para visualizar orçamentos e metas.</p>
+
+<hr class="divider" />
+
+<!-- 11. COMPONENTES DASHBOARD -->
+<h1 class="section">11. Componentes do Dashboard</h1>
+
+<h3 class="file">components/dashboard/BankCarousel.tsx</h3>
+<span class="path">src/components/dashboard/BankCarousel.tsx</span> <span class="tag component">Componente</span>
+<p class="desc">Carrossel horizontal de cartões de contas bancárias no Dashboard. Cada cartão mostra o nome do banco, saldo e tipo. Permite editar o saldo diretamente tocando no valor.</p>
+
+<h3 class="file">components/dashboard/Sparkline.tsx</h3>
+<span class="path">src/components/dashboard/Sparkline.tsx</span> <span class="tag component">Componente</span>
+<p class="desc">Mini gráfico de linha usado nos cards de estatísticas do Dashboard (Receitas, Despesas, Crédito, Saldo). Mostra a tendência dos últimos 6 meses em um gráfico compacto.</p>
+
+<h3 class="file">components/dashboard/CollapsePanel.tsx</h3>
+<span class="path">src/components/dashboard/CollapsePanel.tsx</span> <span class="tag component">Componente</span>
+<p class="desc">Painel expansível com animação. Usado para seções que podem ser abertas/fechadas no Dashboard. Exporta também <code>AnimatedCard</code> para cartões com animação de entrada.</p>
+
+<h3 class="file">components/dashboard/MiniCalendar.tsx</h3>
+<span class="path">src/components/dashboard/MiniCalendar.tsx</span> <span class="tag component">Componente</span>
+<p class="desc">Calendário compacto que aparece como bottom sheet quando o usuário toca no mês no HeroCard. Permite navegar por mês e selecionar um dia específico para filtrar transações.</p>
+
+<h3 class="file">components/dashboard/ExpandableLegend.tsx</h3>
+<span class="path">src/components/dashboard/ExpandableLegend.tsx</span> <span class="tag component">Componente</span>
+<p class="desc">Legenda expansível usada nos gráficos de analytics do Dashboard. Mostra as categorias com suas cores e valores, podendo ser expandida para ver mais detalhes.</p>
+
+<h3 class="file">components/financas/FinanceListScreen.tsx</h3>
+<span class="path">src/components/financas/FinanceListScreen.tsx</span> <span class="tag component">Componente</span>
+<p class="desc">Componente base compartilhado entre <strong>ReceitasScreen</strong> e <strong>DespesasScreen</strong>. Renderiza a lista de transações filtradas por tipo (receita ou despesa), com navegação por mês, agrupamento por data e empty state ilustrado.</p>
+
+</section>
+
+<div class="page-break"></div>
+<section>
+
+<!-- 13. TELAS AUTH -->
+<h1 class="section">12. Telas de Autenticação</h1>
+
+<h3 class="file">screens/auth/LoginScreen.tsx</h3>
+<span class="path">src/screens/auth/LoginScreen.tsx</span> <span class="tag screen">Tela</span>
+<p class="desc">Única tela de autenticação. Contém formulário de email/senha, chama <code>POST /api/auth/login</code>, salva o token retornado via <code>AuthContext.signIn()</code> e redireciona para o app. Pode ter também a opção de registro ou redefinição de senha.</p>
+
+<hr class="divider" />
+
+<!-- 14. DASHBOARD -->
+<h1 class="section">13. Tela Principal — Dashboard</h1>
+
+<h3 class="file">screens/app/DashboardScreen.tsx</h3>
+<span class="path">src/screens/app/DashboardScreen.tsx</span> <span class="tag screen">Tela</span>
+<p class="desc">A tela mais complexa do app. Carrega e exibe um resumo financeiro completo do usuário. Funcionalidades:</p>
+<ul style="padding-left:20px;line-height:2">
+  <li>HeroCard com saldo acumulado do mês selecionado e navegação por mês</li>
+  <li>Carrossel de contas bancárias com sincronização automática de saldo</li>
+  <li>Cards de estatísticas: Receitas, Despesas, Crédito, Saldo com sparklines</li>
+  <li>Seletor de período para análise (Últimos 7, 30, 90 dias, etc.)</li>
+  <li>Seção de Analytics com gráficos (confronto receita/despesa, gastos por categoria)</li>
+  <li>Gráfico comparativo entre categorias (adicionável pelo usuário)</li>
+  <li>Alerta de despesas vencendo em breve</li>
+  <li>Lista das últimas transações</li>
+  <li>Skeleton loading animado enquanto carrega</li>
+  <li>Pull-to-refresh para atualizar os dados</li>
+  <li>Empty state ilustrado quando não há transações</li>
+</ul>
+
+<h3 class="file">screens/app/dashboard/HeroCard.tsx</h3>
+<span class="path">src/screens/app/dashboard/HeroCard.tsx</span> <span class="tag screen">Sub-tela</span>
+<p class="desc">Card principal do Dashboard com saldo total, receitas e despesas do mês. Permite esconder o saldo (modo privacidade) e navegar entre meses. Integrado com o MiniCalendar para seleção de datas.</p>
+
+<h3 class="file">screens/app/dashboard/AnalyticsSection.tsx</h3>
+<span class="path">src/screens/app/dashboard/AnalyticsSection.tsx</span> <span class="tag screen">Sub-tela</span>
+<p class="desc">Seção de gráficos e analytics do Dashboard. Abas: confronto receita/despesa (barra de progresso), gastos por categoria (lista ranqueada).</p>
+
+<h3 class="file">screens/app/dashboard/shared.ts</h3>
+<span class="path">src/screens/app/dashboard/shared.ts</span> <span class="tag lib">Compartilhado</span>
+<p class="desc">Estilos, constantes e funções compartilhadas entre os componentes do Dashboard. Define os períodos disponíveis, cores dos planos, cálculo de ranges de datas por período.</p>
+
+<hr class="divider" />
+
+<!-- 15. TRANSAÇÕES -->
+<h1 class="section">14. Telas de Transações</h1>
+
+<h3 class="file">screens/app/AddTransactionScreen.tsx</h3>
+<span class="path">src/screens/app/AddTransactionScreen.tsx</span> <span class="tag screen">Tela</span>
+<p class="desc">Tela de lançamento de transação (receita ou despesa). Apresentada como modal. Contém o formulário completo e as ações rápidas (QuickActionsSheet). Pode receber um item existente para edição.</p>
+
+<h3 class="file">screens/app/addTransaction/TransactionForm.tsx</h3>
+<span class="path">src/screens/app/addTransaction/TransactionForm.tsx</span> <span class="tag screen">Sub-tela</span>
+<p class="desc">Formulário de lançamento: campos de valor, título, categoria, data, tipo (receita/despesa/crédito), status (pago/pendente), observações. Chama <code>POST /api/finance-items</code> para criar ou <code>PATCH</code> para editar.</p>
+
+<h3 class="file">screens/app/addTransaction/QuickActionsSheet.tsx</h3>
+<span class="path">src/screens/app/addTransaction/QuickActionsSheet.tsx</span> <span class="tag screen">Sub-tela</span>
+<p class="desc">Bottom sheet com ações rápidas de lançamento — atalhos para categorias mais usadas ou tipos de transação comuns.</p>
+
+<h3 class="file">screens/app/ReceitasScreen.tsx</h3>
+<span class="path">src/screens/app/ReceitasScreen.tsx</span> <span class="tag screen">Tela</span>
+<p class="desc">Lista todas as receitas do usuário, usando o componente <code>FinanceListScreen</code> com <code>isReceita=true</code>. Permite navegar por mês, ver total e acessar os detalhes de cada lançamento.</p>
+
+<h3 class="file">screens/app/DespesasScreen.tsx</h3>
+<span class="path">src/screens/app/DespesasScreen.tsx</span> <span class="tag screen">Tela</span>
+<p class="desc">Igual ao ReceitasScreen, mas para despesas. Usa <code>FinanceListScreen</code> com <code>isReceita=false</code>.</p>
+
+<h3 class="file">screens/app/ImportarExtratoScreen.tsx</h3>
+<span class="path">src/screens/app/ImportarExtratoScreen.tsx</span> <span class="tag screen">Tela</span>
+<p class="desc">Tela de importação de extrato bancário em formato OFX. Fluxo dividido em estágios: seleção do arquivo → parse local → prévia das transações → confirmação → envio ao servidor.</p>
+
+<h3 class="file">screens/app/importarExtrato/stages.tsx</h3>
+<span class="path">src/screens/app/importarExtrato/stages.tsx</span> <span class="tag screen">Sub-tela</span>
+<p class="desc">Componentes de cada estágio da importação OFX: seleção, revisão e confirmação.</p>
+
+<h3 class="file">screens/app/LancarPorFotoScreen.tsx</h3>
+<span class="path">src/screens/app/LancarPorFotoScreen.tsx</span> <span class="tag screen">Tela</span>
+<p class="desc">Tela de lançamento por foto usando IA. O usuário tira uma foto de um recibo ou nota fiscal, o backend processa com IA e retorna os dados da transação preenchidos automaticamente.</p>
+
+<h3 class="file">screens/app/LancarTransacaoScreen.tsx</h3>
+<span class="path">src/screens/app/LancarTransacaoScreen.tsx</span> <span class="tag screen">Tela</span>
+<p class="desc">Tela alternativa de lançamento de transação com fluxo simplificado.</p>
+
+</section>
+
+<div class="page-break"></div>
+<section>
+
+<!-- CARTÃO -->
+<h1 class="section">15. Tela de Cartão de Crédito</h1>
+
+<h3 class="file">screens/app/CartaoScreen.tsx</h3>
+<span class="path">src/screens/app/CartaoScreen.tsx</span> <span class="tag screen">Tela</span>
+<p class="desc">Gerenciamento completo de cartão de crédito. Mostra a fatura atual, gastos por categoria, limite disponível e histórico de faturas anteriores. Permite registrar o pagamento da fatura.</p>
+
+<h3 class="file">screens/app/cartao/components.tsx</h3>
+<span class="path">src/screens/app/cartao/components.tsx</span> <span class="tag component">Componente</span>
+<p class="desc">Componentes visuais da tela de cartão: cartão visual animado, barra de limite, lista de gastos por categoria.</p>
+
+<h3 class="file">screens/app/cartao/Modals.tsx</h3>
+<span class="path">src/screens/app/cartao/Modals.tsx</span> <span class="tag component">Componente</span>
+<p class="desc">Modais da tela de cartão: confirmação de pagamento de fatura, detalhes de um gasto específico.</p>
+
+<hr class="divider" />
+
+<!-- CATEGORIAS -->
+<h1 class="section">16. Tela de Categorias</h1>
+
+<h3 class="file">screens/app/CategoriasScreen.tsx</h3>
+<span class="path">src/screens/app/CategoriasScreen.tsx</span> <span class="tag screen">Tela</span>
+<p class="desc">Gerenciamento de categorias personalizadas. Exibe grade de categorias com emojis, permite criar, editar e reordenar por drag-and-drop. Separado em receitas e despesas.</p>
+
+<h3 class="file">components/categorias/DraggableGrid.tsx</h3>
+<span class="path">src/components/categorias/DraggableGrid.tsx</span> <span class="tag component">Componente</span>
+<p class="desc">Grade com suporte a arrastar e soltar para reordenar as categorias. Implementado com Animated API do React Native.</p>
+
+<h3 class="file">components/categorias/CategoryCard.tsx</h3>
+<span class="path">src/components/categorias/CategoryCard.tsx</span> <span class="tag component">Componente</span>
+<p class="desc">Card visual de uma categoria com emoji, nome e opções de edição/exclusão.</p>
+
+<h3 class="file">components/categorias/CategoryActionSheet.tsx</h3>
+<span class="path">src/components/categorias/CategoryActionSheet.tsx</span> <span class="tag component">Componente</span>
+<p class="desc">Bottom sheet com ações para uma categoria selecionada: editar, excluir, alterar emoji.</p>
+
+<h3 class="file">screens/app/categorias/EditModal.tsx</h3>
+<span class="path">src/screens/app/categorias/EditModal.tsx</span> <span class="tag component">Componente</span>
+<p class="desc">Modal para criar ou editar uma categoria: campo de nome, seletor de emoji e tipo (receita/despesa).</p>
+
+<hr class="divider" />
+
+<!-- GRUPOS -->
+<h1 class="section">17. Tela de Grupos</h1>
+
+<h3 class="file">screens/app/GruposScreen.tsx</h3>
+<span class="path">src/screens/app/GruposScreen.tsx</span> <span class="tag screen">Tela</span>
+<p class="desc">Tela principal de grupos financeiros compartilhados. Lista os grupos do usuário e permite criar novos ou entrar em um grupo existente via código de convite.</p>
+
+<h3 class="file">screens/app/grupos/GroupList.tsx</h3>
+<span class="path">src/screens/app/grupos/GroupList.tsx</span> <span class="tag screen">Sub-tela</span>
+<p class="desc">Lista de grupos do usuário com resumo de membros e saldo do grupo.</p>
+
+<h3 class="file">screens/app/grupos/GroupDetail.tsx</h3>
+<span class="path">src/screens/app/grupos/GroupDetail.tsx</span> <span class="tag screen">Sub-tela</span>
+<p class="desc">Detalhe de um grupo: lista de transações do grupo, membros, saldo total e opções de gerenciamento (apenas para o criador do grupo).</p>
+
+<h3 class="file">screens/app/grupos/components.tsx</h3>
+<span class="path">src/screens/app/grupos/components.tsx</span> <span class="tag component">Componente</span>
+<p class="desc">Componentes visuais da tela de grupos: card de grupo, avatar de membro, badge de papel (admin/membro).</p>
+
+<hr class="divider" />
+
+<!-- PLANEJAMENTO -->
+<h1 class="section">18. Tela de Planejamento</h1>
+
+<h3 class="file">screens/app/PlanejamentoScreen.tsx</h3>
+<span class="path">src/screens/app/PlanejamentoScreen.tsx</span> <span class="tag screen">Tela</span>
+<p class="desc">Tela de planejamento financeiro com 5 abas:</p>
+<ul style="padding-left:20px;line-height:2">
+  <li><strong>Orçamento</strong> — define limites de gasto por categoria</li>
+  <li><strong>Objetivos</strong> — metas financeiras com progresso</li>
+  <li><strong>Poupança</strong> — controle de reserva de emergência</li>
+  <li><strong>Previsão</strong> — projeção de receitas e despesas futuras</li>
+  <li><strong>Diária</strong> — quanto pode gastar por dia para não estourar o orçamento</li>
+</ul>
+
+</section>
+
+<div class="page-break"></div>
+<section>
+
+<!-- RELATÓRIOS -->
+<h1 class="section">19. Tela de Relatórios</h1>
+
+<h3 class="file">screens/app/RelatoriosScreen.tsx</h3>
+<span class="path">src/screens/app/RelatoriosScreen.tsx</span> <span class="tag screen">Tela</span>
+<p class="desc">Galeria de relatórios disponíveis. Cada card de relatório mostra um mini preview dos dados. O usuário seleciona o relatório para ver o detalhe completo.</p>
+
+<h3 class="file">screens/app/RelatorioDetalheScreen.tsx</h3>
+<span class="path">src/screens/app/RelatorioDetalheScreen.tsx</span> <span class="tag screen">Tela</span>
+<p class="desc">Tela de detalhe de um relatório específico. Recebe o tipo do relatório como parâmetro de navegação e renderiza o componente correspondente.</p>
+
+<h3 class="file">screens/app/relatorioDetalhe/reports.tsx</h3>
+<span class="path">src/screens/app/relatorioDetalhe/reports.tsx</span> <span class="tag screen">Sub-tela</span>
+<p class="desc">Componentes de cada tipo de relatório: por categoria, evolução mensal, receitas vs despesas, fluxo de caixa, etc.</p>
+
+<hr class="divider" />
+
+<!-- PERFIL -->
+<h1 class="section">20. Tela de Perfil</h1>
+
+<h3 class="file">screens/app/PerfilScreen.tsx</h3>
+<span class="path">src/screens/app/PerfilScreen.tsx</span> <span class="tag screen">Tela</span>
+<p class="desc">Tela de perfil do usuário com design glass (fundo escuro semi-transparente). Gerencia:</p>
+<ul style="padding-left:20px;line-height:2">
+  <li>Foto de perfil (salva localmente via SecureStore)</li>
+  <li>Nome (editável, com feedback "Salvo ✓")</li>
+  <li>Email (somente leitura, mascarado: l•••@gmail.com)</li>
+  <li>CPF (editável, mascarado quando não editando: •••.•••.789-09)</li>
+  <li>Status da assinatura</li>
+  <li>Acesso às notificações</li>
+  <li>Política de privacidade</li>
+  <li>Envio de sugestões</li>
+  <li>Logout e exclusão de conta</li>
+</ul>
+<p class="desc">Aurora blobs decorativos no fundo (apenas iOS — Android renderiza incorretamente).</p>
+
+<h3 class="file">screens/app/perfil/sections.tsx</h3>
+<span class="path">src/screens/app/perfil/sections.tsx</span> <span class="tag component">Componente</span>
+<p class="desc">Todas as seções do Perfil em componentes separados: AvatarSection, DadosPessoaisSection, AssinaturaSection, ContaSection, JuridicoSection, SugestoesSection. Contém também os ícones SVG customizados e as funções de mascaramento de email/CPF.</p>
+
+<h3 class="file">screens/app/perfil/shared.ts</h3>
+<span class="path">src/screens/app/perfil/shared.ts</span> <span class="tag lib">Compartilhado</span>
+<p class="desc">Estilos, tipos e utilitários compartilhados do Perfil: StyleSheet com o design glass, tipo <code>Sub</code> para assinatura, funções <code>getInitials()</code> e <code>fmtDate()</code>.</p>
+
+<hr class="divider" />
+
+<!-- PLANOS E NOTIFICAÇÕES -->
+<h1 class="section">21. Planos e Notificações</h1>
+
+<h3 class="file">screens/app/planos/PlanosScreen.tsx</h3>
+<span class="path">src/screens/app/planos/PlanosScreen.tsx</span> <span class="tag screen">Tela</span>
+<p class="desc">Tela de assinatura de planos. Busca os planos disponíveis na API e exibe cards com preço, recursos e botão de assinar. Fluxo:</p>
+<ul style="padding-left:20px;line-height:2">
+  <li>Verifica se usuário tem CPF cadastrado (obrigatório pelo Asaas)</li>
+  <li>Se não tiver: abre modal para informar CPF</li>
+  <li>Chama <code>POST /api/payments/checkout</code> → recebe link do Asaas</li>
+  <li>Abre o link no browser via <code>Linking.openURL()</code></li>
+  <li>Detecta retorno ao app via <code>AppState</code></li>
+  <li>Exibe overlay "Verificando pagamento..." e faz polling a cada 5s por 1 minuto</li>
+  <li>Quando assinatura ativa: toast de sucesso e volta ao Perfil</li>
+</ul>
+
+<h3 class="file">screens/app/notificacoes/NotificacoesScreen.tsx</h3>
+<span class="path">src/screens/app/notificacoes/NotificacoesScreen.tsx</span> <span class="tag screen">Tela</span>
+<p class="desc">Tela de preferências de notificação. Permite ligar/desligar notificações e vibração, e selecionar o som de notificação preferido (12 opções). As preferências são salvas localmente no SecureStore. <strong>Nota:</strong> as notificações push reais são enviadas via Web Push pelo backend — esta tela só armazena preferências locais.</p>
+
+<hr class="divider" />
+
+<!-- TIPOS -->
+<h1 class="section">22. Tipos TypeScript</h1>
+
+<h3 class="file">types/finance.ts</h3>
+<span class="path">src/types/finance.ts</span> <span class="tag type">Tipo</span>
+<p class="desc">Define as interfaces principais do domínio financeiro:</p>
+<ul style="padding-left:20px;line-height:2">
+  <li><strong>FinanceItem</strong> — uma transação (id, userId, title, type, amountCents, category, dateISO, paymentType, status)</li>
+  <li><strong>BankAccount</strong> — uma conta bancária (id, userId, bankName, balanceCents, type)</li>
+</ul>
+
+<h3 class="file">types/creditCard.ts</h3>
+<span class="path">src/types/creditCard.ts</span> <span class="tag type">Tipo</span>
+<p class="desc">Interfaces relacionadas ao cartão de crédito: CreditCard, CreditCardBill, CreditCardExpense.</p>
+
+<hr class="divider" />
+
+<!-- RESUMO FINAL -->
+<h1 class="section">Resumo da Arquitetura</h1>
+
+<div class="arch-box">
+  <div class="arch-card">
+    <h4>Fluxo de Dados</h4>
+    <ul>
+      <li>API REST → lib/services</li>
+      <li>JWT no SecureStore</li>
+      <li>Estado local por tela</li>
+      <li>AuthContext global</li>
+      <li>Sem Redux/Zustand</li>
+    </ul>
+  </div>
+  <div class="arch-card">
+    <h4>Padrão de Arquivos</h4>
+    <ul>
+      <li>Screen = tela completa</li>
+      <li>shared.ts = estilos+tipos</li>
+      <li>sections.tsx = partes da tela</li>
+      <li>components/ = reutilizáveis</li>
+      <li>lib/ = chamadas API</li>
+    </ul>
+  </div>
+  <div class="arch-card">
+    <h4>Segurança</h4>
+    <ul>
+      <li>JWT expirado = logout</li>
+      <li>Biometria na abertura</li>
+      <li>Lock 5min background</li>
+      <li>Dados sensíveis mascarados</li>
+      <li>SecureStore criptografado</li>
+    </ul>
+  </div>
+</div>
+
+<div class="highlight" style="margin-top:24px;">
+  <strong>Dica:</strong> Para abrir este manual como PDF, abra o arquivo no Chrome/Edge e pressione <strong>Ctrl+P → Salvar como PDF</strong>. Selecione "Mais configurações" e marque "Gráficos de fundo" para manter a capa colorida.
+</div>
+
+</section>
+</body>
+</html>

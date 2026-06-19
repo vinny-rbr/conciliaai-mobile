@@ -38,7 +38,7 @@ export default function ImportarExtratoScreen() {
 
       const ext = (asset.name ?? "").split(".").pop()?.toLowerCase();
       if (ext !== "ofx" && ext !== "csv") {
-        Alert.alert("Formato não suportado", "Use um arquivo .OFX ou .CSV exportado pelo seu banco.");
+        Alert.alert("Formato não suportado", "Use um arquivo .OFX ou .CSV.\n\nNo seu banco acesse: Extrato → Exportar → OFX ou CSV.");
         setLoading(false);
         return;
       }
