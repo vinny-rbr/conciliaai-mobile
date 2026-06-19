@@ -3,7 +3,7 @@ import { Alert } from "react-native";
 import { SafeAreaView } from "react-native-safe-area-context";
 import { useNavigation } from "@react-navigation/native";
 import * as DocumentPicker from "expo-document-picker";
-import * as FileSystem from "expo-file-system";
+import * as FileSystem from "expo-file-system/legacy";
 
 import { parseOfx, parseCsv, type ParsedItem } from "../../lib/ofxParser";
 import { listBankAccounts } from "../../lib/bankAccountsService";
@@ -43,7 +43,7 @@ export default function ImportarExtratoScreen() {
         return;
       }
 
-      const text = await FileSystem.readAsStringAsync(asset.uri, { encoding: FileSystem.EncodingType.UTF8 });
+      const text = await FileSystem.readAsStringAsync(asset.uri, { encoding: "utf8" });
       let parsed: ParsedItem[] = [];
       if (ext === "ofx") {
         const { items: ofxItems } = parseOfx(text);
