@@ -5,15 +5,17 @@ import { useNavigation } from "@react-navigation/native";
 import * as DocumentPicker from "expo-document-picker";
 import * as FileSystem from "expo-file-system/legacy";
 
-import { parseOfx, parseCsv, type ParsedItem } from "../../lib/ofxParser";
-import { listBankAccounts } from "../../lib/bankAccountsService";
+import { parseOfx, parseCsv, type ParsedItem, type LedgerBal } from "../../lib/ofxParser";
+import { listBankAccounts, updateBankAccount } from "../../lib/bankAccountsService";
+import { fetchFinanceItems } from "../../lib/financeService";
 import { apiUrl } from "../../lib/api";
 import { getToken } from "../../lib/auth";
 import type { BankAccount } from "../../types/finance";
 import { s } from "./importarExtrato/shared";
-import { PickStep, ImportingStep, DoneStep, ReviewStep } from "./importarExtrato/stages";
+import { PickStep, ImportingStep, DoneStep, ReviewStep, AdjustStep } from "./importarExtrato/stages";
 
-type Step = "pick" | "review" | "importing" | "done";
+type Step = "pick" | "review" | "importing" | "adjust" | "done";
+type AdjustInfo = { bankCents: number; appCents: number; dateISO: string };
 type SelectedItem = ParsedItem & { selected: boolean };
 
 export default function ImportarExtratoScreen() {
@@ -26,6 +28,8 @@ export default function ImportarExtratoScreen() {
   const [fileName, setFileName]       = useState("");
   const [loading, setLoading]         = useState(false);
   const [result, setResult]           = useState({ added: 0, skipped: 0 });
+  const [ledgerBal, setLedgerBal]     = useState<LedgerBal | null>(null);
+  const [adjustInfo, setAdjustInfo]   = useState<AdjustInfo | null>(null);
 
   const pickFile = useCallback(async () => {
     try {
@@ -45,12 +49,15 @@ export default function ImportarExtratoScreen() {
 
       const text = await FileSystem.readAsStringAsync(asset.uri, { encoding: "utf8" });
       let parsed: ParsedItem[] = [];
+      let bal: LedgerBal | null = null;
       if (ext === "ofx") {
-        const { items: ofxItems } = parseOfx(text);
+        const { items: ofxItems, ledgerBal: ofxBal } = parseOfx(text);
         parsed = ofxItems;
+        bal = ofxBal;
       } else {
         parsed = parseCsv(text);
       }
+      setLedgerBal(bal);
 
       if (parsed.length === 0) {
         Alert.alert("Nenhum lançamento encontrado", "Verifique se o arquivo está no formato correto.");
@@ -106,6 +113,48 @@ export default function ImportarExtratoScreen() {
     }
 
     setResult({ added, skipped });
+
+    // Reajuste: compara saldo do OFX com saldo calculado no app
+    if (ledgerBal && ledgerBal.balanceCents > 0) {
+      if (selAccId) void updateBankAccount(selAccId, { balanceCents: ledgerBal.balanceCents });
+      const allItems = await fetchFinanceItems();
+      let cumRec = 0, cumDes = 0;
+      for (const it of allItems) {
+        if (it.dateISO > ledgerBal.dateISO) continue;
+        if (it.type === "RECEITA") cumRec += it.amountCents;
+        if (it.type === "DESPESA") cumDes += it.amountCents;
+      }
+      const appCents = cumRec - cumDes;
+      if (Math.abs(ledgerBal.balanceCents - appCents) > 0) {
+        setAdjustInfo({ bankCents: ledgerBal.balanceCents, appCents, dateISO: ledgerBal.dateISO });
+        setStep("adjust");
+        return;
+      }
+    }
+
+    setStep("done");
+  };
+
+  const applyAdjustment = async () => {
+    if (!adjustInfo) { setStep("done"); return; }
+    const diff = adjustInfo.bankCents - adjustInfo.appCents;
+    const token = await getToken();
+    if (token) {
+      await fetch(apiUrl("/api/finance"), {
+        method: "POST",
+        headers: { Authorization: `Bearer ${token}`, "Content-Type": "application/json" },
+        body: JSON.stringify({
+          type: diff > 0 ? "RECEITA" : "DESPESA",
+          title: "Saldo inicial — ajuste de importação",
+          category: "Outros",
+          amountCents: Math.abs(diff),
+          date: adjustInfo.dateISO,
+          paymentType: "debit",
+          status: "paid",
+          accountId: selAccId || null,
+        }),
+      });
+    }
     setStep("done");
   };
 
@@ -122,6 +171,19 @@ export default function ImportarExtratoScreen() {
     return (
       <SafeAreaView style={s.root}>
         <ImportingStep totalSel={totalSel} />
+      </SafeAreaView>
+    );
+  }
+  if (step === "adjust" && adjustInfo) {
+    return (
+      <SafeAreaView style={s.root}>
+        <AdjustStep
+          bankCents={adjustInfo.bankCents}
+          appCents={adjustInfo.appCents}
+          dateISO={adjustInfo.dateISO}
+          onApply={() => void applyAdjustment()}
+          onSkip={() => setStep("done")}
+        />
       </SafeAreaView>
     );
   }

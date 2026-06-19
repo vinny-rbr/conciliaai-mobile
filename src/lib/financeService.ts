@@ -59,6 +59,16 @@ export async function fetchFinanceItems(): Promise<FinanceItem[]> {
   return raw.map(normalize).sort((a, b) => b.dateISO.localeCompare(a.dateISO));
 }
 
+export async function deleteFinanceItem(id: string): Promise<boolean> {
+  const token = await getToken();
+  if (!token) return false;
+  const res = await fetch(apiUrl(`/api/finance/${id}`), {
+    method: "DELETE",
+    headers: { Authorization: `Bearer ${token}` },
+  });
+  return res.ok || res.status === 204;
+}
+
 export function fmt(cents: number): string {
   return (cents / 100).toLocaleString("pt-BR", { style: "currency", currency: "BRL" });
 }

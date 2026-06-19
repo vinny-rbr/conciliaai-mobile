@@ -1,12 +1,13 @@
 import { useCallback, useEffect, useMemo, useRef, useState } from "react";
 import {
-  ActivityIndicator, Animated, RefreshControl, ScrollView,
+  ActivityIndicator, Alert, Animated, RefreshControl, ScrollView,
   StyleSheet, Text, TouchableOpacity, View,
 } from "react-native";
 import { SafeAreaView } from "react-native-safe-area-context";
 import { useNavigation, useFocusEffect } from "@react-navigation/native";
 import type { NativeStackNavigationProp } from "@react-navigation/native-stack";
-import { fetchFinanceItems, fmt } from "../../lib/financeService";
+import Svg, { Path, Polyline, Line } from "react-native-svg";
+import { fetchFinanceItems, deleteFinanceItem, fmt } from "../../lib/financeService";
 import { addMonthsYM, ymToLabel } from "../../lib/dateUtils";
 import { catIcon } from "../../lib/catUtils";
 import type { FinanceItem } from "../../types/finance";
@@ -44,6 +45,7 @@ export default function FinanceListScreen({ type }: Props) {
   const [loading, setLoading] = useState(true);
   const [refreshing, setRefreshing] = useState(false);
   const [month, setMonth] = useState(currentYM);
+  const [deletingAll, setDeletingAll] = useState(false);
 
   const fabTranslate = useRef(new Animated.Value(0)).current;
   const fabRotation  = useRef(new Animated.Value(0)).current;
@@ -91,6 +93,27 @@ export default function FinanceListScreen({ type }: Props) {
   const today = currentYM();
   const maxMonth = addMonthsYM(today, 12);
   const canNext = month < maxMonth;
+
+  const handleDeleteAll = () => {
+    if (monthItems.length === 0) return;
+    Alert.alert(
+      `Apagar ${monthItems.length} lançamento${monthItems.length !== 1 ? "s" : ""}?`,
+      `Todos os ${isReceita ? "receitas" : "despesas"} de ${ymToLabel(month)} serão removidos permanentemente.`,
+      [
+        { text: "Cancelar", style: "cancel" },
+        {
+          text: "Apagar tudo",
+          style: "destructive",
+          onPress: async () => {
+            setDeletingAll(true);
+            await Promise.all(monthItems.map(it => deleteFinanceItem(it.id)));
+            await load(true);
+            setDeletingAll(false);
+          },
+        },
+      ],
+    );
+  };
 
   const handleFabPress = () => {
     Animated.parallel([
@@ -144,6 +167,27 @@ export default function FinanceListScreen({ type }: Props) {
         >
           <Text style={s.monthBtnTxt}>›</Text>
         </TouchableOpacity>
+        {monthItems.length > 0 && (
+          <TouchableOpacity
+            style={[s.monthBtn, { marginLeft: 4 }]}
+            onPress={handleDeleteAll}
+            disabled={deletingAll}
+            activeOpacity={0.7}
+          >
+            {deletingAll
+              ? <ActivityIndicator size="small" color="#F87171" />
+              : (
+                <Svg viewBox="0 0 24 24" width={18} height={18} fill="none" stroke="#F87171" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+                  <Polyline points="3 6 5 6 21 6" />
+                  <Path d="M19 6l-1 14a2 2 0 0 1-2 2H8a2 2 0 0 1-2-2L5 6" />
+                  <Path d="M10 11v6" />
+                  <Path d="M14 11v6" />
+                  <Path d="M9 6V4h6v2" />
+                </Svg>
+              )
+            }
+          </TouchableOpacity>
+        )}
       </View>
 
       {/* Summary */}

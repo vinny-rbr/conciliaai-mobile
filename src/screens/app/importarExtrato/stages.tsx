@@ -73,6 +73,52 @@ export function DoneStep({ added, skipped, onGoBack }: DoneStepProps) {
   );
 }
 
+// ── Adjust ───────────────────────────────────────────────────────────────────
+type AdjustStepProps = {
+  bankCents: number;
+  appCents: number;
+  dateISO: string;
+  onApply: () => void;
+  onSkip: () => void;
+};
+
+export function AdjustStep({ bankCents, appCents, dateISO, onApply, onSkip }: AdjustStepProps) {
+  const diff = bankCents - appCents;
+  const isPositive = diff > 0;
+  return (
+    <View style={s.centerFull}>
+      <Text style={{ fontSize: 40, marginBottom: 16 }}>⚖️</Text>
+      <Text style={[s.doneTitle, { marginBottom: 8 }]}>Ajuste de saldo</Text>
+      <Text style={{ color: "#94A3B8", fontSize: 13, textAlign: "center", marginBottom: 24, paddingHorizontal: 24, lineHeight: 20 }}>
+        O saldo do banco em {fmtDate(dateISO)} difere do calculado no app.
+      </Text>
+      <View style={{ backgroundColor: "#1E293B", borderRadius: 16, padding: 20, width: "85%", marginBottom: 28, borderWidth: 1, borderColor: "#334155" }}>
+        <View style={{ flexDirection: "row", justifyContent: "space-between", marginBottom: 10 }}>
+          <Text style={{ color: "#94A3B8", fontSize: 13 }}>Saldo do banco</Text>
+          <Text style={{ color: "#F1F5F9", fontSize: 14, fontWeight: "700" }}>{fmt(bankCents)}</Text>
+        </View>
+        <View style={{ flexDirection: "row", justifyContent: "space-between", marginBottom: 10 }}>
+          <Text style={{ color: "#94A3B8", fontSize: 13 }}>Saldo calculado</Text>
+          <Text style={{ color: "#F1F5F9", fontSize: 14, fontWeight: "700" }}>{fmt(appCents)}</Text>
+        </View>
+        <View style={{ height: 1, backgroundColor: "#334155", marginVertical: 4 }} />
+        <View style={{ flexDirection: "row", justifyContent: "space-between", marginTop: 8 }}>
+          <Text style={{ color: "#94A3B8", fontSize: 13 }}>Diferença</Text>
+          <Text style={{ color: isPositive ? "#4ADE80" : "#F87171", fontSize: 15, fontWeight: "800" }}>
+            {isPositive ? "+" : ""}{fmt(Math.abs(diff))}
+          </Text>
+        </View>
+      </View>
+      <TouchableOpacity style={[s.doneBtn, { marginBottom: 12 }]} onPress={onApply} activeOpacity={0.85}>
+        <Text style={s.doneBtnTxt}>Criar lançamento de ajuste</Text>
+      </TouchableOpacity>
+      <TouchableOpacity onPress={onSkip} activeOpacity={0.7}>
+        <Text style={{ color: "#64748B", fontSize: 14, fontWeight: "600" }}>Pular</Text>
+      </TouchableOpacity>
+    </View>
+  );
+}
+
 // ── Review ────────────────────────────────────────────────────────────────────
 type ReviewStepProps = {
   items: SelectedItem[];
