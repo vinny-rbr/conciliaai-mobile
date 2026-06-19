@@ -7,6 +7,8 @@ export type ParsedItem = {
   amountCents: number;
   dateISO: string;
   fitId?: string;
+  tags?: string;
+  category?: string;
 };
 
 export type LedgerBal = { balanceCents: number; dateISO: string };

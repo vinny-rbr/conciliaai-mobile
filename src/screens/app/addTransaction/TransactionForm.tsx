@@ -6,6 +6,7 @@ import {
 import { SafeAreaView } from "react-native-safe-area-context";
 import type { BankAccount, FinanceCategoryOption, FinanceItem } from "../../../types/finance";
 import { PAY_TYPES, TxType, f, m, fmtAmount as _fmtAmount } from "./shared";
+import { TagsMultiSelect } from "../../../components/TagsMultiSelect";
 
 type Props = {
   formSlide: Animated.Value;
@@ -47,6 +48,10 @@ type Props = {
   recurringAction: "edit" | "delete" | null;
   setRecurringAction: (v: "edit" | "delete" | null) => void;
 
+  // tags
+  tags: string; setTags: (v: string) => void;
+  availableTags: string[];
+
   // delete
   deleteModal: boolean; setDeleteModal: (v: boolean) => void;
 
@@ -60,7 +65,7 @@ type Props = {
 export default function TransactionForm({
   formSlide, formType, editItem, accent,
   title, setTitle, amount, setAmount, dateBR, onDateChange,
-  payType, setPayType, paid, setPaid, note, setNote, saving,
+  payType, setPayType, paid, setPaid, note, setNote, tags, setTags, availableTags, saving,
   categories, rootCats, selectedCat, setSelectedCat, catModal, setCatModal, expandedCatId, setExpandedCatId,
   accounts, selectedAcc, setSelectedAcc, accModal, setAccModal,
   isRecurring, setIsRecurring, recurringMode, setRecurringMode, recurringMonths, setRecurringMonths,
@@ -279,6 +284,12 @@ export default function TransactionForm({
               </TouchableOpacity>
             </View>
           )}
+
+          {/* Tags */}
+          <View style={f.field}>
+            <Text style={f.label}>Tags (opcional)</Text>
+            <TagsMultiSelect value={tags} onChange={setTags} availableTags={availableTags} />
+          </View>
 
           {/* Observação */}
           <View style={f.field}>

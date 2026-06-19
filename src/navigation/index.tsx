@@ -23,6 +23,7 @@ import RelatorioDetalheScreen from "../screens/app/RelatorioDetalheScreen";
 import PerfilScreen from "../screens/app/PerfilScreen";
 import PlanosScreen from "../screens/app/planos/PlanosScreen";
 import NotificacoesScreen from "../screens/app/notificacoes/NotificacoesScreen";
+import TagsScreen from "../screens/app/TagsScreen";
 
 export type AuthStackParamList = { Login: undefined };
 export type AppTabParamList = {
@@ -45,6 +46,7 @@ export type RootStackParamList = {
   Perfil: undefined;
   Planos: undefined;
   Notificacoes: undefined;
+  Tags: undefined;
 };
 
 const AuthStack  = createNativeStackNavigator<AuthStackParamList>();
@@ -93,6 +95,7 @@ function AppNavigator() {
       <RootStack.Screen name="Perfil"           component={PerfilScreen} />
       <RootStack.Screen name="Planos"           component={PlanosScreen} />
       <RootStack.Screen name="Notificacoes"     component={NotificacoesScreen} />
+      <RootStack.Screen name="Tags"             component={TagsScreen} />
     </RootStack.Navigator>
   );
 }

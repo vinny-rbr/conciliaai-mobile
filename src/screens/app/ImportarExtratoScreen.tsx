@@ -1,4 +1,4 @@
-import { useState, useCallback } from "react";
+import { useState, useCallback, useEffect } from "react";
 import { Alert } from "react-native";
 import { SafeAreaView } from "react-native-safe-area-context";
 import { useNavigation } from "@react-navigation/native";
@@ -8,9 +8,10 @@ import * as FileSystem from "expo-file-system/legacy";
 import { parseOfx, parseCsv, type ParsedItem, type LedgerBal } from "../../lib/ofxParser";
 import { listBankAccounts, updateBankAccount } from "../../lib/bankAccountsService";
 import { fetchFinanceItems } from "../../lib/financeService";
+import { listFinanceCategories } from "../../lib/financeCategoriesService";
 import { apiUrl } from "../../lib/api";
 import { getToken } from "../../lib/auth";
-import type { BankAccount } from "../../types/finance";
+import type { BankAccount, FinanceCategoryOption } from "../../types/finance";
 import { s } from "./importarExtrato/shared";
 import { PickStep, ImportingStep, DoneStep, ReviewStep, AdjustStep } from "./importarExtrato/stages";
 
@@ -30,6 +31,19 @@ export default function ImportarExtratoScreen() {
   const [result, setResult]           = useState({ added: 0, skipped: 0 });
   const [ledgerBal, setLedgerBal]     = useState<LedgerBal | null>(null);
   const [adjustInfo, setAdjustInfo]   = useState<AdjustInfo | null>(null);
+  const [availableTags, setAvailableTags] = useState<string[]>([]);
+  const [allCategories, setAllCategories] = useState<FinanceCategoryOption[]>([]);
+
+  useEffect(() => {
+    void fetchFinanceItems().then(data => {
+      const tagSet = new Set<string>();
+      for (const it of data) {
+        if (it.tags) it.tags.split(",").map(t => t.trim()).filter(Boolean).forEach(t => tagSet.add(t));
+      }
+      setAvailableTags([...tagSet].sort());
+    }).catch(() => {});
+    void listFinanceCategories().then(setAllCategories).catch(() => {});
+  }, []);
 
   const pickFile = useCallback(async () => {
     try {
@@ -106,10 +120,11 @@ export default function ImportarExtratoScreen() {
           method: "POST",
           headers: { Authorization: `Bearer ${token ?? ""}`, "Content-Type": "application/json" },
           body: JSON.stringify({
-            type: it.type, title: it.title, category: "Outros",
+            type: it.type, title: it.title, category: it.category || "Outros",
             amountCents: it.amountCents, date: it.dateISO,
             paymentType: "debit", status: "paid",
             accountId: selAccId || null,
+            tags: it.tags || null,
           }),
         });
         if (r.ok) added++; else skipped++;
@@ -212,6 +227,8 @@ export default function ImportarExtratoScreen() {
       onEditItem={editItem}
       handleImport={() => void handleImport()}
       onBack={() => setStep("pick")}
+      availableTags={availableTags}
+      allCategories={allCategories}
     />
   );
 }

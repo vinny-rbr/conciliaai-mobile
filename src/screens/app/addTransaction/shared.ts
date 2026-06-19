@@ -16,6 +16,7 @@ export const MORE = [
   { icon: "⇅",  color: "#14B8A6", title: "Transferência",          subtitle: "Mover entre suas contas"           },
   { icon: "📷", color: "#3B82F6", title: "Lançar por foto",        subtitle: "IA lê o recibo automaticamente", badge: "NOVO" },
   { icon: "📊", color: "#8B5CF6", title: "Relatórios",             subtitle: "Gráficos e exportar PDF"           },
+  { icon: "🏷️", color: "#EC4899", title: "Tags",                   subtitle: "Gerenciar e relatório de tags"      },
 ];
 
 export const PAY_TYPES = [

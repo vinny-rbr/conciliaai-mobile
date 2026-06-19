@@ -3,10 +3,11 @@ import {
   ActivityIndicator, Modal, ScrollView, StyleSheet, Text,
   TextInput, TouchableOpacity, View,
 } from "react-native";
+import { TagsMultiSelect } from "../../../components/TagsMultiSelect";
 import { SafeAreaView } from "react-native-safe-area-context";
 import Svg, { Circle, Path } from "react-native-svg";
 import type { ParsedItem } from "../../../lib/ofxParser";
-import type { BankAccount } from "../../../types/finance";
+import type { BankAccount, FinanceCategoryOption } from "../../../types/finance";
 import { fmt } from "../../../lib/financeService";
 import { fmtDate, s } from "./shared";
 
@@ -137,13 +138,15 @@ type ReviewStepProps = {
   onEditItem: (id: string, updates: Partial<SelectedItem>) => void;
   handleImport: () => void;
   onBack: () => void;
+  availableTags: string[];
+  allCategories: FinanceCategoryOption[];
 };
 
-type EditState = { id: string; title: string; type: "RECEITA" | "DESPESA"; amountStr: string };
+type EditState = { id: string; title: string; type: "RECEITA" | "DESPESA"; amountStr: string; tags: string; category: string };
 
 export function ReviewStep({
   items, accounts, selAccId, setSelAccId, fileName,
-  totalSel, toggleAll, toggleItem, onEditItem, handleImport, onBack,
+  totalSel, toggleAll, toggleItem, onEditItem, handleImport, onBack, availableTags, allCategories,
 }: ReviewStepProps) {
   const receitas = items.filter(it => it.selected && it.type === "RECEITA");
   const despesas = items.filter(it => it.selected && it.type === "DESPESA");
@@ -151,6 +154,8 @@ export function ReviewStep({
   const [searchQuery, setSearchQuery] = useState("");
   const [searchOpen, setSearchOpen] = useState(false);
   const [editing, setEditing] = useState<EditState | null>(null);
+  const [catModalOpen, setCatModalOpen] = useState(false);
+  const [expandedCatId, setExpandedCatId] = useState<string | null>(null);
   const searchRef = useRef<TextInput>(null);
 
   const visible = searchQuery.trim()
@@ -166,13 +171,21 @@ export function ReviewStep({
       title: it.title,
       type: it.type,
       amountStr: (it.amountCents / 100).toFixed(2).replace(".", ","),
+      tags: it.tags ?? "",
+      category: it.category ?? "Outros",
     });
   };
 
   const saveEdit = () => {
     if (!editing) return;
     const cents = Math.round(Math.abs(parseFloat(editing.amountStr.replace(",", "."))) * 100);
-    onEditItem(editing.id, { title: editing.title.trim() || "Lançamento", type: editing.type, amountCents: cents || 0 });
+    onEditItem(editing.id, {
+      title: editing.title.trim() || "Lançamento",
+      type: editing.type,
+      amountCents: cents || 0,
+      tags: editing.tags || undefined,
+      category: editing.category || "Outros",
+    });
     setEditing(null);
   };
 
@@ -225,6 +238,9 @@ export function ReviewStep({
             placeholder="Buscar por nome ou valor…"
             placeholderTextColor="#475569"
             returnKeyType="search"
+            autoCorrect={false}
+            autoCapitalize="none"
+            autoComplete="off"
           />
           {!!searchQuery && (
             <TouchableOpacity onPress={() => setSearchQuery("")} activeOpacity={0.7}>
@@ -323,7 +339,7 @@ export function ReviewStep({
           {editing && (
             <View style={ls.modalCard}>
               <Text style={ls.modalTitle}>Editar lançamento</Text>
-
+              <ScrollView keyboardShouldPersistTaps="handled" showsVerticalScrollIndicator={false} style={{ maxHeight: 420 }}>
               <Text style={ls.fieldLabel}>Descrição</Text>
               <TextInput
                 style={ls.fieldInput}
@@ -362,6 +378,24 @@ export function ReviewStep({
                 keyboardType="numeric"
               />
 
+              <Text style={ls.fieldLabel}>Categoria</Text>
+              <TouchableOpacity
+                style={ls.catBtn}
+                onPress={() => setCatModalOpen(true)}
+                activeOpacity={0.8}
+              >
+                <Text style={ls.catBtnTxt}>{editing.category || "Outros"}</Text>
+                <Text style={{ color: "#475569", fontSize: 18 }}>›</Text>
+              </TouchableOpacity>
+
+              <Text style={ls.fieldLabel}>Tags (opcional)</Text>
+              <TagsMultiSelect
+                value={editing.tags}
+                onChange={v => setEditing(e => e ? { ...e, tags: v } : e)}
+                availableTags={availableTags}
+              />
+              </ScrollView>
+
               <View style={ls.modalBtns}>
                 <TouchableOpacity style={ls.cancelBtn} onPress={() => setEditing(null)} activeOpacity={0.7}>
                   <Text style={ls.cancelBtnTxt}>Cancelar</Text>
@@ -372,6 +406,74 @@ export function ReviewStep({
               </View>
             </View>
           )}
+        </View>
+      </Modal>
+
+      {/* Category picker modal */}
+      <Modal
+        visible={catModalOpen}
+        transparent
+        animationType="slide"
+        onRequestClose={() => { setCatModalOpen(false); setExpandedCatId(null); }}
+      >
+        <View style={ls.modalOverlay}>
+          <TouchableOpacity style={{ flex: 1 }} onPress={() => { setCatModalOpen(false); setExpandedCatId(null); }} activeOpacity={1} />
+          {editing && (() => {
+            const categories = allCategories.filter(c => c.type === editing.type);
+            const rootCats = categories.filter(c => !c.parentId);
+            return (
+              <View style={[ls.modalCard, { maxHeight: "70%" }]}>
+                <Text style={ls.modalTitle}>Categoria</Text>
+                <ScrollView keyboardShouldPersistTaps="handled" showsVerticalScrollIndicator={false}>
+                  {rootCats.map(c => {
+                    const children = categories.filter(sub => sub.parentId === c.id);
+                    const isExpanded = expandedCatId === c.id;
+                    const isSelected = editing.category === c.name;
+                    return (
+                      <View key={c.id}>
+                        <TouchableOpacity
+                          style={[ls.catRow, isSelected && { backgroundColor: (c.color) + "18", borderColor: c.color }]}
+                          onPress={() => {
+                            if (children.length > 0) setExpandedCatId(isExpanded ? null : c.id);
+                            else { setEditing(e => e ? { ...e, category: c.name } : e); setCatModalOpen(false); setExpandedCatId(null); }
+                          }}
+                          activeOpacity={0.8}
+                        >
+                          <View style={[ls.catDot, { backgroundColor: (c.color) + "33" }]}>
+                            <Text style={{ fontSize: 18 }}>{c.icon}</Text>
+                          </View>
+                          <Text style={ls.catName}>{c.name}</Text>
+                          {isSelected && <Text style={{ color: c.color, fontWeight: "800" }}>✓</Text>}
+                          {children.length > 0 && (
+                            <Text style={{ color: "#64748B", fontSize: 12, marginLeft: 4 }}>{isExpanded ? "▲" : "▼"}</Text>
+                          )}
+                        </TouchableOpacity>
+                        {isExpanded && children.map(sub => (
+                          <TouchableOpacity
+                            key={sub.id}
+                            style={[ls.catRow, { marginLeft: 16 }, editing.category === sub.name && { backgroundColor: (sub.color) + "18", borderColor: sub.color }]}
+                            onPress={() => { setEditing(e => e ? { ...e, category: sub.name } : e); setCatModalOpen(false); setExpandedCatId(null); }}
+                            activeOpacity={0.8}
+                          >
+                            <View style={[ls.catDot, { backgroundColor: (sub.color) + "33", width: 32, height: 32 }]}>
+                              <Text style={{ fontSize: 14 }}>{sub.icon}</Text>
+                            </View>
+                            <Text style={[ls.catName, { fontSize: 13 }]}>{sub.name}</Text>
+                            {editing.category === sub.name && <Text style={{ color: sub.color, fontWeight: "800" }}>✓</Text>}
+                          </TouchableOpacity>
+                        ))}
+                      </View>
+                    );
+                  })}
+                  {rootCats.length === 0 && (
+                    <Text style={{ color: "#64748B", textAlign: "center", paddingVertical: 24, fontSize: 14 }}>
+                      Nenhuma categoria encontrada
+                    </Text>
+                  )}
+                </ScrollView>
+              </View>
+            );
+          })()}
         </View>
       </Modal>
     </SafeAreaView>
@@ -409,4 +511,10 @@ const ls = StyleSheet.create({
   cancelBtnTxt: { color: "#94A3B8", fontSize: 15, fontWeight: "600" },
   confirmBtn: { flex: 1, padding: 14, borderRadius: 12, backgroundColor: "#3B82F6", alignItems: "center" },
   confirmBtnTxt: { color: "#fff", fontSize: 15, fontWeight: "700" },
+
+  catBtn: { backgroundColor: "#0F172A", borderRadius: 12, padding: 14, flexDirection: "row", alignItems: "center", borderWidth: 1, borderColor: "#334155" },
+  catBtnTxt: { flex: 1, color: "#F1F5F9", fontSize: 15 },
+  catRow: { flexDirection: "row", alignItems: "center", padding: 14, borderRadius: 12, borderWidth: 1, borderColor: "transparent", marginBottom: 8, backgroundColor: "#0F172A", gap: 12 },
+  catDot: { width: 40, height: 40, borderRadius: 12, alignItems: "center", justifyContent: "center" },
+  catName: { flex: 1, color: "#F1F5F9", fontSize: 15, fontWeight: "600" },
 });

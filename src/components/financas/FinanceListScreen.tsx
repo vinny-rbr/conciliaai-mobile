@@ -1,6 +1,6 @@
 import { useCallback, useEffect, useMemo, useRef, useState } from "react";
 import {
-  ActivityIndicator, Alert, Animated, RefreshControl, ScrollView,
+  ActivityIndicator, Animated, Modal, RefreshControl, ScrollView,
   StyleSheet, Text, TextInput, TouchableOpacity, View,
 } from "react-native";
 import { SafeAreaView } from "react-native-safe-area-context";
@@ -79,9 +79,9 @@ export default function FinanceListScreen({ type }: Props) {
   const [refreshing, setRefreshing] = useState(false);
   const [month, setMonth] = useState(currentYM);
   const [deletingAll, setDeletingAll] = useState(false);
+  const [deleteModal, setDeleteModal] = useState(false);
   const [searchOpen, setSearchOpen] = useState(false);
   const [searchQuery, setSearchQuery] = useState("");
-  const searchAnim = useRef(new Animated.Value(0)).current;
   const searchRef = useRef<TextInput>(null);
 
   const load = useCallback(async (silent = false) => {
@@ -104,13 +104,16 @@ export default function FinanceListScreen({ type }: Props) {
   const visible = useMemo(() => {
     const q = searchQuery.trim().toLowerCase();
     if (!q) return monthItems;
-    return monthItems.filter(it =>
-      it.title.toLowerCase().includes(q) ||
-      it.category.toLowerCase().includes(q) ||
-      fmt(it.amountCents).includes(q) ||
-      it.amountCents.toString().includes(q.replace(/\D/g, "")),
+    const digits = q.replace(/\D/g, "");
+    return all.filter(it =>
+      it.type === type && (
+        it.title.toLowerCase().includes(q) ||
+        it.category.toLowerCase().includes(q) ||
+        fmt(it.amountCents).includes(q) ||
+        (digits.length > 0 && it.amountCents.toString().includes(digits))
+      )
     );
-  }, [monthItems, searchQuery]);
+  }, [all, monthItems, searchQuery, type]);
 
   const paid   = useMemo(() => visible.filter(it => it.status === "paid"),   [visible]);
   const unpaid = useMemo(() => visible.filter(it => it.status !== "paid"),   [visible]);
@@ -140,32 +143,24 @@ export default function FinanceListScreen({ type }: Props) {
   const toggleSearch = () => {
     if (searchOpen) {
       setSearchQuery("");
-      Animated.timing(searchAnim, { toValue: 0, duration: 180, useNativeDriver: false }).start(() => setSearchOpen(false));
+      setSearchOpen(false);
     } else {
       setSearchOpen(true);
-      Animated.timing(searchAnim, { toValue: 1, duration: 200, useNativeDriver: false }).start(() => searchRef.current?.focus());
+      setTimeout(() => searchRef.current?.focus(), 50);
     }
   };
 
   const handleDeleteAll = () => {
     if (monthItems.length === 0) return;
-    Alert.alert(
-      `Apagar ${monthItems.length} lançamento${monthItems.length !== 1 ? "s" : ""}?`,
-      `Todos os ${isReceita ? "receitas" : "despesas"} de ${ymToLabel(month)} serão removidos permanentemente.`,
-      [
-        { text: "Cancelar", style: "cancel" },
-        {
-          text: "Apagar tudo",
-          style: "destructive",
-          onPress: async () => {
-            setDeletingAll(true);
-            await Promise.all(monthItems.map(it => deleteFinanceItem(it.id)));
-            await load(true);
-            setDeletingAll(false);
-          },
-        },
-      ],
-    );
+    setDeleteModal(true);
+  };
+
+  const confirmDeleteAll = async () => {
+    setDeleteModal(false);
+    setDeletingAll(true);
+    await Promise.all(monthItems.map(it => deleteFinanceItem(it.id)));
+    await load(true);
+    setDeletingAll(false);
   };
 
   const handleFabPress = () => {
@@ -238,7 +233,7 @@ export default function FinanceListScreen({ type }: Props) {
 
       {/* Search bar */}
       {searchOpen && (
-        <Animated.View style={[s.searchBar, { opacity: searchAnim, transform: [{ translateY: searchAnim.interpolate({ inputRange: [0, 1], outputRange: [-8, 0] }) }] }]}>
+        <View style={s.searchBar}>
           <Svg viewBox="0 0 24 24" width={16} height={16} fill="none" stroke="#64748B" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round">
             <Circle cx="11" cy="11" r="7" />
             <Path d="m20 20-3-3" />
@@ -248,17 +243,19 @@ export default function FinanceListScreen({ type }: Props) {
             style={s.searchInput}
             value={searchQuery}
             onChangeText={setSearchQuery}
-            placeholder="Buscar por nome, categoria ou valor…"
+            placeholder="Buscar em todos os lançamentos…"
             placeholderTextColor="#475569"
             returnKeyType="search"
-            clearButtonMode="while-editing"
+            autoCorrect={false}
+            autoCapitalize="none"
+            autoComplete="off"
           />
           {!!searchQuery && (
             <TouchableOpacity onPress={() => setSearchQuery("")} activeOpacity={0.7}>
               <Text style={{ color: "#64748B", fontSize: 18, lineHeight: 20 }}>×</Text>
             </TouchableOpacity>
           )}
-        </Animated.View>
+        </View>
       )}
 
       {/* Summary */}
@@ -348,6 +345,32 @@ export default function FinanceListScreen({ type }: Props) {
           </TouchableOpacity>
         </Animated.View>
       </View>
+
+      {/* Modal: confirmar apagar tudo */}
+      <Modal visible={deleteModal} transparent animationType="fade" onRequestClose={() => setDeleteModal(false)}>
+        <View style={s.modalOverlay}>
+          <View style={s.modalCard}>
+            <View style={s.modalIconWrap}>
+              <Text style={{ fontSize: 26 }}>🗑️</Text>
+            </View>
+            <Text style={s.modalTitle}>
+              Apagar {monthItems.length} lançamento{monthItems.length !== 1 ? "s" : ""}?
+            </Text>
+            <Text style={s.modalSub}>
+              {isReceita ? "Todas as receitas" : "Todas as despesas"} de{"\n"}
+              {ymToLabel(month)} serão removidas permanentemente.
+            </Text>
+            <View style={s.modalBtns}>
+              <TouchableOpacity style={s.modalCancelBtn} onPress={() => setDeleteModal(false)} activeOpacity={0.8}>
+                <Text style={s.modalCancelTxt}>Cancelar</Text>
+              </TouchableOpacity>
+              <TouchableOpacity style={s.modalDeleteBtn} onPress={() => void confirmDeleteAll()} activeOpacity={0.8}>
+                <Text style={s.modalDeleteTxt}>Apagar tudo</Text>
+              </TouchableOpacity>
+            </View>
+          </View>
+        </View>
+      </Modal>
     </SafeAreaView>
   );
 }
@@ -415,4 +438,15 @@ const s = StyleSheet.create({
   fabWrap: { position: "absolute", top: -16, alignSelf: "center" },
   fab: { width: 60, height: 60, borderRadius: 30, backgroundColor: "#3B82F6", justifyContent: "center", alignItems: "center", borderWidth: 3, borderColor: "#1e3a8a", shadowColor: "#3B82F6", shadowOpacity: 0.65, shadowRadius: 18, shadowOffset: { width: 0, height: 4 }, elevation: 16 },
   fabTxt: { color: "#fff", fontSize: 30, fontWeight: "300", lineHeight: 34 },
+
+  modalOverlay: { flex: 1, backgroundColor: "rgba(0,0,0,0.65)", justifyContent: "center", alignItems: "center", paddingHorizontal: 28 },
+  modalCard: { backgroundColor: "#1E293B", borderRadius: 24, padding: 24, width: "100%", borderWidth: 1, borderColor: "#334155", alignItems: "center" },
+  modalIconWrap: { width: 56, height: 56, borderRadius: 18, backgroundColor: "#EF444418", alignItems: "center", justifyContent: "center", marginBottom: 16, borderWidth: 1, borderColor: "#EF444433" },
+  modalTitle: { color: "#F1F5F9", fontSize: 18, fontWeight: "800", textAlign: "center", marginBottom: 8 },
+  modalSub: { color: "#64748B", fontSize: 14, textAlign: "center", lineHeight: 20, marginBottom: 24 },
+  modalBtns: { flexDirection: "row", gap: 10, width: "100%" },
+  modalCancelBtn: { flex: 1, backgroundColor: "#0F172A", borderRadius: 14, paddingVertical: 14, alignItems: "center", borderWidth: 1, borderColor: "#334155" },
+  modalCancelTxt: { color: "#94A3B8", fontSize: 15, fontWeight: "700" },
+  modalDeleteBtn: { flex: 1, backgroundColor: "#EF4444", borderRadius: 14, paddingVertical: 14, alignItems: "center" },
+  modalDeleteTxt: { color: "#fff", fontSize: 15, fontWeight: "700" },
 });

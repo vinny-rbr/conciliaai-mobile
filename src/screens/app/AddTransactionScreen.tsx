@@ -48,6 +48,8 @@ export default function AddTransactionScreen() {
   const [payType,          setPayType]          = useState("pix");
   const [paid,             setPaid]             = useState(true);
   const [note,             setNote]             = useState("");
+  const [tags,             setTags]             = useState("");
+  const [availableTags,    setAvailableTags]    = useState<string[]>([]);
   const [saving,           setSaving]           = useState(false);
   const [categories,       setCategories]       = useState<FinanceCategoryOption[]>([]);
   const [selectedCat,      setSelectedCat]      = useState<FinanceCategoryOption | null>(null);
@@ -96,6 +98,11 @@ export default function AddTransactionScreen() {
         setAccounts(accs);
         if (editItem)           setSelectedAcc(accs.find(a => a.id === editItem.accountId) ?? null);
         else if (accs.length === 1) setSelectedAcc(accs[0]);
+        const tagSet = new Set<string>();
+        for (const it of items) {
+          if (it.tags) it.tags.split(",").map(t => t.trim()).filter(Boolean).forEach(t => tagSet.add(t));
+        }
+        setAvailableTags([...tagSet].sort());
       } catch {}
     })();
   }, []);
@@ -134,6 +141,7 @@ export default function AddTransactionScreen() {
     if      (itemTitle === "Importar extrato") { closeFabAnim(); navigation.navigate("ImportarExtrato" as never); }
     else if (itemTitle === "Lançar por foto")  { closeFabAnim(); navigation.navigate("LancarPorFoto"   as never); }
     else if (itemTitle === "Relatórios")       { closeFabAnim(); navigation.navigate("Relatorios"      as never); }
+    else if (itemTitle === "Tags")             { closeFabAnim(); navigation.navigate("Tags"            as never); }
     else handleClose();
   };
 
@@ -141,7 +149,7 @@ export default function AddTransactionScreen() {
   const openForm = useCallback((type: TxType) => {
     setFormType(type);
     setTitle(""); setAmount(""); setDateBR(todayBR()); setPayType("pix");
-    setPaid(true); setNote(""); setSelectedCat(null);
+    setPaid(true); setNote(""); setTags(""); setSelectedCat(null);
     setFormVisible(true);
     formSlide.setValue(SCREEN_H);
     Animated.spring(formSlide, { toValue: 0, useNativeDriver: true, tension: 80, friction: 18 }).start();
@@ -157,6 +165,7 @@ export default function AddTransactionScreen() {
     setPayType(item.paymentType || "pix");
     setPaid(item.status === "paid");
     setNote(item.note ?? "");
+    setTags(item.tags ?? "");
     setFormVisible(true);
     formSlide.setValue(0);
     void listFinanceCategories().then(cats => {
@@ -203,6 +212,7 @@ export default function AddTransactionScreen() {
         amountCents: parseCents(amount), date: dateISO,
         paymentType: payType, status: paid ? "paid" : "pending",
         accountId: selectedAcc?.id ?? null, note: note.trim() || null,
+        tags: tags.trim() || null,
       };
 
       if (!editItem) {
@@ -324,6 +334,8 @@ export default function AddTransactionScreen() {
           payType={payType}        setPayType={setPayType}
           paid={paid}              setPaid={setPaid}
           note={note}              setNote={setNote}
+          tags={tags}              setTags={setTags}
+          availableTags={availableTags}
           saving={saving}
           categories={categories}
           rootCats={rootCats}
