@@ -88,6 +88,10 @@ export default function ImportarExtratoScreen() {
     setItems(prev => prev.map(it => ({ ...it, selected: !allSelected })));
   };
 
+  const editItem = (id: string, updates: Partial<SelectedItem>) => {
+    setItems(prev => prev.map(it => it.id === id ? { ...it, ...updates } : it));
+  };
+
   const handleImport = async () => {
     const toImport = items.filter(it => it.selected);
     if (toImport.length === 0) { Alert.alert("Selecione ao menos um lançamento."); return; }
@@ -205,6 +209,7 @@ export default function ImportarExtratoScreen() {
       totalSel={totalSel}
       toggleAll={toggleAll}
       toggleItem={toggleItem}
+      onEditItem={editItem}
       handleImport={() => void handleImport()}
       onBack={() => setStep("pick")}
     />

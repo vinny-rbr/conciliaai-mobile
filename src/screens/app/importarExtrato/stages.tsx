@@ -1,5 +1,10 @@
-import { ActivityIndicator, ScrollView, Text, TouchableOpacity, View } from "react-native";
+import { useRef, useState } from "react";
+import {
+  ActivityIndicator, Modal, ScrollView, StyleSheet, Text,
+  TextInput, TouchableOpacity, View,
+} from "react-native";
 import { SafeAreaView } from "react-native-safe-area-context";
+import Svg, { Circle, Path } from "react-native-svg";
 import type { ParsedItem } from "../../../lib/ofxParser";
 import type { BankAccount } from "../../../types/finance";
 import { fmt } from "../../../lib/financeService";
@@ -129,19 +134,51 @@ type ReviewStepProps = {
   totalSel: number;
   toggleAll: () => void;
   toggleItem: (id: string) => void;
+  onEditItem: (id: string, updates: Partial<SelectedItem>) => void;
   handleImport: () => void;
   onBack: () => void;
 };
 
+type EditState = { id: string; title: string; type: "RECEITA" | "DESPESA"; amountStr: string };
+
 export function ReviewStep({
   items, accounts, selAccId, setSelAccId, fileName,
-  totalSel, toggleAll, toggleItem, handleImport, onBack,
+  totalSel, toggleAll, toggleItem, onEditItem, handleImport, onBack,
 }: ReviewStepProps) {
   const receitas = items.filter(it => it.selected && it.type === "RECEITA");
   const despesas = items.filter(it => it.selected && it.type === "DESPESA");
 
+  const [searchQuery, setSearchQuery] = useState("");
+  const [searchOpen, setSearchOpen] = useState(false);
+  const [editing, setEditing] = useState<EditState | null>(null);
+  const searchRef = useRef<TextInput>(null);
+
+  const visible = searchQuery.trim()
+    ? items.filter(it => {
+        const q = searchQuery.trim().toLowerCase();
+        return it.title.toLowerCase().includes(q) || fmt(it.amountCents).includes(q);
+      })
+    : items;
+
+  const openEdit = (it: SelectedItem) => {
+    setEditing({
+      id: it.id,
+      title: it.title,
+      type: it.type,
+      amountStr: (it.amountCents / 100).toFixed(2).replace(".", ","),
+    });
+  };
+
+  const saveEdit = () => {
+    if (!editing) return;
+    const cents = Math.round(Math.abs(parseFloat(editing.amountStr.replace(",", "."))) * 100);
+    onEditItem(editing.id, { title: editing.title.trim() || "Lançamento", type: editing.type, amountCents: cents || 0 });
+    setEditing(null);
+  };
+
   return (
     <SafeAreaView style={s.root}>
+      {/* Header */}
       <View style={s.header}>
         <TouchableOpacity onPress={onBack} style={s.backBtn}>
           <Text style={s.backTxt}>‹ Voltar</Text>
@@ -150,6 +187,19 @@ export function ReviewStep({
           <Text style={s.headerTitle}>Revisar importação</Text>
           <Text style={s.headerSub} numberOfLines={1}>{fileName}</Text>
         </View>
+        <TouchableOpacity
+          style={[ls.searchIconBtn, searchOpen && { backgroundColor: "#1E3A5F" }]}
+          onPress={() => {
+            if (searchOpen) { setSearchQuery(""); setSearchOpen(false); }
+            else { setSearchOpen(true); setTimeout(() => searchRef.current?.focus(), 50); }
+          }}
+          activeOpacity={0.7}
+        >
+          <Svg viewBox="0 0 24 24" width={16} height={16} fill="none" stroke={searchOpen ? "#60A5FA" : "#94A3B8"} strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round">
+            <Circle cx="11" cy="11" r="7" />
+            <Path d="m20 20-3-3" />
+          </Svg>
+        </TouchableOpacity>
         <TouchableOpacity
           style={s.importBtn}
           activeOpacity={0.8}
@@ -160,6 +210,31 @@ export function ReviewStep({
         </TouchableOpacity>
       </View>
 
+      {/* Search bar */}
+      {searchOpen && (
+        <View style={ls.searchBar}>
+          <Svg viewBox="0 0 24 24" width={15} height={15} fill="none" stroke="#64748B" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round">
+            <Circle cx="11" cy="11" r="7" />
+            <Path d="m20 20-3-3" />
+          </Svg>
+          <TextInput
+            ref={searchRef}
+            style={ls.searchInput}
+            value={searchQuery}
+            onChangeText={setSearchQuery}
+            placeholder="Buscar por nome ou valor…"
+            placeholderTextColor="#475569"
+            returnKeyType="search"
+          />
+          {!!searchQuery && (
+            <TouchableOpacity onPress={() => setSearchQuery("")} activeOpacity={0.7}>
+              <Text style={{ color: "#64748B", fontSize: 18 }}>×</Text>
+            </TouchableOpacity>
+          )}
+        </View>
+      )}
+
+      {/* Summary */}
       <View style={s.summary}>
         <View style={s.summaryItem}>
           <Text style={s.summaryLabel}>Receitas</Text>
@@ -181,6 +256,7 @@ export function ReviewStep({
         </View>
       </View>
 
+      {/* Account selector */}
       {accounts.length > 0 && (
         <View style={s.accRow}>
           <Text style={s.accLabel}>Conta:</Text>
@@ -197,6 +273,7 @@ export function ReviewStep({
         </View>
       )}
 
+      {/* Toggle all */}
       <View style={s.toggleAllRow}>
         <TouchableOpacity onPress={toggleAll} style={s.toggleAllBtn}>
           <Text style={s.toggleAllTxt}>
@@ -205,27 +282,131 @@ export function ReviewStep({
         </TouchableOpacity>
       </View>
 
+      {/* List */}
       <ScrollView style={{ flex: 1 }} contentContainerStyle={s.list} showsVerticalScrollIndicator={false}>
-        {items.map(it => (
-          <TouchableOpacity
-            key={it.id}
-            style={[s.row, !it.selected && s.rowDimmed]}
-            onPress={() => toggleItem(it.id)}
-            activeOpacity={0.7}
-          >
-            <View style={[s.checkbox, it.selected && s.checkboxSel]}>
-              {it.selected && <Text style={s.checkMark}>✓</Text>}
+        {visible.length === 0 ? (
+          <View style={{ alignItems: "center", paddingVertical: 40 }}>
+            <Text style={{ color: "#64748B", fontSize: 14 }}>Nenhum resultado para "{searchQuery}"</Text>
+          </View>
+        ) : (
+          visible.map(it => (
+            <View key={it.id} style={[s.row, !it.selected && s.rowDimmed]}>
+              {/* Checkbox — toca para marcar/desmarcar */}
+              <TouchableOpacity onPress={() => toggleItem(it.id)} activeOpacity={0.7} hitSlop={{ top: 8, bottom: 8, left: 4, right: 4 }}>
+                <View style={[s.checkbox, it.selected && s.checkboxSel]}>
+                  {it.selected && <Text style={s.checkMark}>✓</Text>}
+                </View>
+              </TouchableOpacity>
+
+              {/* Corpo — toca para editar */}
+              <TouchableOpacity style={{ flex: 1, flexDirection: "row", alignItems: "center", gap: 8 }} onPress={() => openEdit(it)} activeOpacity={0.7}>
+                <View style={s.rowInfo}>
+                  <Text style={s.rowTitle} numberOfLines={1}>{it.title}</Text>
+                  <Text style={s.rowDate}>{fmtDate(it.dateISO)}</Text>
+                </View>
+                <View style={{ alignItems: "flex-end", gap: 2 }}>
+                  <Text style={[s.rowAmt, { color: it.type === "RECEITA" ? "#4ADE80" : "#F87171" }]}>
+                    {it.type === "RECEITA" ? "+" : "-"}{fmt(it.amountCents)}
+                  </Text>
+                  <Text style={{ color: "#475569", fontSize: 10, fontWeight: "600" }}>✏️ editar</Text>
+                </View>
+              </TouchableOpacity>
             </View>
-            <View style={s.rowInfo}>
-              <Text style={s.rowTitle} numberOfLines={1}>{it.title}</Text>
-              <Text style={s.rowDate}>{fmtDate(it.dateISO)}</Text>
-            </View>
-            <Text style={[s.rowAmt, { color: it.type === "RECEITA" ? "#4ADE80" : "#F87171" }]}>
-              {it.type === "RECEITA" ? "+" : "-"}{fmt(it.amountCents)}
-            </Text>
-          </TouchableOpacity>
-        ))}
+          ))
+        )}
       </ScrollView>
+
+      {/* Edit modal */}
+      <Modal visible={!!editing} transparent animationType="slide" onRequestClose={() => setEditing(null)}>
+        <View style={ls.modalOverlay}>
+          <TouchableOpacity style={{ flex: 1 }} onPress={() => setEditing(null)} activeOpacity={1} />
+          {editing && (
+            <View style={ls.modalCard}>
+              <Text style={ls.modalTitle}>Editar lançamento</Text>
+
+              <Text style={ls.fieldLabel}>Descrição</Text>
+              <TextInput
+                style={ls.fieldInput}
+                value={editing.title}
+                onChangeText={t => setEditing(e => e ? { ...e, title: t } : e)}
+                placeholder="Descrição do lançamento"
+                placeholderTextColor="#475569"
+                autoFocus
+              />
+
+              <Text style={ls.fieldLabel}>Tipo</Text>
+              <View style={ls.typePill}>
+                <TouchableOpacity
+                  style={[ls.typePillBtn, editing.type === "RECEITA" && ls.typePillBtnRec]}
+                  onPress={() => setEditing(e => e ? { ...e, type: "RECEITA" } : e)}
+                  activeOpacity={0.8}
+                >
+                  <Text style={[ls.typePillTxt, editing.type === "RECEITA" && { color: "#4ADE80" }]}>↑ Receita</Text>
+                </TouchableOpacity>
+                <TouchableOpacity
+                  style={[ls.typePillBtn, editing.type === "DESPESA" && ls.typePillBtnDes]}
+                  onPress={() => setEditing(e => e ? { ...e, type: "DESPESA" } : e)}
+                  activeOpacity={0.8}
+                >
+                  <Text style={[ls.typePillTxt, editing.type === "DESPESA" && { color: "#F87171" }]}>↓ Despesa</Text>
+                </TouchableOpacity>
+              </View>
+
+              <Text style={ls.fieldLabel}>Valor (R$)</Text>
+              <TextInput
+                style={ls.fieldInput}
+                value={editing.amountStr}
+                onChangeText={t => setEditing(e => e ? { ...e, amountStr: t } : e)}
+                placeholder="0,00"
+                placeholderTextColor="#475569"
+                keyboardType="numeric"
+              />
+
+              <View style={ls.modalBtns}>
+                <TouchableOpacity style={ls.cancelBtn} onPress={() => setEditing(null)} activeOpacity={0.7}>
+                  <Text style={ls.cancelBtnTxt}>Cancelar</Text>
+                </TouchableOpacity>
+                <TouchableOpacity style={ls.confirmBtn} onPress={saveEdit} activeOpacity={0.85}>
+                  <Text style={ls.confirmBtnTxt}>Salvar</Text>
+                </TouchableOpacity>
+              </View>
+            </View>
+          )}
+        </View>
+      </Modal>
     </SafeAreaView>
   );
 }
+
+const ls = StyleSheet.create({
+  searchIconBtn: {
+    width: 32, height: 32, borderRadius: 10, backgroundColor: "#1E293B",
+    alignItems: "center", justifyContent: "center", marginRight: 6,
+  },
+  searchBar: {
+    flexDirection: "row", alignItems: "center", gap: 10,
+    marginHorizontal: 16, marginBottom: 6,
+    backgroundColor: "#1E293B", borderRadius: 12, borderWidth: 1, borderColor: "#334155",
+    paddingHorizontal: 12, paddingVertical: 9,
+  },
+  searchInput: { flex: 1, color: "#F1F5F9", fontSize: 14, padding: 0 },
+
+  modalOverlay: { flex: 1, backgroundColor: "rgba(0,0,0,0.6)", justifyContent: "flex-end" },
+  modalCard: { backgroundColor: "#1E293B", borderTopLeftRadius: 24, borderTopRightRadius: 24, padding: 24, borderTopWidth: 1, borderColor: "rgba(255,255,255,0.1)", gap: 4 },
+  modalTitle: { color: "#F1F5F9", fontSize: 18, fontWeight: "800", marginBottom: 12 },
+
+  fieldLabel: { color: "#64748B", fontSize: 12, fontWeight: "700", marginTop: 8, marginBottom: 4 },
+  fieldInput: { backgroundColor: "#0F172A", borderRadius: 12, padding: 14, color: "#F1F5F9", fontSize: 15, borderWidth: 1, borderColor: "#334155" },
+
+  typePill: { flexDirection: "row", backgroundColor: "#0F172A", borderRadius: 12, borderWidth: 1, borderColor: "#334155", overflow: "hidden" },
+  typePillBtn: { flex: 1, paddingVertical: 10, alignItems: "center" },
+  typePillBtnRec: { backgroundColor: "#14532D" },
+  typePillBtnDes: { backgroundColor: "#7F1D1D" },
+  typePillTxt: { fontSize: 14, fontWeight: "700", color: "#475569" },
+
+  modalBtns: { flexDirection: "row", gap: 10, marginTop: 20 },
+  cancelBtn: { flex: 1, padding: 14, borderRadius: 12, backgroundColor: "rgba(255,255,255,0.06)", alignItems: "center" },
+  cancelBtnTxt: { color: "#94A3B8", fontSize: 15, fontWeight: "600" },
+  confirmBtn: { flex: 1, padding: 14, borderRadius: 12, backgroundColor: "#3B82F6", alignItems: "center" },
+  confirmBtnTxt: { color: "#fff", fontSize: 15, fontWeight: "700" },
+});

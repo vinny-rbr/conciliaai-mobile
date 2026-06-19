@@ -1,12 +1,12 @@
 import { useCallback, useEffect, useMemo, useRef, useState } from "react";
 import {
   ActivityIndicator, Alert, Animated, RefreshControl, ScrollView,
-  StyleSheet, Text, TouchableOpacity, View,
+  StyleSheet, Text, TextInput, TouchableOpacity, View,
 } from "react-native";
 import { SafeAreaView } from "react-native-safe-area-context";
 import { useNavigation, useFocusEffect } from "@react-navigation/native";
 import type { NativeStackNavigationProp } from "@react-navigation/native-stack";
-import Svg, { Path, Polyline, Line } from "react-native-svg";
+import Svg, { Path, Polyline, Circle } from "react-native-svg";
 import { fetchFinanceItems, deleteFinanceItem, fmt } from "../../lib/financeService";
 import { addMonthsYM, ymToLabel } from "../../lib/dateUtils";
 import { catIcon } from "../../lib/catUtils";
@@ -38,6 +38,39 @@ const TABS = [
   { name: "Planejamento",icon: "≡",  label: "Planos",    color: "#FBBF24", side: "right" },
 ] as const;
 
+function FinanceItemRow({ it, isReceita, onPress }: { it: FinanceItem; isReceita: boolean; onPress: () => void }) {
+  const scale = useRef(new Animated.Value(1)).current;
+  return (
+    <Animated.View style={{ transform: [{ scale }] }}>
+      <TouchableOpacity
+        style={s.item}
+        activeOpacity={0.9}
+        onPressIn={() => Animated.spring(scale, { toValue: 0.97, useNativeDriver: true, tension: 300, friction: 20 }).start()}
+        onPressOut={() => Animated.spring(scale, { toValue: 1,    useNativeDriver: true, tension: 300, friction: 20 }).start()}
+        onPress={onPress}
+      >
+        <View style={[s.itemIcon, { backgroundColor: isReceita ? "rgba(74,222,128,.15)" : "rgba(248,113,113,.15)" }]}>
+          <Text style={s.itemEmoji}>{catIcon(it.category)}</Text>
+        </View>
+        <View style={s.itemBody}>
+          <Text style={s.itemTitle} numberOfLines={2}>{it.title}</Text>
+          <Text style={s.itemCat}>{it.category}</Text>
+        </View>
+        <View style={s.itemRight}>
+          <Text style={[s.itemAmt, { color: isReceita ? "#4ADE80" : "#F87171" }]}>
+            {fmt(it.amountCents)}
+          </Text>
+          {it.status === "paid" && (
+            <View style={[s.checkBadge, { backgroundColor: isReceita ? "rgba(74,222,128,.18)" : "rgba(96,165,250,.18)" }]}>
+              <Text style={[s.checkTxt, { color: isReceita ? "#4ADE80" : "#60A5FA" }]}>✓</Text>
+            </View>
+          )}
+        </View>
+      </TouchableOpacity>
+    </Animated.View>
+  );
+}
+
 export default function FinanceListScreen({ type }: Props) {
   const isReceita = type === "RECEITA";
   const navigation = useNavigation<NavProp>();
@@ -46,9 +79,10 @@ export default function FinanceListScreen({ type }: Props) {
   const [refreshing, setRefreshing] = useState(false);
   const [month, setMonth] = useState(currentYM);
   const [deletingAll, setDeletingAll] = useState(false);
-
-  const fabTranslate = useRef(new Animated.Value(0)).current;
-  const fabRotation  = useRef(new Animated.Value(0)).current;
+  const [searchOpen, setSearchOpen] = useState(false);
+  const [searchQuery, setSearchQuery] = useState("");
+  const searchAnim = useRef(new Animated.Value(0)).current;
+  const searchRef = useRef<TextInput>(null);
 
   const load = useCallback(async (silent = false) => {
     if (!silent) setLoading(true);
@@ -59,9 +93,7 @@ export default function FinanceListScreen({ type }: Props) {
   }, []);
 
   useEffect(() => { void load(); }, [load]);
-
   useFocusEffect(useCallback(() => { void load(true); }, [load]));
-
   const onRefresh = useCallback(() => { setRefreshing(true); void load(true); }, [load]);
 
   const monthItems = useMemo(
@@ -69,14 +101,25 @@ export default function FinanceListScreen({ type }: Props) {
     [all, type, month],
   );
 
-  const paid   = useMemo(() => monthItems.filter(it => it.status === "paid"),   [monthItems]);
-  const unpaid = useMemo(() => monthItems.filter(it => it.status !== "paid"),   [monthItems]);
+  const visible = useMemo(() => {
+    const q = searchQuery.trim().toLowerCase();
+    if (!q) return monthItems;
+    return monthItems.filter(it =>
+      it.title.toLowerCase().includes(q) ||
+      it.category.toLowerCase().includes(q) ||
+      fmt(it.amountCents).includes(q) ||
+      it.amountCents.toString().includes(q.replace(/\D/g, "")),
+    );
+  }, [monthItems, searchQuery]);
+
+  const paid   = useMemo(() => visible.filter(it => it.status === "paid"),   [visible]);
+  const unpaid = useMemo(() => visible.filter(it => it.status !== "paid"),   [visible]);
   const totalPaid   = paid.reduce((s, it) => s + it.amountCents, 0);
   const totalUnpaid = unpaid.reduce((s, it) => s + it.amountCents, 0);
 
   const groups = useMemo(() => {
     const map = new Map<string, FinanceItem[]>();
-    for (const it of monthItems) {
+    for (const it of visible) {
       const g = map.get(it.dateISO) ?? [];
       g.push(it);
       map.set(it.dateISO, g);
@@ -88,11 +131,21 @@ export default function FinanceListScreen({ type }: Props) {
         items,
         total: items.reduce((s, it) => s + it.amountCents, 0),
       }));
-  }, [monthItems]);
+  }, [visible]);
 
   const today = currentYM();
   const maxMonth = addMonthsYM(today, 12);
   const canNext = month < maxMonth;
+
+  const toggleSearch = () => {
+    if (searchOpen) {
+      setSearchQuery("");
+      Animated.timing(searchAnim, { toValue: 0, duration: 180, useNativeDriver: false }).start(() => setSearchOpen(false));
+    } else {
+      setSearchOpen(true);
+      Animated.timing(searchAnim, { toValue: 1, duration: 200, useNativeDriver: false }).start(() => searchRef.current?.focus());
+    }
+  };
 
   const handleDeleteAll = () => {
     if (monthItems.length === 0) return;
@@ -116,17 +169,7 @@ export default function FinanceListScreen({ type }: Props) {
   };
 
   const handleFabPress = () => {
-    Animated.parallel([
-      Animated.spring(fabRotation,  { toValue: 1, useNativeDriver: true, tension: 70, friction: 8 }),
-      Animated.spring(fabTranslate, { toValue: -60, useNativeDriver: true, tension: 70, friction: 8 }),
-    ]).start();
-    setTimeout(() => {
-      Animated.parallel([
-        Animated.spring(fabRotation,  { toValue: 0, useNativeDriver: true, tension: 70, friction: 8 }),
-        Animated.spring(fabTranslate, { toValue: 0,  useNativeDriver: true, tension: 70, friction: 8 }),
-      ]).start();
-      navigation.navigate("AddTransaction", { defaultType: type });
-    }, 120);
+    navigation.navigate("AddTransaction", { defaultType: type });
   };
 
   return (
@@ -167,28 +210,56 @@ export default function FinanceListScreen({ type }: Props) {
         >
           <Text style={s.monthBtnTxt}>›</Text>
         </TouchableOpacity>
+
+        {/* Search icon */}
+        <TouchableOpacity style={[s.monthBtn, { marginLeft: 4 }, searchOpen && { backgroundColor: "#1E3A5F" }]} onPress={toggleSearch} activeOpacity={0.7}>
+          <Svg viewBox="0 0 24 24" width={16} height={16} fill="none" stroke={searchOpen ? "#60A5FA" : "#94A3B8"} strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round">
+            <Circle cx="11" cy="11" r="7" />
+            <Path d="m20 20-3-3" />
+          </Svg>
+        </TouchableOpacity>
+
+        {/* Delete all icon */}
         {monthItems.length > 0 && (
-          <TouchableOpacity
-            style={[s.monthBtn, { marginLeft: 4 }]}
-            onPress={handleDeleteAll}
-            disabled={deletingAll}
-            activeOpacity={0.7}
-          >
+          <TouchableOpacity style={[s.monthBtn, { marginLeft: 4 }]} onPress={handleDeleteAll} disabled={deletingAll} activeOpacity={0.7}>
             {deletingAll
               ? <ActivityIndicator size="small" color="#F87171" />
               : (
-                <Svg viewBox="0 0 24 24" width={18} height={18} fill="none" stroke="#F87171" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+                <Svg viewBox="0 0 24 24" width={16} height={16} fill="none" stroke="#F87171" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round">
                   <Polyline points="3 6 5 6 21 6" />
                   <Path d="M19 6l-1 14a2 2 0 0 1-2 2H8a2 2 0 0 1-2-2L5 6" />
-                  <Path d="M10 11v6" />
-                  <Path d="M14 11v6" />
-                  <Path d="M9 6V4h6v2" />
+                  <Path d="M10 11v6M14 11v6M9 6V4h6v2" />
                 </Svg>
               )
             }
           </TouchableOpacity>
         )}
       </View>
+
+      {/* Search bar */}
+      {searchOpen && (
+        <Animated.View style={[s.searchBar, { opacity: searchAnim, transform: [{ translateY: searchAnim.interpolate({ inputRange: [0, 1], outputRange: [-8, 0] }) }] }]}>
+          <Svg viewBox="0 0 24 24" width={16} height={16} fill="none" stroke="#64748B" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round">
+            <Circle cx="11" cy="11" r="7" />
+            <Path d="m20 20-3-3" />
+          </Svg>
+          <TextInput
+            ref={searchRef}
+            style={s.searchInput}
+            value={searchQuery}
+            onChangeText={setSearchQuery}
+            placeholder="Buscar por nome, categoria ou valor…"
+            placeholderTextColor="#475569"
+            returnKeyType="search"
+            clearButtonMode="while-editing"
+          />
+          {!!searchQuery && (
+            <TouchableOpacity onPress={() => setSearchQuery("")} activeOpacity={0.7}>
+              <Text style={{ color: "#64748B", fontSize: 18, lineHeight: 20 }}>×</Text>
+            </TouchableOpacity>
+          )}
+        </Animated.View>
+      )}
 
       {/* Summary */}
       <View style={s.summaryRow}>
@@ -219,12 +290,14 @@ export default function FinanceListScreen({ type }: Props) {
         >
           {groups.length === 0 ? (
             <View style={{ alignItems: "center", paddingVertical: 60 }}>
-              <Text style={{ fontSize: 44, marginBottom: 16 }}>{isReceita ? "💰" : "💸"}</Text>
+              <Text style={{ fontSize: 44, marginBottom: 16 }}>{searchQuery ? "🔍" : (isReceita ? "💰" : "💸")}</Text>
               <Text style={{ color: "#F1F5F9", fontSize: 16, fontWeight: "700", marginBottom: 8 }}>
-                Nenhum lançamento
+                {searchQuery ? "Nenhum resultado" : "Nenhum lançamento"}
               </Text>
               <Text style={{ color: "#64748B", fontSize: 14, textAlign: "center", lineHeight: 20, maxWidth: 260 }}>
-                Não há {isReceita ? "receitas" : "despesas"} em {ymToLabel(month)}
+                {searchQuery
+                  ? `Sem resultados para "${searchQuery}"`
+                  : `Não há ${isReceita ? "receitas" : "despesas"} em ${ymToLabel(month)}`}
               </Text>
             </View>
           ) : (
@@ -235,30 +308,12 @@ export default function FinanceListScreen({ type }: Props) {
                   <Text style={s.dateTotal}>{fmt(total)}</Text>
                 </View>
                 {items.map(it => (
-                  <TouchableOpacity
+                  <FinanceItemRow
                     key={it.id}
-                    style={s.item}
-                    activeOpacity={0.7}
+                    it={it}
+                    isReceita={isReceita}
                     onPress={() => navigation.navigate("AddTransaction", { editItem: it })}
-                  >
-                    <View style={[s.itemIcon, { backgroundColor: isReceita ? "rgba(74,222,128,.15)" : "rgba(248,113,113,.15)" }]}>
-                      <Text style={s.itemEmoji}>{catIcon(it.category)}</Text>
-                    </View>
-                    <View style={s.itemBody}>
-                      <Text style={s.itemTitle} numberOfLines={2}>{it.title}</Text>
-                      <Text style={s.itemCat}>{it.category}</Text>
-                    </View>
-                    <View style={s.itemRight}>
-                      <Text style={[s.itemAmt, { color: isReceita ? "#4ADE80" : "#F87171" }]}>
-                        {fmt(it.amountCents)}
-                      </Text>
-                      {it.status === "paid" && (
-                        <View style={[s.checkBadge, { backgroundColor: isReceita ? "rgba(74,222,128,.18)" : "rgba(96,165,250,.18)" }]}>
-                          <Text style={[s.checkTxt, { color: isReceita ? "#4ADE80" : "#60A5FA" }]}>✓</Text>
-                        </View>
-                      )}
-                    </View>
-                  </TouchableOpacity>
+                  />
                 ))}
               </View>
             ))
@@ -271,12 +326,7 @@ export default function FinanceListScreen({ type }: Props) {
         <View style={s.pillRow}>
           <View style={s.halfLeft}>
             {TABS.filter(t => t.side === "left").map(t => (
-              <TouchableOpacity
-                key={t.name}
-                style={s.tab}
-                activeOpacity={0.7}
-                onPress={() => navigation.navigate("Tabs")}
-              >
+              <TouchableOpacity key={t.name} style={s.tab} activeOpacity={0.7} onPress={() => navigation.navigate("Tabs")}>
                 <Text style={[s.tabIcon, { color: "#475569" }]}>{t.icon}</Text>
                 <Text style={[s.tabLabel, { color: "#475569" }]}>{t.label}</Text>
               </TouchableOpacity>
@@ -284,12 +334,7 @@ export default function FinanceListScreen({ type }: Props) {
           </View>
           <View style={s.halfRight}>
             {TABS.filter(t => t.side === "right").map(t => (
-              <TouchableOpacity
-                key={t.name}
-                style={s.tab}
-                activeOpacity={0.7}
-                onPress={() => navigation.navigate("Tabs")}
-              >
+              <TouchableOpacity key={t.name} style={s.tab} activeOpacity={0.7} onPress={() => navigation.navigate("Tabs")}>
                 <Text style={[s.tabIcon, { color: "#475569" }]}>{t.icon}</Text>
                 <Text style={[s.tabLabel, { color: "#475569" }]}>{t.label}</Text>
               </TouchableOpacity>
@@ -297,20 +342,9 @@ export default function FinanceListScreen({ type }: Props) {
           </View>
         </View>
 
-        <Animated.View
-          style={[s.fabWrap, { transform: [{ translateY: fabTranslate }] }]}
-          pointerEvents="box-none"
-        >
+        <Animated.View style={[s.fabWrap]} pointerEvents="box-none">
           <TouchableOpacity style={s.fab} activeOpacity={0.85} onPress={handleFabPress}>
-            <Animated.Text
-              style={[s.fabTxt, {
-                transform: [{
-                  rotate: fabRotation.interpolate({ inputRange: [0, 1], outputRange: ["0deg", "45deg"] }),
-                }],
-              }]}
-            >
-              +
-            </Animated.Text>
+            <Text style={s.fabTxt}>+</Text>
           </TouchableOpacity>
         </Animated.View>
       </View>
@@ -329,12 +363,20 @@ const s = StyleSheet.create({
   typePillBtnActive: { borderRadius: 12 },
   typePillTxt: { fontSize: 15, fontWeight: "800", color: "#475569" },
 
-  monthNav: { flexDirection: "row", alignItems: "center", justifyContent: "center", paddingVertical: 12, gap: 24 },
+  monthNav: { flexDirection: "row", alignItems: "center", justifyContent: "center", paddingVertical: 10, gap: 4 },
   monthBtn: { width: 36, height: 36, borderRadius: 18, backgroundColor: "#1E293B", alignItems: "center", justifyContent: "center" },
   monthBtnTxt: { color: "#60A5FA", fontSize: 20, fontWeight: "700", lineHeight: 24 },
-  monthCenter: { alignItems: "center", minWidth: 140 },
+  monthCenter: { alignItems: "center", minWidth: 120, marginHorizontal: 8 },
   monthLabel: { color: "#F1F5F9", fontSize: 18, fontWeight: "800" },
   monthYear: { color: "#64748B", fontSize: 13, fontWeight: "500", marginTop: 1 },
+
+  searchBar: {
+    flexDirection: "row", alignItems: "center", gap: 10,
+    marginHorizontal: 16, marginBottom: 8,
+    backgroundColor: "#1E293B", borderRadius: 14, borderWidth: 1, borderColor: "#334155",
+    paddingHorizontal: 14, paddingVertical: 10,
+  },
+  searchInput: { flex: 1, color: "#F1F5F9", fontSize: 14, fontWeight: "500", padding: 0 },
 
   summaryRow: { flexDirection: "row", marginHorizontal: 16, backgroundColor: "#1E293B", borderRadius: 16, marginBottom: 16, borderWidth: 1, borderColor: "#334155" },
   summaryCard: { flex: 1, padding: 16 },
@@ -346,9 +388,6 @@ const s = StyleSheet.create({
 
   center: { flex: 1, justifyContent: "center", alignItems: "center" },
   scroll: { paddingHorizontal: 16, paddingBottom: 120 },
-
-  empty: { alignItems: "center", marginTop: 60 },
-  emptyTxt: { color: "#64748B", fontSize: 15 },
 
   dateHeader: { flexDirection: "row", justifyContent: "space-between", alignItems: "center", paddingVertical: 10, paddingHorizontal: 4 },
   dateLabel: { color: "#94A3B8", fontSize: 13, fontWeight: "700" },
@@ -365,78 +404,15 @@ const s = StyleSheet.create({
   checkBadge: { width: 22, height: 22, borderRadius: 11, alignItems: "center", justifyContent: "center" },
   checkTxt: { fontSize: 12, fontWeight: "800" },
 
-  // Tab bar
-  tabBarWrapper: {
-    position: "absolute",
-    bottom: 20,
-    left: 12,
-    right: 12,
-    alignItems: "center",
-  },
-  pillRow: {
-    width: "100%",
-    flexDirection: "row",
-    shadowColor: "#000",
-    shadowOpacity: 0.4,
-    shadowRadius: 16,
-    shadowOffset: { width: 0, height: 6 },
-    elevation: 12,
-  },
-  halfLeft: {
-    flex: 1,
-    flexDirection: "row",
-    backgroundColor: PILL_BG,
-    borderTopLeftRadius: 28,
-    borderBottomLeftRadius: 28,
-    borderTopRightRadius: 0,
-    borderBottomRightRadius: 0,
-    borderWidth: 1,
-    borderRightWidth: 0,
-    borderColor: PILL_BORD,
-    paddingVertical: 10,
-    paddingLeft: 4,
-    paddingRight: 4,
-    marginRight: -1,
-    zIndex: 1,
-  },
-  halfRight: {
-    flex: 1,
-    flexDirection: "row",
-    backgroundColor: PILL_BG,
-    borderTopRightRadius: 28,
-    borderBottomRightRadius: 28,
-    borderTopLeftRadius: 0,
-    borderBottomLeftRadius: 0,
-    borderWidth: 1,
-    borderLeftWidth: 0,
-    borderColor: PILL_BORD,
-    paddingVertical: 10,
-    paddingLeft: 4,
-    paddingRight: 4,
-  },
+  tabBarWrapper: { position: "absolute", bottom: 20, left: 12, right: 12, alignItems: "center" },
+  pillRow: { width: "100%", flexDirection: "row", shadowColor: "#000", shadowOpacity: 0.4, shadowRadius: 16, shadowOffset: { width: 0, height: 6 }, elevation: 12 },
+  halfLeft: { flex: 1, flexDirection: "row", backgroundColor: PILL_BG, borderTopLeftRadius: 28, borderBottomLeftRadius: 28, borderTopRightRadius: 0, borderBottomRightRadius: 0, borderWidth: 1, borderRightWidth: 0, borderColor: PILL_BORD, paddingVertical: 10, paddingLeft: 4, paddingRight: 4, marginRight: -1, zIndex: 1 },
+  halfRight: { flex: 1, flexDirection: "row", backgroundColor: PILL_BG, borderTopRightRadius: 28, borderBottomRightRadius: 28, borderTopLeftRadius: 0, borderBottomLeftRadius: 0, borderWidth: 1, borderLeftWidth: 0, borderColor: PILL_BORD, paddingVertical: 10, paddingLeft: 4, paddingRight: 4 },
   tab: { flex: 1, alignItems: "center", gap: 3, paddingVertical: 4 },
   tabIcon:  { fontSize: 18, fontWeight: "600" },
   tabLabel: { fontSize: 10, fontWeight: "700" },
 
-  fabWrap: {
-    position: "absolute",
-    top: -16,
-    alignSelf: "center",
-  },
-  fab: {
-    width: 60,
-    height: 60,
-    borderRadius: 30,
-    backgroundColor: "#3B82F6",
-    justifyContent: "center",
-    alignItems: "center",
-    borderWidth: 3,
-    borderColor: "#1e3a8a",
-    shadowColor: "#3B82F6",
-    shadowOpacity: 0.65,
-    shadowRadius: 18,
-    shadowOffset: { width: 0, height: 4 },
-    elevation: 16,
-  },
+  fabWrap: { position: "absolute", top: -16, alignSelf: "center" },
+  fab: { width: 60, height: 60, borderRadius: 30, backgroundColor: "#3B82F6", justifyContent: "center", alignItems: "center", borderWidth: 3, borderColor: "#1e3a8a", shadowColor: "#3B82F6", shadowOpacity: 0.65, shadowRadius: 18, shadowOffset: { width: 0, height: 4 }, elevation: 16 },
   fabTxt: { color: "#fff", fontSize: 30, fontWeight: "300", lineHeight: 34 },
 });
