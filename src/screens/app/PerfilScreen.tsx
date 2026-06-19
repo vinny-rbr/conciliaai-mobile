@@ -68,7 +68,8 @@ export default function PerfilScreen() {
           if (typeof d.cpfCnpj === "string") setCpf(d.cpfCnpj);
         }
         if (sRes.ok) {
-          const d = await sRes.json() as Record<string, unknown>;
+          const subText = await sRes.text();
+          const d = JSON.parse(subText) as Record<string, unknown>;
           setSub({
             isLifetime: d.isLifetime === true || d.lifetime === true,
             status: typeof d.subscriptionStatus === "string" ? d.subscriptionStatus :

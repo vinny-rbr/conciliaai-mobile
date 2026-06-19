@@ -85,7 +85,7 @@ export default function PlanosScreen() {
         });
         if (res.ok) {
           const data = await res.json() as { subscriptionStatus?: string; hasActiveSubscription?: boolean };
-          if (data.subscriptionStatus === "active" || data.hasActiveSubscription === true) {
+          if (data.subscriptionStatus?.toLowerCase() === "active" || data.hasActiveSubscription === true) {
             clearInterval(pollInterval.current!);
             setVerifying(false);
             showToast("Assinatura ativada com sucesso! 🎉", "success");

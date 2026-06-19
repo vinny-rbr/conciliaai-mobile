@@ -1,6 +1,6 @@
 import { StyleSheet } from "react-native";
 
-export const PHOTO_KEY = (uid: string) => `conciliaai_profile_photo:${uid}`;
+export const PHOTO_KEY = (uid: string) => `conciliaai.profile.photo.${uid}`;
 
 export type Sub = {
   isLifetime: boolean;

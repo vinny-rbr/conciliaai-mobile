@@ -158,7 +158,7 @@ type AvatarSectionProps = {
 };
 
 export function AvatarSection({ photo, initials, name, email, sub, onPickPhoto }: AvatarSectionProps) {
-  const isActive = sub && (sub.status === "active" || sub.isLifetime);
+  const isActive = sub && (sub.status?.toLowerCase() === "active" || sub.isLifetime);
   const badgeColor    = isActive ? "#4ADE80" : "#F87171";
   const badgeBg       = isActive ? "rgba(74,222,128,0.14)"  : "rgba(248,113,113,0.14)";
   const badgeBorder   = isActive ? "rgba(74,222,128,0.45)"  : "rgba(248,113,113,0.42)";
@@ -280,7 +280,7 @@ export function DadosPessoaisSection({ name, email, cpf, savingName, savingCpf, 
 type AssinaturaProps = { sub: Sub | null };
 
 export function AssinaturaSection({ sub }: AssinaturaProps) {
-  const isActive = sub && (sub.status === "active" || sub.isLifetime);
+  const isActive = sub && (sub.status?.toLowerCase() === "active" || sub.isLifetime);
 
   if (!isActive) {
     return (
