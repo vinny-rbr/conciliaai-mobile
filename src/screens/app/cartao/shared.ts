@@ -25,6 +25,18 @@ export function usageColor(pct: number) {
   return pct < 0.5 ? "#4ADE80" : pct < 0.82 ? ACCENT : "#F87171";
 }
 
+const FACE_MAP: Record<string, { bg1: string; bg2: string }> = {
+  "linear-gradient(135deg,#9F37E8,#6A02B0)": { bg1: "#9F37E8", bg2: "#6A02B0" },
+  "linear-gradient(135deg,#FBBF24,#D97706)": { bg1: "#F59E0B", bg2: "#D97706" },
+  "linear-gradient(135deg,#3B82F6,#1b3fa0)": { bg1: "#3B82F6", bg2: "#1b3fa0" },
+  "linear-gradient(135deg,#334155,#0F172A)": { bg1: "#334155", bg2: "#0F172A" },
+};
+
+export function faceColors(face: string | null | undefined, brand: { bg1: string; bg2: string }) {
+  if (!face) return brand;
+  return FACE_MAP[face] ?? brand;
+}
+
 export function parseBRL(s: string): number {
   const clean = s.replace(/[^\d,]/g, "").replace(",", ".");
   const n = parseFloat(clean);
