@@ -1,15 +1,22 @@
 import { useEffect, useState } from "react";
-import { ScrollView, StyleSheet, Text, TouchableOpacity, Vibration, View } from "react-native";
+import { ScrollView, StyleSheet, Text, TouchableOpacity, Vibration, View, Alert } from "react-native";
 import { SafeAreaView } from "react-native-safe-area-context";
 import { useNavigation } from "@react-navigation/native";
 import Svg, { Path } from "react-native-svg";
 import * as SecureStore from "expo-secure-store";
+import {
+  requestNotificationPermissions,
+  scheduleRecurringNotifications,
+  cancelAllScheduledNotifications,
+  sendTestNotification,
+} from "../../../lib/notificationService";
 
 const KEY_ENABLED = "conciliaai_notif_enabled";
 const KEY_VIBRATE = "conciliaai_notif_vibrate";
 const KEY_SOUND   = "conciliaai_notif_sound";
 
 const SOUNDS = [
+  { id: "default",           label: "Padrão do sistema" },
   { id: "notification-bell", label: "Notification Bell" },
   { id: "premium",           label: "Premium" },
   { id: "twinkle",           label: "Twinkle" },
@@ -26,11 +33,7 @@ const SOUNDS = [
 
 function Toggle({ value, onToggle }: { value: boolean; onToggle: () => void }) {
   return (
-    <TouchableOpacity
-      onPress={onToggle}
-      activeOpacity={0.8}
-      style={[s.toggleTrack, value && s.toggleTrackOn]}
-    >
+    <TouchableOpacity onPress={onToggle} activeOpacity={0.8} style={[s.toggleTrack, value && s.toggleTrackOn]}>
       <View style={[s.toggleThumb, value && s.toggleThumbOn]} />
     </TouchableOpacity>
   );
@@ -40,7 +43,8 @@ export default function NotificacoesScreen() {
   const navigation = useNavigation();
   const [enabled, setEnabled] = useState(false);
   const [vibrate, setVibrate] = useState(true);
-  const [sound, setSound]     = useState("notification-bell");
+  const [sound,   setSound]   = useState("default");
+  const [loading, setLoading] = useState(false);
 
   useEffect(() => { void load(); }, []);
 
@@ -56,9 +60,27 @@ export default function NotificacoesScreen() {
   }
 
   async function toggleEnabled() {
+    setLoading(true);
     const next = !enabled;
+
+    if (next) {
+      const granted = await requestNotificationPermissions();
+      if (!granted) {
+        Alert.alert(
+          "Permissão negada",
+          "Acesse Configurações > Aplicativos > ConciliaAI > Notificações para ativar.",
+        );
+        setLoading(false);
+        return;
+      }
+      await scheduleRecurringNotifications(sound !== "none");
+    } else {
+      await cancelAllScheduledNotifications();
+    }
+
     setEnabled(next);
     await SecureStore.setItemAsync(KEY_ENABLED, String(next));
+    setLoading(false);
   }
 
   async function toggleVibrate() {
@@ -71,6 +93,10 @@ export default function NotificacoesScreen() {
   async function selectSound(id: string) {
     setSound(id);
     await SecureStore.setItemAsync(KEY_SOUND, id);
+    // Re-agenda com o novo som se as notificações estiverem ativas
+    if (enabled) {
+      await scheduleRecurringNotifications(id !== "none");
+    }
   }
 
   return (
@@ -93,18 +119,25 @@ export default function NotificacoesScreen() {
           <View style={s.toggleRow}>
             <View style={{ flex: 1 }}>
               <Text style={s.toggleLabel}>Ativar notificações</Text>
-              <Text style={s.toggleSub}>Alertas às 9h, 13h, 19h e 23h e avisos de grupo</Text>
+              <Text style={s.toggleSub}>Lembretes às 9h, 13h, 19h e 23h para registrar gastos</Text>
             </View>
-            <Toggle value={enabled} onToggle={() => void toggleEnabled()} />
+            <Toggle value={enabled} onToggle={() => { if (!loading) void toggleEnabled(); }} />
           </View>
         </View>
 
         {/* Status */}
         <View style={[s.statusCard, enabled ? s.statusCardOn : s.statusCardOff]}>
           <Text style={[s.statusTxt, enabled ? s.statusTxtOn : s.statusTxtOff]}>
-            {enabled ? "Notificações ativadas." : "Notificações desativadas."}
+            {enabled ? "✓ Notificações ativadas — 4 lembretes diários agendados." : "Notificações desativadas."}
           </Text>
         </View>
+
+        {/* Testar */}
+        {enabled && (
+          <TouchableOpacity style={s.testBtn} onPress={() => void sendTestNotification()} activeOpacity={0.8}>
+            <Text style={s.testBtnTxt}>🔔 Testar notificação agora</Text>
+          </TouchableOpacity>
+        )}
 
         {/* Vibração */}
         <View style={[s.card, { marginTop: 16 }]}>
@@ -128,7 +161,12 @@ export default function NotificacoesScreen() {
                   <View style={[s.radio, selected && s.radioSelected]}>
                     {selected && <View style={s.radioDot} />}
                   </View>
-                  <Text style={[s.soundLabel, selected && s.soundLabelSelected]}>{snd.label}</Text>
+                  <View style={{ flex: 1 }}>
+                    <Text style={[s.soundLabel, selected && s.soundLabelSelected]}>{snd.label}</Text>
+                    {snd.id === "default" && (
+                      <Text style={s.soundHint}>Som padrão do Android</Text>
+                    )}
+                  </View>
                 </TouchableOpacity>
                 {i < SOUNDS.length - 1 && <View style={s.divider} />}
               </View>
@@ -169,12 +207,16 @@ const s = StyleSheet.create({
   statusTxtOn:   { color: "#86efac" },
   statusTxtOff:  { color: "#64748B" },
 
+  testBtn:    { marginTop: 10, backgroundColor: "rgba(59,130,246,0.15)", borderRadius: 12, borderWidth: 1, borderColor: "rgba(59,130,246,0.4)", paddingVertical: 12, alignItems: "center" },
+  testBtnTxt: { color: "#60A5FA", fontSize: 14, fontWeight: "700" },
+
   sectionLabel: { color: "#7e93b3", fontSize: 11, fontWeight: "800", letterSpacing: 1.2, textTransform: "uppercase", marginTop: 24, marginBottom: 10, marginLeft: 4 },
 
-  soundRow:          { flexDirection: "row", alignItems: "center", gap: 12, padding: 14 },
-  radio:             { width: 20, height: 20, borderRadius: 10, borderWidth: 1.5, borderColor: "#475569", alignItems: "center", justifyContent: "center" },
-  radioSelected:     { borderColor: "#60A5FA" },
-  radioDot:          { width: 10, height: 10, borderRadius: 5, backgroundColor: "#60A5FA" },
-  soundLabel:        { color: "#CBD5E1", fontSize: 14, fontWeight: "600" },
+  soundRow:           { flexDirection: "row", alignItems: "center", gap: 12, padding: 14 },
+  radio:              { width: 20, height: 20, borderRadius: 10, borderWidth: 1.5, borderColor: "#475569", alignItems: "center", justifyContent: "center" },
+  radioSelected:      { borderColor: "#60A5FA" },
+  radioDot:           { width: 10, height: 10, borderRadius: 5, backgroundColor: "#60A5FA" },
+  soundLabel:         { color: "#CBD5E1", fontSize: 14, fontWeight: "600" },
   soundLabelSelected: { color: "#93c0ff", fontWeight: "700" },
+  soundHint:          { color: "#475569", fontSize: 11, marginTop: 2 },
 });
