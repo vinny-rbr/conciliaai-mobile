@@ -4,12 +4,13 @@ import type { FinanceCategoryOption } from "../../types/finance";
 import { CARD_W } from "./constants";
 
 export function CategoryCard({
-  cat, subs, onMenu, onLongPress,
+  cat, subs, onMenu, onLongPress, onSubMenu,
 }: {
   cat: FinanceCategoryOption;
   subs: FinanceCategoryOption[];
   onMenu: (cat: FinanceCategoryOption) => void;
   onLongPress: () => void;
+  onSubMenu?: (sub: FinanceCategoryOption) => void;
 }) {
   const [expanded, setExpanded] = useState(false);
   const LIMIT = 4;
@@ -38,10 +39,17 @@ export function CategoryCard({
       {subs.length > 0 && (
         <View style={c.chips}>
           {visibleSubs.map(sub => (
-            <View key={sub.id} style={c.chip}>
+            <TouchableOpacity
+              key={sub.id}
+              style={c.chip}
+              activeOpacity={0.7}
+              onPress={e => { e.stopPropagation(); onSubMenu?.(sub); }}
+              hitSlop={4}
+            >
               <View style={[c.chipDot, { backgroundColor: sub.color }]} />
               <Text style={c.chipTxt} numberOfLines={1}>{sub.name}</Text>
-            </View>
+              <Text style={c.chipEdit}>•••</Text>
+            </TouchableOpacity>
           ))}
           {!expanded && hiddenCount > 0 && (
             <TouchableOpacity
@@ -81,6 +89,7 @@ const c = StyleSheet.create({
   chip: { flexDirection: "row", alignItems: "center", gap: 6, backgroundColor: "#0F172A", borderRadius: 8, paddingHorizontal: 8, paddingVertical: 5 },
   chipDot: { width: 7, height: 7, borderRadius: 4 },
   chipTxt: { color: "#94A3B8", fontSize: 12, fontWeight: "500", flex: 1 },
+  chipEdit: { color: "#334155", fontSize: 10, letterSpacing: 0.5 },
   moreBtn: { marginTop: 2, alignSelf: "flex-start" },
   moreTxt: { color: "#60a5fa", fontSize: 11, fontWeight: "600" },
 });

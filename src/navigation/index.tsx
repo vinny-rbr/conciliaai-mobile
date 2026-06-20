@@ -8,6 +8,7 @@ import { useAuth } from "../context/AuthContext";
 import CustomTabBar from "./CustomTabBar";
 
 import LoginScreen from "../screens/auth/LoginScreen";
+import ForgotPasswordScreen from "../screens/auth/ForgotPasswordScreen";
 import DashboardScreen from "../screens/app/DashboardScreen";
 import CategoriasScreen from "../screens/app/CategoriasScreen";
 import GruposScreen from "../screens/app/GruposScreen";
@@ -24,8 +25,10 @@ import PerfilScreen from "../screens/app/PerfilScreen";
 import PlanosScreen from "../screens/app/planos/PlanosScreen";
 import NotificacoesScreen from "../screens/app/notificacoes/NotificacoesScreen";
 import TagsScreen from "../screens/app/TagsScreen";
+import LancarTransacaoScreen from "../screens/app/LancarTransacaoScreen";
+import ContasBancariasScreen from "../screens/app/ContasBancariasScreen";
 
-export type AuthStackParamList = { Login: undefined };
+export type AuthStackParamList = { Login: undefined; ForgotPassword: undefined };
 export type AppTabParamList = {
   Home: undefined;
   Categorias: undefined;
@@ -47,6 +50,8 @@ export type RootStackParamList = {
   Planos: undefined;
   Notificacoes: undefined;
   Tags: undefined;
+  LancarTransacao: { type: "RECEITA" | "DESPESA" } | undefined;
+  ContasBancarias: undefined;
 };
 
 const AuthStack  = createNativeStackNavigator<AuthStackParamList>();
@@ -57,6 +62,7 @@ function AuthNavigator() {
   return (
     <AuthStack.Navigator screenOptions={{ headerShown: false }}>
       <AuthStack.Screen name="Login" component={LoginScreen} />
+      <AuthStack.Screen name="ForgotPassword" component={ForgotPasswordScreen} />
     </AuthStack.Navigator>
   );
 }
@@ -96,6 +102,8 @@ function AppNavigator() {
       <RootStack.Screen name="Planos"           component={PlanosScreen} />
       <RootStack.Screen name="Notificacoes"     component={NotificacoesScreen} />
       <RootStack.Screen name="Tags"             component={TagsScreen} />
+      <RootStack.Screen name="LancarTransacao"  component={LancarTransacaoScreen} />
+      <RootStack.Screen name="ContasBancarias" component={ContasBancariasScreen} />
     </RootStack.Navigator>
   );
 }

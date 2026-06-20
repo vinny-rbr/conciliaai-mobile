@@ -14,22 +14,23 @@ import { fmtDate, s } from "./shared";
 type SelectedItem = ParsedItem & { selected: boolean };
 
 // ── Pick ─────────────────────────────────────────────────────────────────────
-type PickStepProps = { onPick: () => void; loading: boolean; onGoBack: () => void };
+type PickStepProps = { onPick: () => void; loading: boolean; onGoBack: () => void; onOpenCamera: () => void };
 
-export function PickStep({ onPick, loading, onGoBack }: PickStepProps) {
+export function PickStep({ onPick, loading, onGoBack, onOpenCamera }: PickStepProps) {
   return (
     <>
       <View style={s.header}>
         <TouchableOpacity onPress={onGoBack} style={s.backBtn}>
           <Text style={s.backTxt}>‹ Voltar</Text>
         </TouchableOpacity>
-        <Text style={s.headerTitle}>Importar extrato</Text>
+        <Text style={s.headerTitle}>Importar</Text>
         <View style={{ width: 60 }} />
       </View>
       <View style={s.pickBody}>
+        {/* OFX / CSV */}
         <View style={s.pickCard}>
           <Text style={s.pickIcon}>📄</Text>
-          <Text style={s.pickTitle}>Selecione o arquivo do extrato</Text>
+          <Text style={s.pickTitle}>Importar extrato do banco</Text>
           <Text style={s.pickSub}>Formatos suportados:{"\n"}OFX · CSV</Text>
           <Text style={s.pickHint}>
             No seu banco, acesse "Exportar extrato" ou "Baixar OFX" e escolha o período desejado.
@@ -43,6 +44,26 @@ export function PickStep({ onPick, loading, onGoBack }: PickStepProps) {
             <View key={b} style={s.bankChip}><Text style={s.bankChipTxt}>{b}</Text></View>
           ))}
         </View>
+
+        {/* Divisor */}
+        <View style={{ flexDirection: "row", alignItems: "center", marginVertical: 20, gap: 12 }}>
+          <View style={{ flex: 1, height: 1, backgroundColor: "#1E293B" }} />
+          <Text style={{ color: "#475569", fontSize: 12, fontWeight: "600" }}>ou</Text>
+          <View style={{ flex: 1, height: 1, backgroundColor: "#1E293B" }} />
+        </View>
+
+        {/* Por foto */}
+        <TouchableOpacity style={ls.photoBtn} activeOpacity={0.85} onPress={onOpenCamera}>
+          <Text style={{ fontSize: 28 }}>📷</Text>
+          <View style={{ flex: 1 }}>
+            <View style={{ flexDirection: "row", alignItems: "center", gap: 8 }}>
+              <Text style={ls.photoBtnTitle}>Lançar por foto</Text>
+              <View style={ls.newBadge}><Text style={ls.newBadgeTxt}>IA</Text></View>
+            </View>
+            <Text style={ls.photoBtnSub}>Tire foto de um recibo ou comprovante</Text>
+          </View>
+          <Text style={{ color: "#334155", fontSize: 20 }}>›</Text>
+        </TouchableOpacity>
       </View>
     </>
   );
@@ -511,6 +532,12 @@ const ls = StyleSheet.create({
   cancelBtnTxt: { color: "#94A3B8", fontSize: 15, fontWeight: "600" },
   confirmBtn: { flex: 1, padding: 14, borderRadius: 12, backgroundColor: "#3B82F6", alignItems: "center" },
   confirmBtnTxt: { color: "#fff", fontSize: 15, fontWeight: "700" },
+
+  photoBtn: { flexDirection: "row", alignItems: "center", backgroundColor: "#1E293B", borderRadius: 16, padding: 16, borderWidth: 1, borderColor: "#334155", gap: 14 },
+  photoBtnTitle: { color: "#F1F5F9", fontSize: 15, fontWeight: "700" },
+  photoBtnSub: { color: "#64748B", fontSize: 12, marginTop: 2 },
+  newBadge: { backgroundColor: "#7C3AED22", borderRadius: 6, paddingHorizontal: 6, paddingVertical: 2, borderWidth: 1, borderColor: "#7C3AED44" },
+  newBadgeTxt: { color: "#A78BFA", fontSize: 10, fontWeight: "800" },
 
   catBtn: { backgroundColor: "#0F172A", borderRadius: 12, padding: 14, flexDirection: "row", alignItems: "center", borderWidth: 1, borderColor: "#334155" },
   catBtnTxt: { flex: 1, color: "#F1F5F9", fontSize: 15 },

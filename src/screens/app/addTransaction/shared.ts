@@ -9,12 +9,11 @@ export const QUICK = [
   { icon: "↓", color: "#F59E0B", title: "Cartão"  },
 ];
 
-export const MORE = [
-  { icon: "🏦", color: "#3B82F6", title: "Novo banco",             subtitle: "Cadastrar conta ou cartão"          },
+export const MORE: { icon: string; color: string; title: string; subtitle: string; badge?: string }[] = [
+  { icon: "🏦", color: "#3B82F6", title: "Contas bancárias",        subtitle: "Gerenciar e cadastrar contas"       },
   { icon: "💳", color: "#F59E0B", title: "Novo cartão de crédito", subtitle: "Limite, fatura e vencimento"        },
-  { icon: "⬇",  color: "#6366F1", title: "Importar extrato",       subtitle: "OFX ou CSV do seu banco"           },
+  { icon: "⬇",  color: "#6366F1", title: "Importar",               subtitle: "Extrato OFX/CSV ou lançar por foto" },
   { icon: "⇅",  color: "#14B8A6", title: "Transferência",          subtitle: "Mover entre suas contas"           },
-  { icon: "📷", color: "#3B82F6", title: "Lançar por foto",        subtitle: "IA lê o recibo automaticamente", badge: "NOVO" },
   { icon: "📊", color: "#8B5CF6", title: "Relatórios",             subtitle: "Gráficos e exportar PDF"           },
   { icon: "🏷️", color: "#EC4899", title: "Tags",                   subtitle: "Gerenciar e relatório de tags"      },
 ];

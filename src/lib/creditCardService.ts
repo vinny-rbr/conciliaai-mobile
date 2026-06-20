@@ -40,6 +40,25 @@ export async function addCardExpense(cardId: string, data: AddExpenseData): Prom
   if (!res.ok) throw new Error("Erro ao lançar gasto.");
 }
 
+export async function updateCreditCard(id: string, data: {
+  nick?: string; limitCents?: number; closingDay?: number; dueDay?: number; bestDay?: number; face?: string | null;
+}): Promise<CreditCard> {
+  const h = await authHeaders();
+  const res = await fetch(apiUrl(`/api/credit-cards/${id}`), {
+    method: "PUT", headers: h, body: JSON.stringify(data),
+  });
+  if (!res.ok) throw new Error("Erro ao atualizar cartão.");
+  return res.json() as Promise<CreditCard>;
+}
+
+export async function deleteCreditCard(id: string): Promise<void> {
+  const h = await authHeaders();
+  const res = await fetch(apiUrl(`/api/credit-cards/${id}`), {
+    method: "DELETE", headers: h,
+  });
+  if (!res.ok) throw new Error("Erro ao excluir cartão.");
+}
+
 export async function payCardInvoice(
   cardId: string,
   amountCents: number,

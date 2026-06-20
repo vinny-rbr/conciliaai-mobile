@@ -6,13 +6,13 @@ import {
 import { SafeAreaView } from "react-native-safe-area-context";
 import { useNavigation } from "@react-navigation/native";
 import type { CreditCard, CreditCardBrand, CreditCardTransaction } from "../../types/creditCard";
-import { listCreditCards, createCreditCard, listCardTransactions, addCardExpense, payCardInvoice } from "../../lib/creditCardService";
+import { listCreditCards, createCreditCard, updateCreditCard, deleteCreditCard, listCardTransactions, addCardExpense, payCardInvoice } from "../../lib/creditCardService";
 import { listBankAccounts } from "../../lib/bankAccountsService";
 import type { BankAccount } from "../../types/finance";
 import { fmt } from "../../lib/financeService";
 import { ACCENT, CARD_W, s, parseBRL } from "./cartao/shared";
 import { CreditCardVisual, LimitBar } from "./cartao/components";
-import { NewCardModal, PayInvoiceModal, LancarGastoModal } from "./cartao/Modals";
+import { NewCardModal, PayInvoiceModal, LancarGastoModal, EditCardModal } from "./cartao/Modals";
 
 export default function CartaoScreen() {
   const navigation = useNavigation();
@@ -26,6 +26,7 @@ export default function CartaoScreen() {
   const [showNew, setShowNew]       = useState(false);
   const [showPay, setShowPay]       = useState(false);
   const [showGasto, setShowGasto]   = useState(false);
+  const [showEdit, setShowEdit]     = useState(false);
 
   const [newBrand, setNewBrand]     = useState<CreditCardBrand>("nubank");
   const [newNick, setNewNick]       = useState("");
@@ -164,6 +165,9 @@ export default function CartaoScreen() {
                   <TouchableOpacity style={[s.actionBtn, s.actionBtnSec]} activeOpacity={0.8} onPress={() => setShowGasto(true)}>
                     <Text style={[s.actionBtnTxt, { color: "#F1F5F9" }]}>+ Lançar gasto</Text>
                   </TouchableOpacity>
+                  <TouchableOpacity style={[s.actionBtn, s.actionBtnSec, { paddingHorizontal: 14 }]} activeOpacity={0.8} onPress={() => setShowEdit(true)}>
+                    <Text style={[s.actionBtnTxt, { color: "#94A3B8" }]}>✏️</Text>
+                  </TouchableOpacity>
                 </View>
               </View>
             )}
@@ -185,6 +189,13 @@ export default function CartaoScreen() {
       <NewCardModal visible={showNew} onClose={() => setShowNew(false)} brand={newBrand} setBrand={setNewBrand} nick={newNick} setNick={setNewNick} last4={newLast4} setLast4={setNewLast4} limit={newLimit} setLimit={setNewLimit} closing={newClosing} setClosing={setNewClosing} due={newDue} setDue={setNewDue} best={newBest} setBest={setNewBest} saving={savingNew} onSave={() => void handleCreateCard()} />
       <PayInvoiceModal visible={showPay} onClose={() => setShowPay(false)} card={card} payAmt={payAmt} setPayAmt={setPayAmt} payAccId={payAccId} setPayAccId={setPayAccId} accounts={accounts} saving={savingPay} onSave={() => void handlePay()} />
       <LancarGastoModal visible={showGasto} onClose={() => setShowGasto(false)} card={card} title={gastoTitle} setTitle={setGastoTitle} cat={gastoCat} setCat={setGastoCat} amt={gastoAmt} setAmt={setGastoAmt} saving={savingGasto} onSave={() => void handleGasto()} />
+      <EditCardModal
+        visible={showEdit}
+        onClose={() => setShowEdit(false)}
+        card={card}
+        onSaved={updated => { setCards(cs => cs.map(c => c.id === updated.id ? updated : c)); }}
+        onDeleted={() => { setCards(cs => cs.filter(c => c.id !== card?.id)); setSelIdx(0); }}
+      />
     </SafeAreaView>
   );
 }

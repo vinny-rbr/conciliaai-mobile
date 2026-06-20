@@ -66,10 +66,12 @@ export function CategoryActionSheet({
           <Text style={sheet.itemTxt}>Editar categoria</Text>
         </TouchableOpacity>
 
-        <TouchableOpacity style={sheet.item} onPress={() => action(onAddSub)}>
-          <Text style={sheet.itemIcon}>➕</Text>
-          <Text style={sheet.itemTxt}>Adicionar subcategoria</Text>
-        </TouchableOpacity>
+        {!displayCat?.parentId && (
+          <TouchableOpacity style={sheet.item} onPress={() => action(onAddSub)}>
+            <Text style={sheet.itemIcon}>➕</Text>
+            <Text style={sheet.itemTxt}>Adicionar subcategoria</Text>
+          </TouchableOpacity>
+        )}
 
         <View style={sheet.divider} />
 

@@ -7,12 +7,13 @@ import { CategoryCard } from "./CategoryCard";
 export type CardLayout = { x: number; y: number; w: number; h: number };
 
 export function DraggableGrid({
-  cats, childrenOf, onMenu, onReorder,
+  cats, childrenOf, onMenu, onReorder, onSubMenu,
 }: {
   cats: FinanceCategoryOption[];
   childrenOf: (id: string) => FinanceCategoryOption[];
   onMenu: (cat: FinanceCategoryOption) => void;
   onReorder: (ids: string[]) => void;
+  onSubMenu?: (sub: FinanceCategoryOption) => void;
 }) {
   const [orderIds, setOrderIds] = useState(() => cats.map(c => c.id));
   const [dragId, setDragId] = useState<string | null>(null);
@@ -193,6 +194,7 @@ export function DraggableGrid({
                   cat={cat}
                   subs={childrenOf(cat.id)}
                   onMenu={onMenu}
+                  onSubMenu={onSubMenu}
                   onLongPress={() => { void handleLongPress(cat); }}
                 />
               </View>
@@ -214,6 +216,7 @@ export function DraggableGrid({
             cat={dragCat}
             subs={childrenOf(dragCat.id)}
             onMenu={() => undefined}
+            onSubMenu={() => undefined}
             onLongPress={() => undefined}
           />
         </Animated.View>

@@ -8,6 +8,7 @@ import { closeFabAnim } from "../../navigation/fabAnimState";
 import { fetchFinanceItems } from "../../lib/financeService";
 import { listBankAccounts } from "../../lib/bankAccountsService";
 import { listFinanceCategories } from "../../lib/financeCategoriesService";
+import { getKnownTags } from "../../lib/tagsStore";
 import { apiUrl } from "../../lib/api";
 import { getToken } from "../../lib/auth";
 import type { BankAccount, FinanceCategoryOption, FinanceItem } from "../../types/finance";
@@ -102,6 +103,8 @@ export default function AddTransactionScreen() {
         for (const it of items) {
           if (it.tags) it.tags.split(",").map(t => t.trim()).filter(Boolean).forEach(t => tagSet.add(t));
         }
+        const known = await getKnownTags();
+        known.forEach(t => tagSet.add(t));
         setAvailableTags([...tagSet].sort());
       } catch {}
     })();
@@ -138,10 +141,10 @@ export default function AddTransactionScreen() {
   };
 
   const handleNavigate = (itemTitle: string) => {
-    if      (itemTitle === "Importar extrato") { closeFabAnim(); navigation.navigate("ImportarExtrato" as never); }
-    else if (itemTitle === "Lançar por foto")  { closeFabAnim(); navigation.navigate("LancarPorFoto"   as never); }
-    else if (itemTitle === "Relatórios")       { closeFabAnim(); navigation.navigate("Relatorios"      as never); }
-    else if (itemTitle === "Tags")             { closeFabAnim(); navigation.navigate("Tags"            as never); }
+    if      (itemTitle === "Importar")          { closeFabAnim(); navigation.navigate("ImportarExtrato"  as never); }
+    else if (itemTitle === "Relatórios")        { closeFabAnim(); navigation.navigate("Relatorios"       as never); }
+    else if (itemTitle === "Tags")              { closeFabAnim(); navigation.navigate("Tags"             as never); }
+    else if (itemTitle === "Contas bancárias")  { closeFabAnim(); navigation.navigate("ContasBancarias"  as never); }
     else handleClose();
   };
 

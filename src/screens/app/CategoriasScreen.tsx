@@ -121,7 +121,7 @@ export default function CategoriasScreen() {
           {roots.length === 0 ? (
             <View style={s.empty}><Text style={s.emptyTxt}>Nenhuma categoria ainda.</Text></View>
           ) : (
-            <DraggableGrid cats={roots} childrenOf={childrenOf} onMenu={c => setMenuCat(c)} onReorder={() => undefined} />
+            <DraggableGrid cats={roots} childrenOf={childrenOf} onMenu={c => setMenuCat(c)} onSubMenu={c => setMenuCat(c)} onReorder={() => undefined} />
           )}
         </ScrollView>
       )}

@@ -3,12 +3,14 @@ import {
   View, Text, TextInput, TouchableOpacity, StyleSheet,
   KeyboardAvoidingView, Platform, ActivityIndicator, Alert,
 } from "react-native";
+import { useNavigation } from "@react-navigation/native";
 import { apiUrl } from "../../lib/api";
 import { useAuth } from "../../context/AuthContext";
 import { saveEmail } from "../../lib/auth";
 
 export default function LoginScreen() {
   const { signIn } = useAuth();
+  const navigation = useNavigation();
   const [email, setEmail] = useState("");
   const [password, setPassword] = useState("");
   const [loading, setLoading] = useState(false);
@@ -70,6 +72,10 @@ export default function LoginScreen() {
             ? <ActivityIndicator color="#fff" />
             : <Text style={s.btnTxt}>Entrar</Text>}
         </TouchableOpacity>
+
+        <TouchableOpacity onPress={() => navigation.navigate("ForgotPassword" as never)} activeOpacity={0.7} style={s.forgotBtn}>
+          <Text style={s.forgotTxt}>Esqueci minha senha</Text>
+        </TouchableOpacity>
       </View>
     </KeyboardAvoidingView>
   );
@@ -90,4 +96,6 @@ const s = StyleSheet.create({
     paddingVertical: 15, alignItems: "center", marginTop: 6,
   },
   btnTxt: { color: "#fff", fontWeight: "700", fontSize: 16 },
+  forgotBtn: { alignItems: "center", marginTop: 20 },
+  forgotTxt: { color: "#60A5FA", fontSize: 14, fontWeight: "600" },
 });

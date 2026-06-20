@@ -9,6 +9,7 @@ import { parseOfx, parseCsv, type ParsedItem, type LedgerBal } from "../../lib/o
 import { listBankAccounts, updateBankAccount } from "../../lib/bankAccountsService";
 import { fetchFinanceItems } from "../../lib/financeService";
 import { listFinanceCategories } from "../../lib/financeCategoriesService";
+import { getKnownTags } from "../../lib/tagsStore";
 import { apiUrl } from "../../lib/api";
 import { getToken } from "../../lib/auth";
 import type { BankAccount, FinanceCategoryOption } from "../../types/finance";
@@ -35,8 +36,8 @@ export default function ImportarExtratoScreen() {
   const [allCategories, setAllCategories] = useState<FinanceCategoryOption[]>([]);
 
   useEffect(() => {
-    void fetchFinanceItems().then(data => {
-      const tagSet = new Set<string>();
+    void Promise.all([fetchFinanceItems(), getKnownTags()]).then(([data, known]) => {
+      const tagSet = new Set<string>(known);
       for (const it of data) {
         if (it.tags) it.tags.split(",").map(t => t.trim()).filter(Boolean).forEach(t => tagSet.add(t));
       }
@@ -182,7 +183,12 @@ export default function ImportarExtratoScreen() {
   if (step === "pick") {
     return (
       <SafeAreaView style={s.root}>
-        <PickStep onPick={() => void pickFile()} loading={loading} onGoBack={() => navigation.goBack()} />
+        <PickStep
+          onPick={() => void pickFile()}
+          loading={loading}
+          onGoBack={() => navigation.goBack()}
+          onOpenCamera={() => navigation.navigate("LancarPorFoto" as never)}
+        />
       </SafeAreaView>
     );
   }
