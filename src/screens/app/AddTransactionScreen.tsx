@@ -144,7 +144,8 @@ export default function AddTransactionScreen() {
     if      (itemTitle === "Importar")          { closeFabAnim(); navigation.navigate("ImportarExtrato"  as never); }
     else if (itemTitle === "Relatórios")        { closeFabAnim(); navigation.navigate("Relatorios"       as never); }
     else if (itemTitle === "Tags")              { closeFabAnim(); navigation.navigate("Tags"             as never); }
-    else if (itemTitle === "Contas bancárias")  { closeFabAnim(); navigation.navigate("ContasBancarias"  as never); }
+    else if (itemTitle === "Contas bancárias")   { closeFabAnim(); navigation.navigate("ContasBancarias" as never); }
+    else if (itemTitle === "Novo cartão de crédito") { closeFabAnim(); navigation.navigate("Cartao" as never); }
     else handleClose();
   };
 

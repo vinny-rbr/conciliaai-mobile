@@ -322,7 +322,7 @@ export default function DashboardScreen() {
         {/* Meus cartões */}
         <View style={s.sectionHeader}>
           <Text style={s.sectionTitle}>Meus cartões</Text>
-          <TouchableOpacity onPress={() => rootNavigate("Cartao")} activeOpacity={0.7}>
+          <TouchableOpacity onPress={() => rootNavigate("ContasBancarias")} activeOpacity={0.7}>
             <Text style={s.sectionAction}>Gerenciar ›</Text>
           </TouchableOpacity>
         </View>

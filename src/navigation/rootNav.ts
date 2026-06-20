@@ -1,6 +1,6 @@
 import { createNavigationContainerRef } from "@react-navigation/native";
 
-export type RootScreen = "Tabs" | "AddTransaction" | "Receitas" | "Despesas" | "Cartao" | "ImportarExtrato" | "LancarPorFoto" | "Perfil" | "Planos" | "Notificacoes";
+export type RootScreen = "Tabs" | "AddTransaction" | "Receitas" | "Despesas" | "Cartao" | "ImportarExtrato" | "LancarPorFoto" | "Perfil" | "Planos" | "Notificacoes" | "ContasBancarias" | "Tags" | "Relatorios";
 
 export const navigationRef = createNavigationContainerRef<Record<RootScreen, undefined>>();
 
