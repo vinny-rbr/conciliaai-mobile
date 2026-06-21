@@ -39,7 +39,21 @@
         {
           "icon": "./assets/icon.png",
           "color": "#3B82F6",
-          "defaultChannel": "default"
+          "defaultChannel": "conciliaai",
+          "sounds": [
+            "./assets/sounds/notification_bell.mp3",
+            "./assets/sounds/premium.mp3",
+            "./assets/sounds/twinkle.mp3",
+            "./assets/sounds/welcome_chime.mp3",
+            "./assets/sounds/threads.mp3",
+            "./assets/sounds/blackberry.mp3",
+            "./assets/sounds/wink.mp3",
+            "./assets/sounds/bottle_cap.mp3",
+            "./assets/sounds/beeper_rush.mp3",
+            "./assets/sounds/blare.mp3",
+            "./assets/sounds/crosswalk.mp3",
+            "./assets/sounds/tlan_tlan.mp3"
+          ]
         }
       ]
     ],
