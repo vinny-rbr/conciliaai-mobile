@@ -35,6 +35,10 @@
     },
     "plugins": [
       [
+        "expo-av",
+        { "microphonePermission": false }
+      ],
+      [
         "expo-notifications",
         {
           "icon": "./assets/icon.png",
