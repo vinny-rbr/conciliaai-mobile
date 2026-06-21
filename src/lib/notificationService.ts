@@ -34,11 +34,15 @@ export const SOUND_FILE: Record<string, string> = {
   "tlan-tlan":         "tlan_tlan",
 };
 
+// ID versionado — Android não atualiza canal existente, novo ID força criação com o som correto
+const CHANNEL_ID = "conciliaai_v2";
+
 export async function setupNotificationChannel(soundId = "default") {
   if (Platform.OS !== "android") return;
   const soundFile = SOUND_FILE[soundId] ?? "default";
-  const sound     = soundFile === "default" ? "default" : `${soundFile}.mp3`;
-  await Notifications.setNotificationChannelAsync("conciliaai", {
+  // Android busca em res/raw/ pelo nome SEM extensão
+  const sound = soundFile === "default" ? "default" : soundFile;
+  await Notifications.setNotificationChannelAsync(CHANNEL_ID, {
     name: "ConciliaAI",
     importance:       Notifications.AndroidImportance.HIGH,
     sound,
@@ -78,18 +82,21 @@ export async function scheduleRecurringNotifications(soundId = "default") {
   await cancelAllScheduledNotifications();
   await setupNotificationChannel(soundId);
 
+  const soundFile = SOUND_FILE[soundId] ?? "default";
   const ids: string[] = [];
   for (const item of SCHEDULE) {
     const id = await Notifications.scheduleNotificationAsync({
       content: {
-        title:           item.title,
-        body:            item.body,
-        sound: soundId !== "none" ? "default" : undefined,
+        title: item.title,
+        body:  item.body,
+        // iOS usa o nome do arquivo; Android usa o canal (CHANNEL_ID)
+        sound: soundFile === "default" ? "default" : `${soundFile}.mp3`,
       },
       trigger: {
-        type:   Notifications.SchedulableTriggerInputTypes.DAILY,
-        hour:   item.hour,
-        minute: 0,
+        type:             Notifications.SchedulableTriggerInputTypes.DAILY,
+        hour:             item.hour,
+        minute:           0,
+        channelId:        CHANNEL_ID,
       },
     });
     ids.push(id);
@@ -104,15 +111,17 @@ export async function cancelAllScheduledNotifications() {
 
 export async function sendTestNotification(soundId = "default") {
   await setupNotificationChannel(soundId);
+  const soundFile = SOUND_FILE[soundId] ?? "default";
   await Notifications.scheduleNotificationAsync({
     content: {
       title:   "ConciliaAI 🔔",
       body:    "Notificações funcionando!",
-      sound: "default",
+      sound:   soundFile === "default" ? "default" : `${soundFile}.mp3`,
     },
     trigger: {
-      type:    Notifications.SchedulableTriggerInputTypes.TIME_INTERVAL,
-      seconds: 2,
+      type:      Notifications.SchedulableTriggerInputTypes.TIME_INTERVAL,
+      seconds:   2,
+      channelId: CHANNEL_ID,
     },
   });
 }

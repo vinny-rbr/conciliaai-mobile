@@ -2,7 +2,7 @@
   "expo": {
     "name": "ConciliaAI",
     "slug": "conciliaai-mobile",
-    "version": "1.0.11",
+    "version": "1.0.12",
     "orientation": "portrait",
     "icon": "./assets/icon.png",
     "userInterfaceStyle": "dark",
@@ -39,7 +39,7 @@
         {
           "icon": "./assets/icon.png",
           "color": "#3B82F6",
-          "defaultChannel": "conciliaai",
+          "defaultChannel": "conciliaai_v2",
           "sounds": [
             "./assets/sounds/notification_bell.mp3",
             "./assets/sounds/premium.mp3",
