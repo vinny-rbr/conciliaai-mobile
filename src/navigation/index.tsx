@@ -27,6 +27,7 @@ import NotificacoesScreen from "../screens/app/notificacoes/NotificacoesScreen";
 import TagsScreen from "../screens/app/TagsScreen";
 import LancarTransacaoScreen from "../screens/app/LancarTransacaoScreen";
 import ContasBancariasScreen from "../screens/app/ContasBancariasScreen";
+import FluxoCaixaScreen from "../screens/app/FluxoCaixaScreen";
 
 export type AuthStackParamList = { Login: undefined; ForgotPassword: undefined };
 export type AppTabParamList = {
@@ -52,6 +53,7 @@ export type RootStackParamList = {
   Tags: undefined;
   LancarTransacao: { type: "RECEITA" | "DESPESA" } | undefined;
   ContasBancarias: undefined;
+  FluxoCaixa: undefined;
 };
 
 const AuthStack  = createNativeStackNavigator<AuthStackParamList>();
@@ -104,6 +106,7 @@ function AppNavigator() {
       <RootStack.Screen name="Tags"             component={TagsScreen} />
       <RootStack.Screen name="LancarTransacao"  component={LancarTransacaoScreen} />
       <RootStack.Screen name="ContasBancarias" component={ContasBancariasScreen} />
+      <RootStack.Screen name="FluxoCaixa"      component={FluxoCaixaScreen} />
     </RootStack.Navigator>
   );
 }

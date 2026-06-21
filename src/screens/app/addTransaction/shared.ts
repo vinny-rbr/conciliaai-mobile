@@ -14,6 +14,7 @@ export const MORE: { icon: string; color: string; title: string; subtitle: strin
   { icon: "💳", color: "#F59E0B", title: "Novo cartão de crédito", subtitle: "Limite, fatura e vencimento"        },
   { icon: "⬇",  color: "#6366F1", title: "Importar",               subtitle: "Extrato OFX/CSV ou lançar por foto" },
   { icon: "⇅",  color: "#14B8A6", title: "Transferência",          subtitle: "Mover entre suas contas"           },
+  { icon: "💹", color: "#14B8A6", title: "Fluxo de Caixa",         subtitle: "Entradas e saídas por mês"         },
   { icon: "📊", color: "#8B5CF6", title: "Relatórios",             subtitle: "Gráficos e exportar PDF"           },
   { icon: "🏷️", color: "#EC4899", title: "Tags",                   subtitle: "Gerenciar e relatório de tags"      },
 ];
