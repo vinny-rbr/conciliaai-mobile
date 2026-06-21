@@ -284,6 +284,9 @@ export default function DashboardScreen() {
                 <Text style={[s.planBadgeTxt, { color: planColor }]}>{planLabel}</Text>
               </View>
             )}
+            <TouchableOpacity onPress={() => rootNavigate("Busca")} style={s.logoutBtn} activeOpacity={0.7}>
+              <Text style={{ color: "#94A3B8", fontSize: 16 }}>🔍</Text>
+            </TouchableOpacity>
             <TouchableOpacity onPress={() => rootNavigate("Perfil")} style={s.logoutBtn}>
               <Text style={s.logoutTxt}>{userInitials}</Text>
             </TouchableOpacity>
