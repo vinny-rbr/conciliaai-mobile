@@ -119,7 +119,7 @@ export default function NotificacoesScreen() {
           <View style={s.toggleRow}>
             <View style={{ flex: 1 }}>
               <Text style={s.toggleLabel}>Ativar notificações</Text>
-              <Text style={s.toggleSub}>Lembretes às 9h, 13h, 19h e 23h para registrar gastos</Text>
+              <Text style={s.toggleSub}>Receba lembretes para registrar seus gastos</Text>
             </View>
             <Toggle value={enabled} onToggle={() => { if (!loading) void toggleEnabled(); }} />
           </View>
@@ -128,7 +128,7 @@ export default function NotificacoesScreen() {
         {/* Status */}
         <View style={[s.statusCard, enabled ? s.statusCardOn : s.statusCardOff]}>
           <Text style={[s.statusTxt, enabled ? s.statusTxtOn : s.statusTxtOff]}>
-            {enabled ? "✓ Notificações ativadas — 4 lembretes diários agendados." : "Notificações desativadas."}
+            {enabled ? "✓ Notificações ativadas." : "Notificações desativadas."}
           </Text>
         </View>
 
