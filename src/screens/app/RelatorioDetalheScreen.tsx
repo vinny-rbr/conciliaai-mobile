@@ -1,5 +1,5 @@
 import React, { useCallback, useEffect, useMemo, useState } from "react";
-import { View, Text, ScrollView, TouchableOpacity, ActivityIndicator, RefreshControl } from "react-native";
+import { View, Text, ScrollView, TouchableOpacity, ActivityIndicator, RefreshControl, Alert } from "react-native";
 import { SafeAreaView } from "react-native-safe-area-context";
 import { useNavigation, useRoute } from "@react-navigation/native";
 import { fetchFinanceItems } from "../../lib/financeService";
@@ -7,6 +7,7 @@ import { listBankAccounts } from "../../lib/bankAccountsService";
 import type { FinanceItem } from "../../types/finance";
 import type { BankAccount } from "../../types/finance";
 import { c, PERIOD_OPTIONS, REPORT_TITLES, lastNMonths } from "./relatorioDetalhe/shared";
+import { exportReportPdf } from "../../lib/reportPdfService";
 import {
   EntradasSaidas, GastosCat, MaioresGastos, FluxoCaixa,
   PorConta, PorCartao, ComparativoMeses, OrcamentoRealizado,
@@ -18,11 +19,12 @@ export default function RelatorioDetalheScreen() {
   const route      = useRoute<any>();
   const type: string = route.params?.type ?? "entradas-saidas";
 
-  const [items,     setItems]     = useState<FinanceItem[]>([]);
-  const [accounts,  setAccounts]  = useState<BankAccount[]>([]);
-  const [loading,   setLoading]   = useState(true);
-  const [refreshing,setRefreshing]= useState(false);
-  const [period,    setPeriod]    = useState(3);
+  const [items,      setItems]      = useState<FinanceItem[]>([]);
+  const [accounts,   setAccounts]   = useState<BankAccount[]>([]);
+  const [loading,    setLoading]    = useState(true);
+  const [refreshing, setRefreshing] = useState(false);
+  const [period,     setPeriod]     = useState(3);
+  const [exporting,  setExporting]  = useState(false);
 
   const months = useMemo(() => lastNMonths(period), [period]);
 
@@ -36,6 +38,18 @@ export default function RelatorioDetalheScreen() {
   }, []);
 
   useEffect(() => { void load(); }, []); // eslint-disable-line react-hooks/exhaustive-deps
+
+  async function handleExport() {
+    if (exporting) return;
+    setExporting(true);
+    try {
+      await exportReportPdf(type, items, accounts, months);
+    } catch (e: any) {
+      Alert.alert("Erro ao exportar", e?.message ?? "Tente novamente.");
+    } finally {
+      setExporting(false);
+    }
+  }
 
   function renderContent() {
     switch (type) {
@@ -62,7 +76,16 @@ export default function RelatorioDetalheScreen() {
           <Text style={c.backTxt}>‹ Relatórios</Text>
         </TouchableOpacity>
         <Text style={c.headerTitle} numberOfLines={1}>{REPORT_TITLES[type] ?? type}</Text>
-        <View style={{ width: 80 }} />
+        <TouchableOpacity
+          onPress={() => void handleExport()}
+          disabled={exporting || loading}
+          style={{ width: 80, alignItems: "flex-end" }}
+        >
+          {exporting
+            ? <ActivityIndicator size="small" color="#3B82F6" />
+            : <Text style={{ color: "#3B82F6", fontSize: 13, fontWeight: "700" }}>PDF ↓</Text>
+          }
+        </TouchableOpacity>
       </View>
 
       {!["relatorio-anual", "comparativo-meses"].includes(type) && (
