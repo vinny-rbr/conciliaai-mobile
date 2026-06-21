@@ -73,7 +73,7 @@ export default function NotificacoesScreen() {
         setLoading(false);
         return;
       }
-      await scheduleRecurringNotifications(sound !== "none");
+      await scheduleRecurringNotifications(sound);
     } else {
       await cancelAllScheduledNotifications();
     }
@@ -95,7 +95,7 @@ export default function NotificacoesScreen() {
     await SecureStore.setItemAsync(KEY_SOUND, id);
     // Re-agenda com o novo som se as notificações estiverem ativas
     if (enabled) {
-      await scheduleRecurringNotifications(id !== "none");
+      await scheduleRecurringNotifications(id);
     }
   }
 
@@ -134,7 +134,7 @@ export default function NotificacoesScreen() {
 
         {/* Testar */}
         {enabled && (
-          <TouchableOpacity style={s.testBtn} onPress={() => void sendTestNotification()} activeOpacity={0.8}>
+          <TouchableOpacity style={s.testBtn} onPress={() => void sendTestNotification(sound)} activeOpacity={0.8}>
             <Text style={s.testBtnTxt}>🔔 Testar notificação agora</Text>
           </TouchableOpacity>
         )}

@@ -2,11 +2,11 @@ import * as Notifications from "expo-notifications";
 import * as SecureStore from "expo-secure-store";
 import { Platform } from "react-native";
 
-const PROJECT_ID = "d1da11ae-d1fc-4657-bc1b-d191b62ed667";
+const PROJECT_ID    = "d1da11ae-d1fc-4657-bc1b-d191b62ed667";
 const KEY_PUSH_TOKEN = "conciliaai_push_token";
 const KEY_NOTIF_IDS  = "conciliaai_notif_ids";
 
-// Exibir notificação mesmo com o app aberto
+// Som padrão quando o app está em foreground
 Notifications.setNotificationHandler({
   handleNotification: async () => ({
     shouldShowAlert:  true,
@@ -17,15 +17,34 @@ Notifications.setNotificationHandler({
   }),
 });
 
-export async function setupNotificationChannel() {
+// Mapeamento: id da UI → nome do arquivo em res/raw (sem extensão)
+export const SOUND_FILE: Record<string, string> = {
+  "default":           "default",
+  "notification-bell": "notification_bell",
+  "premium":           "premium",
+  "twinkle":           "twinkle",
+  "welcome-chime":     "welcome_chime",
+  "threads":           "threads",
+  "blackberry":        "blackberry",
+  "wink":              "wink",
+  "bottle-cap":        "bottle_cap",
+  "beeper-rush":       "beeper_rush",
+  "blare":             "blare",
+  "crosswalk":         "crosswalk",
+  "tlan-tlan":         "tlan_tlan",
+};
+
+export async function setupNotificationChannel(soundId = "default") {
   if (Platform.OS !== "android") return;
-  await Notifications.setNotificationChannelAsync("default", {
+  const soundFile = SOUND_FILE[soundId] ?? "default";
+  const sound     = soundFile === "default" ? "default" : `${soundFile}.mp3`;
+  await Notifications.setNotificationChannelAsync("conciliaai", {
     name: "ConciliaAI",
-    importance: Notifications.AndroidImportance.HIGH,
-    sound: "default",
+    importance:       Notifications.AndroidImportance.HIGH,
+    sound,
     vibrationPattern: [0, 250, 250, 250],
-    lightColor: "#3B82F6",
-    enableVibrate: true,
+    lightColor:       "#3B82F6",
+    enableVibrate:    true,
   });
 }
 
@@ -49,25 +68,27 @@ export async function getOrRegisterPushToken(): Promise<string | null> {
 }
 
 const SCHEDULE: { hour: number; title: string; body: string }[] = [
-  { hour:  9, title: "Bom dia! 💰",        body: "Hora de registrar os gastos da manhã." },
+  { hour:  9, title: "Bom dia! 💰",           body: "Hora de registrar os gastos da manhã." },
   { hour: 13, title: "Almoço registrado? 🍽️", body: "Não esqueça de anotar os lançamentos do meio-dia." },
-  { hour: 19, title: "Como foi o dia? 📊",  body: "Registre seus gastos antes de esquecer." },
-  { hour: 23, title: "Resumo do dia 🌙",    body: "Confira seu saldo e feche o dia organizado." },
+  { hour: 19, title: "Como foi o dia? 📊",     body: "Registre seus gastos antes de esquecer." },
+  { hour: 23, title: "Resumo do dia 🌙",       body: "Confira seu saldo e feche o dia organizado." },
 ];
 
-export async function scheduleRecurringNotifications(soundEnabled = true) {
+export async function scheduleRecurringNotifications(soundId = "default") {
   await cancelAllScheduledNotifications();
+  await setupNotificationChannel(soundId);
+
   const ids: string[] = [];
   for (const item of SCHEDULE) {
     const id = await Notifications.scheduleNotificationAsync({
       content: {
-        title: item.title,
-        body:  item.body,
-        sound: soundEnabled ? "default" : undefined,
+        title:           item.title,
+        body:            item.body,
+        sound: soundId !== "none" ? "default" : undefined,
       },
       trigger: {
-        type: Notifications.SchedulableTriggerInputTypes.DAILY,
-        hour: item.hour,
+        type:   Notifications.SchedulableTriggerInputTypes.DAILY,
+        hour:   item.hour,
         minute: 0,
       },
     });
@@ -81,13 +102,17 @@ export async function cancelAllScheduledNotifications() {
   await SecureStore.deleteItemAsync(KEY_NOTIF_IDS);
 }
 
-export async function sendTestNotification() {
+export async function sendTestNotification(soundId = "default") {
+  await setupNotificationChannel(soundId);
   await Notifications.scheduleNotificationAsync({
     content: {
-      title: "ConciliaAI 🔔",
-      body: "Notificações funcionando!",
+      title:   "ConciliaAI 🔔",
+      body:    "Notificações funcionando!",
       sound: "default",
     },
-    trigger: { seconds: 2, type: Notifications.SchedulableTriggerInputTypes.TIME_INTERVAL },
+    trigger: {
+      type:    Notifications.SchedulableTriggerInputTypes.TIME_INTERVAL,
+      seconds: 2,
+    },
   });
 }
