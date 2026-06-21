@@ -1,15 +1,33 @@
-import { useEffect, useState } from "react";
+import { useEffect, useRef, useState } from "react";
 import { ScrollView, StyleSheet, Text, TouchableOpacity, Vibration, View, Alert } from "react-native";
 import { SafeAreaView } from "react-native-safe-area-context";
 import { useNavigation } from "@react-navigation/native";
 import Svg, { Path } from "react-native-svg";
 import * as SecureStore from "expo-secure-store";
+import { Audio } from "expo-av";
 import {
   requestNotificationPermissions,
   scheduleRecurringNotifications,
   cancelAllScheduledNotifications,
   sendTestNotification,
+  SOUND_FILE,
 } from "../../../lib/notificationService";
+
+// mapa estático — require() não aceita strings dinâmicas
+const SOUND_ASSETS: Record<string, number> = {
+  notification_bell: require("../../../../assets/sounds/notification_bell.mp3"),
+  premium:           require("../../../../assets/sounds/premium.mp3"),
+  twinkle:           require("../../../../assets/sounds/twinkle.mp3"),
+  welcome_chime:     require("../../../../assets/sounds/welcome_chime.mp3"),
+  threads:           require("../../../../assets/sounds/threads.mp3"),
+  blackberry:        require("../../../../assets/sounds/blackberry.mp3"),
+  wink:              require("../../../../assets/sounds/wink.mp3"),
+  bottle_cap:        require("../../../../assets/sounds/bottle_cap.mp3"),
+  beeper_rush:       require("../../../../assets/sounds/beeper_rush.mp3"),
+  blare:             require("../../../../assets/sounds/blare.mp3"),
+  crosswalk:         require("../../../../assets/sounds/crosswalk.mp3"),
+  tlan_tlan:         require("../../../../assets/sounds/tlan_tlan.mp3"),
+};
 
 const KEY_ENABLED = "conciliaai_notif_enabled";
 const KEY_VIBRATE = "conciliaai_notif_vibrate";
@@ -40,11 +58,35 @@ function Toggle({ value, onToggle }: { value: boolean; onToggle: () => void }) {
 }
 
 export default function NotificacoesScreen() {
-  const navigation = useNavigation();
+  const navigation  = useNavigation();
   const [enabled, setEnabled] = useState(false);
   const [vibrate, setVibrate] = useState(true);
   const [sound,   setSound]   = useState("default");
   const [loading, setLoading] = useState(false);
+  const soundRef = useRef<Audio.Sound | null>(null);
+
+  async function previewSound(id: string) {
+    // para qualquer preview anterior
+    if (soundRef.current) {
+      await soundRef.current.unloadAsync().catch(() => {});
+      soundRef.current = null;
+    }
+    const file = SOUND_FILE[id];
+    if (!file || file === "default") return;
+    const asset = SOUND_ASSETS[file];
+    if (!asset) return;
+    try {
+      await Audio.setAudioModeAsync({ playsInSilentModeIOS: true });
+      const { sound: s } = await Audio.Sound.createAsync(asset, { shouldPlay: true, volume: 1 });
+      soundRef.current = s;
+      s.setOnPlaybackStatusUpdate(status => {
+        if (status.isLoaded && status.didJustFinish) {
+          void s.unloadAsync();
+          if (soundRef.current === s) soundRef.current = null;
+        }
+      });
+    } catch { /* silencioso */ }
+  }
 
   useEffect(() => { void load(); }, []);
 
@@ -92,8 +134,8 @@ export default function NotificacoesScreen() {
 
   async function selectSound(id: string) {
     setSound(id);
+    void previewSound(id);
     await SecureStore.setItemAsync(KEY_SOUND, id);
-    // Re-agenda com o novo som se as notificações estiverem ativas
     if (enabled) {
       await scheduleRecurringNotifications(id);
     }
