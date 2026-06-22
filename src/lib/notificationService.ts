@@ -79,7 +79,7 @@ export async function registerExpoTokenWithBackend(): Promise<void> {
     if (!authToken) return;
     const expoPushToken = await getOrRegisterPushToken();
     if (!expoPushToken) return;
-    await apiFetch("/push/expo-token", {
+    await apiFetch("/api/push/expo-token", {
       method: "POST",
       headers: { Authorization: `Bearer ${authToken}` },
       body: JSON.stringify({ token: expoPushToken }),
