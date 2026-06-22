@@ -1,5 +1,6 @@
 import { createContext, useContext, useState, useEffect, type ReactNode } from "react";
 import { getToken, saveToken, saveUser, savePlanName, logout as authLogout } from "../lib/auth";
+import { registerExpoTokenWithBackend } from "../lib/notificationService";
 
 type AuthContextType = {
   isLoggedIn: boolean;
@@ -21,6 +22,7 @@ export function AuthProvider({ children }: { children: ReactNode }) {
     if (user) await saveUser(user);
     if (planName) await savePlanName(planName);
     setIsLoggedIn(true);
+    void registerExpoTokenWithBackend();
   }
 
   async function signOut() {

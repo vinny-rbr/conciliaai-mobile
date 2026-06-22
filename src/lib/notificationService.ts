@@ -1,6 +1,8 @@
 import * as Notifications from "expo-notifications";
 import * as SecureStore from "expo-secure-store";
 import { Platform } from "react-native";
+import { apiFetch } from "./api";
+import { getToken } from "./auth";
 
 const PROJECT_ID    = "d1da11ae-d1fc-4657-bc1b-d191b62ed667";
 const KEY_PUSH_TOKEN = "conciliaai_push_token";
@@ -68,6 +70,22 @@ export async function getOrRegisterPushToken(): Promise<string | null> {
     return token.data;
   } catch {
     return null;
+  }
+}
+
+export async function registerExpoTokenWithBackend(): Promise<void> {
+  try {
+    const authToken = await getToken();
+    if (!authToken) return;
+    const expoPushToken = await getOrRegisterPushToken();
+    if (!expoPushToken) return;
+    await apiFetch("/push/expo-token", {
+      method: "POST",
+      headers: { Authorization: `Bearer ${authToken}` },
+      body: JSON.stringify({ token: expoPushToken }),
+    });
+  } catch {
+    // silencioso — não bloquear o login
   }
 }
 
