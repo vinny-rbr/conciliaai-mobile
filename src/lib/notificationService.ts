@@ -62,30 +62,34 @@ export async function requestNotificationPermissions(): Promise<boolean> {
 }
 
 export async function getOrRegisterPushToken(): Promise<string | null> {
-  try {
-    const cached = await SecureStore.getItemAsync(KEY_PUSH_TOKEN);
-    if (cached) return cached;
-    const token = await Notifications.getExpoPushTokenAsync({ projectId: PROJECT_ID });
-    await SecureStore.setItemAsync(KEY_PUSH_TOKEN, token.data);
-    return token.data;
-  } catch {
-    return null;
-  }
+  const cached = await SecureStore.getItemAsync(KEY_PUSH_TOKEN);
+  if (cached) return cached;
+  const token = await Notifications.getExpoPushTokenAsync({ projectId: PROJECT_ID });
+  await SecureStore.setItemAsync(KEY_PUSH_TOKEN, token.data);
+  return token.data;
 }
 
 export async function registerExpoTokenWithBackend(): Promise<void> {
   try {
     const authToken = await getToken();
-    if (!authToken) return;
-    const expoPushToken = await getOrRegisterPushToken();
-    if (!expoPushToken) return;
-    await apiFetch("/api/push/expo-token", {
+    if (!authToken) { console.warn("[push-reg] sem authToken"); return; }
+    let expoPushToken: string | null = null;
+    try {
+      expoPushToken = await getOrRegisterPushToken();
+    } catch (e) {
+      console.warn("[push-reg] getExpoPushToken falhou:", e);
+      return;
+    }
+    if (!expoPushToken) { console.warn("[push-reg] token nulo"); return; }
+    console.log("[push-reg] enviando token:", expoPushToken.slice(0, 30));
+    const res = await apiFetch("/api/push/expo-token", {
       method: "POST",
       headers: { Authorization: `Bearer ${authToken}` },
       body: JSON.stringify({ token: expoPushToken }),
     });
-  } catch {
-    // silencioso — não bloquear o login
+    console.log("[push-reg] resposta:", res.status);
+  } catch (e) {
+    console.warn("[push-reg] erro geral:", e);
   }
 }
 
