@@ -40,6 +40,8 @@ yarn-error.*
 /ios
 /android
 
-# signing
+# signing & firebase (nunca commitar — contem chaves privadas)
 signing.keystore
 credentials.json
+google-services.json
+GoogleService-Info.plist

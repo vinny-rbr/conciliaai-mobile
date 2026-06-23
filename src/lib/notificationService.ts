@@ -72,24 +72,24 @@ export async function getOrRegisterPushToken(): Promise<string | null> {
 export async function registerExpoTokenWithBackend(): Promise<void> {
   try {
     const authToken = await getToken();
-    if (!authToken) { console.warn("[push-reg] sem authToken"); return; }
+    if (!authToken) { if (__DEV__) console.warn("[push-reg] sem authToken"); return; }
     let expoPushToken: string | null = null;
     try {
       expoPushToken = await getOrRegisterPushToken();
     } catch (e) {
-      console.warn("[push-reg] getExpoPushToken falhou:", e);
+      if (__DEV__) console.warn("[push-reg] getExpoPushToken falhou:", e);
       return;
     }
-    if (!expoPushToken) { console.warn("[push-reg] token nulo"); return; }
-    console.log("[push-reg] enviando token:", expoPushToken.slice(0, 30));
+    if (!expoPushToken) { if (__DEV__) console.warn("[push-reg] token nulo"); return; }
+    if (__DEV__) console.log("[push-reg] enviando token:", expoPushToken.slice(0, 30));
     const res = await apiFetch("/api/push/expo-token", {
       method: "POST",
       headers: { Authorization: `Bearer ${authToken}` },
       body: JSON.stringify({ token: expoPushToken }),
     });
-    console.log("[push-reg] resposta:", res.status);
+    if (__DEV__) console.log("[push-reg] resposta:", res.status);
   } catch (e) {
-    console.warn("[push-reg] erro geral:", e);
+    if (__DEV__) console.warn("[push-reg] erro geral:", e);
   }
 }
 
