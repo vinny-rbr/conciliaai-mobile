@@ -9,6 +9,7 @@ import CustomTabBar from "./CustomTabBar";
 
 import LoginScreen from "../screens/auth/LoginScreen";
 import ForgotPasswordScreen from "../screens/auth/ForgotPasswordScreen";
+import RegisterScreen from "../screens/auth/RegisterScreen";
 import DashboardScreen from "../screens/app/DashboardScreen";
 import CategoriasScreen from "../screens/app/CategoriasScreen";
 import GruposScreen from "../screens/app/GruposScreen";
@@ -30,7 +31,7 @@ import ContasBancariasScreen from "../screens/app/ContasBancariasScreen";
 import FluxoCaixaScreen from "../screens/app/FluxoCaixaScreen";
 import BuscaScreen from "../screens/app/BuscaScreen";
 
-export type AuthStackParamList = { Login: undefined; ForgotPassword: undefined };
+export type AuthStackParamList = { Login: undefined; ForgotPassword: undefined; Register: undefined };
 export type AppTabParamList = {
   Home: undefined;
   Categorias: undefined;
@@ -67,6 +68,7 @@ function AuthNavigator() {
     <AuthStack.Navigator screenOptions={{ headerShown: false }}>
       <AuthStack.Screen name="Login" component={LoginScreen} />
       <AuthStack.Screen name="ForgotPassword" component={ForgotPasswordScreen} />
+      <AuthStack.Screen name="Register" component={RegisterScreen} />
     </AuthStack.Navigator>
   );
 }

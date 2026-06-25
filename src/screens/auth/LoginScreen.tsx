@@ -1,7 +1,7 @@
-import { useState } from "react";
+import { useEffect, useRef, useState } from "react";
 import {
   View, Text, TextInput, TouchableOpacity, StyleSheet,
-  KeyboardAvoidingView, Platform, ActivityIndicator, Alert,
+  KeyboardAvoidingView, Platform, ActivityIndicator, Alert, Animated,
 } from "react-native";
 import { useNavigation } from "@react-navigation/native";
 import { apiUrl } from "../../lib/api";
@@ -14,6 +14,16 @@ export default function LoginScreen() {
   const [email, setEmail] = useState("");
   const [password, setPassword] = useState("");
   const [loading, setLoading] = useState(false);
+
+  const fadeAnim  = useRef(new Animated.Value(0)).current;
+  const slideAnim = useRef(new Animated.Value(40)).current;
+
+  useEffect(() => {
+    Animated.parallel([
+      Animated.timing(fadeAnim,  { toValue: 1, duration: 600, useNativeDriver: true }),
+      Animated.timing(slideAnim, { toValue: 0, duration: 600, useNativeDriver: true }),
+    ]).start();
+  }, []);
 
   async function handleLogin() {
     if (!email.trim() || !password.trim()) {
@@ -45,7 +55,7 @@ export default function LoginScreen() {
 
   return (
     <KeyboardAvoidingView style={s.root} behavior={Platform.OS === "ios" ? "padding" : undefined}>
-      <View style={s.inner}>
+      <Animated.View style={[s.inner, { opacity: fadeAnim, transform: [{ translateY: slideAnim }] }]}>
         <Text style={s.logo}>Conciliaaí</Text>
         <Text style={s.sub}>Suas finanças sob controle</Text>
 
@@ -76,7 +86,11 @@ export default function LoginScreen() {
         <TouchableOpacity onPress={() => navigation.navigate("ForgotPassword" as never)} activeOpacity={0.7} style={s.forgotBtn}>
           <Text style={s.forgotTxt}>Esqueci minha senha</Text>
         </TouchableOpacity>
-      </View>
+
+        <TouchableOpacity onPress={() => navigation.navigate("Register" as never)} activeOpacity={0.7} style={s.registerBtn}>
+          <Text style={s.registerTxt}>Não tem conta? <Text style={s.registerLink}>Criar conta</Text></Text>
+        </TouchableOpacity>
+      </Animated.View>
     </KeyboardAvoidingView>
   );
 }
@@ -96,6 +110,9 @@ const s = StyleSheet.create({
     paddingVertical: 15, alignItems: "center", marginTop: 6,
   },
   btnTxt: { color: "#fff", fontWeight: "700", fontSize: 16 },
-  forgotBtn: { alignItems: "center", marginTop: 20 },
-  forgotTxt: { color: "#60A5FA", fontSize: 14, fontWeight: "600" },
+  forgotBtn:    { alignItems: "center", marginTop: 20 },
+  forgotTxt:    { color: "#60A5FA", fontSize: 14, fontWeight: "600" },
+  registerBtn:  { alignItems: "center", marginTop: 12 },
+  registerTxt:  { color: "#94A3B8", fontSize: 14 },
+  registerLink: { color: "#60A5FA", fontWeight: "700" },
 });
