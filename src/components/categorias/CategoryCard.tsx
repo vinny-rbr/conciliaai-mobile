@@ -1,7 +1,11 @@
-import { useState } from "react";
-import { View, Text, StyleSheet, TouchableOpacity } from "react-native";
+import { useRef, useState } from "react";
+import { View, Text, StyleSheet, TouchableOpacity, Animated, LayoutAnimation, Platform, UIManager } from "react-native";
 import type { FinanceCategoryOption } from "../../types/finance";
 import { CARD_W } from "./constants";
+
+if (Platform.OS === "android" && UIManager.setLayoutAnimationEnabledExperimental) {
+  UIManager.setLayoutAnimationEnabledExperimental(true);
+}
 
 export function CategoryCard({
   cat, subs, onMenu, onLongPress, onSubMenu, childrenOf,
@@ -14,9 +18,19 @@ export function CategoryCard({
   childrenOf?: (id: string) => FinanceCategoryOption[];
 }) {
   const [expanded, setExpanded] = useState(false);
+  const [expandedSubs, setExpandedSubs] = useState<Set<string>>(new Set());
   const LIMIT = 4;
   const visibleSubs = expanded ? subs : subs.slice(0, LIMIT);
   const hiddenCount = subs.length - LIMIT;
+
+  function toggleSub(subId: string) {
+    LayoutAnimation.configureNext(LayoutAnimation.Presets.easeInEaseOut);
+    setExpandedSubs(prev => {
+      const next = new Set(prev);
+      if (next.has(subId)) { next.delete(subId); } else { next.add(subId); }
+      return next;
+    });
+  }
 
   return (
     <TouchableOpacity
@@ -41,19 +55,27 @@ export function CategoryCard({
         <View style={c.chips}>
           {visibleSubs.map(sub => {
             const grandchildren = childrenOf?.(sub.id) ?? [];
+            const isOpen = expandedSubs.has(sub.id);
             return (
               <View key={sub.id}>
-                <TouchableOpacity
-                  style={c.chip}
-                  activeOpacity={0.7}
-                  onPress={e => { e.stopPropagation(); onSubMenu?.(sub); }}
-                  hitSlop={4}
-                >
-                  <View style={[c.chipDot, { backgroundColor: sub.color }]} />
-                  <Text style={c.chipTxt} numberOfLines={1}>{sub.name}</Text>
-                  <Text style={c.chipEdit}>•••</Text>
-                </TouchableOpacity>
-                {grandchildren.map(gc => (
+                <View style={c.chipRow}>
+                  <TouchableOpacity
+                    style={[c.chip, { flex: 1 }]}
+                    activeOpacity={0.7}
+                    onPress={e => { e.stopPropagation(); if (grandchildren.length > 0) toggleSub(sub.id); }}
+                    hitSlop={4}
+                  >
+                    <View style={[c.chipDot, { backgroundColor: sub.color }]} />
+                    <Text style={c.chipTxt} numberOfLines={1}>{sub.name}</Text>
+                    {grandchildren.length > 0 && (
+                      <Text style={c.chipArrow}>{isOpen ? "▲" : "▼"}</Text>
+                    )}
+                  </TouchableOpacity>
+                  <TouchableOpacity onPress={e => { e.stopPropagation(); onSubMenu?.(sub); }} hitSlop={8} style={c.chipMenuBtn}>
+                    <Text style={c.chipEdit}>•••</Text>
+                  </TouchableOpacity>
+                </View>
+                {isOpen && grandchildren.map(gc => (
                   <TouchableOpacity
                     key={gc.id}
                     style={c.grandchip}
@@ -108,7 +130,10 @@ const c = StyleSheet.create({
   chipDot: { width: 7, height: 7, borderRadius: 4 },
   chipTxt: { color: "#94A3B8", fontSize: 12, fontWeight: "500", flex: 1 },
   chipEdit: { color: "#334155", fontSize: 10, letterSpacing: 0.5 },
-  grandchip: { flexDirection: "row", alignItems: "center", gap: 6, backgroundColor: "#0F172A", borderRadius: 8, paddingHorizontal: 8, paddingVertical: 5, marginLeft: 16, marginTop: 3, borderLeftWidth: 2, borderLeftColor: "#1E293B" },
+  grandchip: { flexDirection: "row", alignItems: "center", gap: 6, backgroundColor: "#0a1628", borderRadius: 8, paddingHorizontal: 8, paddingVertical: 5, marginLeft: 16, marginTop: 3, borderLeftWidth: 2, borderLeftColor: "#3B82F6" },
+  chipArrow: { color: "#60A5FA", fontSize: 9, fontWeight: "700" },
+  chipRow: { flexDirection: "row", alignItems: "center", gap: 4 },
+  chipMenuBtn: { paddingHorizontal: 6, paddingVertical: 5 },
   moreBtn: { marginTop: 2, alignSelf: "flex-start" },
   moreTxt: { color: "#60a5fa", fontSize: 11, fontWeight: "600" },
 });
