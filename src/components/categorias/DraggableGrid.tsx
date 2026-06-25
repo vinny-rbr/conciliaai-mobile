@@ -196,6 +196,7 @@ export function DraggableGrid({
                   onMenu={onMenu}
                   onSubMenu={onSubMenu}
                   onLongPress={() => { void handleLongPress(cat); }}
+                  childrenOf={childrenOf}
                 />
               </View>
             );
@@ -218,6 +219,7 @@ export function DraggableGrid({
             onMenu={() => undefined}
             onSubMenu={() => undefined}
             onLongPress={() => undefined}
+            childrenOf={childrenOf}
           />
         </Animated.View>
       )}

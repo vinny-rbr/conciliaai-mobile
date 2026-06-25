@@ -4,13 +4,14 @@ import type { FinanceCategoryOption } from "../../types/finance";
 import { CARD_W } from "./constants";
 
 export function CategoryCard({
-  cat, subs, onMenu, onLongPress, onSubMenu,
+  cat, subs, onMenu, onLongPress, onSubMenu, childrenOf,
 }: {
   cat: FinanceCategoryOption;
   subs: FinanceCategoryOption[];
   onMenu: (cat: FinanceCategoryOption) => void;
   onLongPress: () => void;
   onSubMenu?: (sub: FinanceCategoryOption) => void;
+  childrenOf?: (id: string) => FinanceCategoryOption[];
 }) {
   const [expanded, setExpanded] = useState(false);
   const LIMIT = 4;
@@ -38,19 +39,36 @@ export function CategoryCard({
       <View style={[c.bar, { backgroundColor: cat.color }]} />
       {subs.length > 0 && (
         <View style={c.chips}>
-          {visibleSubs.map(sub => (
-            <TouchableOpacity
-              key={sub.id}
-              style={c.chip}
-              activeOpacity={0.7}
-              onPress={e => { e.stopPropagation(); onSubMenu?.(sub); }}
-              hitSlop={4}
-            >
-              <View style={[c.chipDot, { backgroundColor: sub.color }]} />
-              <Text style={c.chipTxt} numberOfLines={1}>{sub.name}</Text>
-              <Text style={c.chipEdit}>•••</Text>
-            </TouchableOpacity>
-          ))}
+          {visibleSubs.map(sub => {
+            const grandchildren = childrenOf?.(sub.id) ?? [];
+            return (
+              <View key={sub.id}>
+                <TouchableOpacity
+                  style={c.chip}
+                  activeOpacity={0.7}
+                  onPress={e => { e.stopPropagation(); onSubMenu?.(sub); }}
+                  hitSlop={4}
+                >
+                  <View style={[c.chipDot, { backgroundColor: sub.color }]} />
+                  <Text style={c.chipTxt} numberOfLines={1}>{sub.name}</Text>
+                  <Text style={c.chipEdit}>•••</Text>
+                </TouchableOpacity>
+                {grandchildren.map(gc => (
+                  <TouchableOpacity
+                    key={gc.id}
+                    style={c.grandchip}
+                    activeOpacity={0.7}
+                    onPress={e => { e.stopPropagation(); onSubMenu?.(gc); }}
+                    hitSlop={4}
+                  >
+                    <View style={[c.chipDot, { backgroundColor: gc.color }]} />
+                    <Text style={c.chipTxt} numberOfLines={1}>{gc.name}</Text>
+                    <Text style={c.chipEdit}>•••</Text>
+                  </TouchableOpacity>
+                ))}
+              </View>
+            );
+          })}
           {!expanded && hiddenCount > 0 && (
             <TouchableOpacity
               style={c.moreBtn}
@@ -90,6 +108,7 @@ const c = StyleSheet.create({
   chipDot: { width: 7, height: 7, borderRadius: 4 },
   chipTxt: { color: "#94A3B8", fontSize: 12, fontWeight: "500", flex: 1 },
   chipEdit: { color: "#334155", fontSize: 10, letterSpacing: 0.5 },
+  grandchip: { flexDirection: "row", alignItems: "center", gap: 6, backgroundColor: "#0F172A", borderRadius: 8, paddingHorizontal: 8, paddingVertical: 5, marginLeft: 16, marginTop: 3, borderLeftWidth: 2, borderLeftColor: "#1E293B" },
   moreBtn: { marginTop: 2, alignSelf: "flex-start" },
   moreTxt: { color: "#60a5fa", fontSize: 11, fontWeight: "600" },
 });
