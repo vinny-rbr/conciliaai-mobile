@@ -56,6 +56,7 @@ export async function updateFinanceCategory(id: string, data: {
   name: string;
   icon?: string;
   color?: string;
+  parentId?: string | null;
 }): Promise<FinanceCategoryOption> {
   const res = await fetch(apiUrl(`/api/finance-categories/${encodeURIComponent(id)}`), {
     method: "PUT",

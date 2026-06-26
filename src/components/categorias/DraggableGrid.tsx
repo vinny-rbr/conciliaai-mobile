@@ -8,12 +8,22 @@ export type CardLayout = { x: number; y: number; w: number; h: number };
 
 export function DraggableGrid({
   cats, childrenOf, onMenu, onReorder, onSubMenu,
+  onCardRef, onChipDragStart, onChipDragMove, onChipDragEnd, onChipDragCancel, draggingSubId,
+  hoverCardId, isDragActive,
 }: {
   cats: FinanceCategoryOption[];
   childrenOf: (id: string) => FinanceCategoryOption[];
   onMenu: (cat: FinanceCategoryOption) => void;
   onReorder: (ids: string[]) => void;
   onSubMenu?: (sub: FinanceCategoryOption) => void;
+  onCardRef?: (id: string, ref: View | null) => void;
+  onChipDragStart?: (sub: FinanceCategoryOption, pageX: number, pageY: number) => void;
+  onChipDragMove?: (pageX: number, pageY: number) => void;
+  onChipDragEnd?: (pageX: number, pageY: number) => void;
+  onChipDragCancel?: () => void;
+  draggingSubId?: string | null;
+  hoverCardId?: string | null;
+  isDragActive?: boolean;
 }) {
   const [orderIds, setOrderIds] = useState(() => cats.map(c => c.id));
   const [dragId, setDragId] = useState<string | null>(null);
@@ -182,7 +192,10 @@ export function DraggableGrid({
             return (
               <View
                 key={cat.id}
-                ref={r => { cardViewRefs.current.set(cat.id, r); }}
+                ref={r => {
+                  cardViewRefs.current.set(cat.id, r);
+                  onCardRef?.(cat.id, r);
+                }}
                 style={[
                   grid.cardWrap,
                   dragId === cat.id && { opacity: 0.25 },
@@ -197,6 +210,13 @@ export function DraggableGrid({
                   onSubMenu={onSubMenu}
                   onLongPress={() => { void handleLongPress(cat); }}
                   childrenOf={childrenOf}
+                  onChipDragStart={onChipDragStart}
+                  onChipDragMove={onChipDragMove}
+                  onChipDragEnd={onChipDragEnd}
+                  onChipDragCancel={onChipDragCancel}
+                  draggingSubId={draggingSubId}
+                  isHovered={hoverCardId === cat.id}
+                  isDragActive={isDragActive}
                 />
               </View>
             );
@@ -220,6 +240,7 @@ export function DraggableGrid({
             onSubMenu={() => undefined}
             onLongPress={() => undefined}
             childrenOf={childrenOf}
+            draggingSubId={draggingSubId}
           />
         </Animated.View>
       )}
