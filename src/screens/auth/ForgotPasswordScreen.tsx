@@ -1,13 +1,15 @@
 import { useRef, useState } from "react";
 import {
-  ActivityIndicator, Alert, KeyboardAvoidingView, Platform,
+  ActivityIndicator, KeyboardAvoidingView, Platform,
   ScrollView, StyleSheet, Text, TextInput, TouchableOpacity, View,
 } from "react-native";
 import { useNavigation } from "@react-navigation/native";
 import { apiUrl } from "../../lib/api";
+import { useAppAlert } from "../../components/AppAlert";
 
 export default function ForgotPasswordScreen() {
   const navigation = useNavigation();
+  const { showAlert, AlertNode } = useAppAlert();
 
   const [email, setEmail]               = useState("");
   const [code, setCode]                 = useState("");
@@ -22,7 +24,7 @@ export default function ForgotPasswordScreen() {
   const confirmRef = useRef<TextInput>(null);
 
   async function handleRequestCode() {
-    if (!email.trim()) { Alert.alert("Atenção", "Informe o e-mail cadastrado."); return; }
+    if (!email.trim()) { showAlert("Atenção", "Informe o e-mail cadastrado."); return; }
     setLoading(true);
     try {
       const res = await fetch(apiUrl("/api/auth/forgot-password"), {
@@ -35,9 +37,9 @@ export default function ForgotPasswordScreen() {
         throw new Error(data.message ?? "Não foi possível enviar o código.");
       }
       setCodeSent(true);
-      Alert.alert("Código enviado", "Se o e-mail estiver cadastrado, você receberá um código em instantes.");
+      showAlert("Código enviado", "Se o e-mail estiver cadastrado, você receberá um código em instantes.");
     } catch (err) {
-      Alert.alert("Erro", err instanceof Error ? err.message : "Erro ao solicitar código.");
+      showAlert("Erro", err instanceof Error ? err.message : "Erro ao solicitar código.");
     } finally {
       setLoading(false);
     }
@@ -45,12 +47,12 @@ export default function ForgotPasswordScreen() {
 
   async function handleResetPassword() {
     if (!email.trim() || !code.trim() || !password || !confirmPassword) {
-      Alert.alert("Atenção", "Preencha todos os campos.");
+      showAlert("Atenção", "Preencha todos os campos.");
       return;
     }
-    if (code.length !== 6) { Alert.alert("Atenção", "O código deve ter 6 dígitos."); return; }
-    if (password !== confirmPassword) { Alert.alert("Atenção", "As senhas não conferem."); return; }
-    if (password.length < 6) { Alert.alert("Atenção", "A senha deve ter pelo menos 6 caracteres."); return; }
+    if (code.length !== 6) { showAlert("Atenção", "O código deve ter 6 dígitos."); return; }
+    if (password !== confirmPassword) { showAlert("Atenção", "As senhas não conferem."); return; }
+    if (password.length < 6) { showAlert("Atenção", "A senha deve ter pelo menos 6 caracteres."); return; }
 
     setLoading(true);
     try {
@@ -63,11 +65,11 @@ export default function ForgotPasswordScreen() {
         const data = await res.json() as { message?: string };
         throw new Error(data.message ?? "Não foi possível alterar a senha.");
       }
-      Alert.alert("Senha alterada!", "Sua senha foi redefinida com sucesso. Faça login com a nova senha.", [
+      showAlert("Senha alterada!", "Sua senha foi redefinida com sucesso. Faça login com a nova senha.", [
         { text: "OK", onPress: () => navigation.goBack() },
       ]);
     } catch (err) {
-      Alert.alert("Erro", err instanceof Error ? err.message : "Erro ao alterar senha.");
+      showAlert("Erro", err instanceof Error ? err.message : "Erro ao alterar senha.");
     } finally {
       setLoading(false);
     }
@@ -191,6 +193,7 @@ export default function ForgotPasswordScreen() {
           </>
         )}
       </ScrollView>
+      {AlertNode}
     </KeyboardAvoidingView>
   );
 }

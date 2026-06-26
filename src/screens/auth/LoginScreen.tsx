@@ -1,12 +1,13 @@
 import { useEffect, useRef, useState } from "react";
 import {
   View, Text, TextInput, TouchableOpacity, StyleSheet,
-  KeyboardAvoidingView, Platform, ActivityIndicator, Alert, Animated,
+  KeyboardAvoidingView, Platform, ActivityIndicator, Animated,
 } from "react-native";
 import { useNavigation } from "@react-navigation/native";
 import { apiUrl } from "../../lib/api";
 import { useAuth } from "../../context/AuthContext";
 import { saveEmail } from "../../lib/auth";
+import { useAppAlert } from "../../components/AppAlert";
 
 export default function LoginScreen() {
   const { signIn } = useAuth();
@@ -15,6 +16,7 @@ export default function LoginScreen() {
   const [password, setPassword] = useState("");
   const [loading, setLoading] = useState(false);
   const [showPass, setShowPass] = useState(false);
+  const { showAlert, AlertNode } = useAppAlert();
 
   const fadeAnim  = useRef(new Animated.Value(0)).current;
   const slideAnim = useRef(new Animated.Value(40)).current;
@@ -28,7 +30,7 @@ export default function LoginScreen() {
 
   async function handleLogin() {
     if (!email.trim() || !password.trim()) {
-      Alert.alert("Atenção", "Preencha e-mail e senha.");
+      showAlert("Atenção", "Preencha e-mail e senha.");
       return;
     }
     setLoading(true);
@@ -40,15 +42,15 @@ export default function LoginScreen() {
       });
       const data = await res.json() as Record<string, unknown>;
       if (!res.ok) {
-        Alert.alert("Erro", (data.message as string) ?? "Credenciais inválidas.");
+        showAlert("Erro", (data.message as string) ?? "Credenciais inválidas.");
         return;
       }
       const token = (data.token ?? data.accessToken ?? data.jwt) as string;
-      if (!token) { Alert.alert("Erro", "Token não recebido."); return; }
+      if (!token) { showAlert("Erro", "Token não recebido."); return; }
       await saveEmail(email.trim().toLowerCase());
       await signIn(token, data.user as Record<string, unknown>, data.planName as string);
     } catch {
-      Alert.alert("Erro", "Não foi possível conectar ao servidor.");
+      showAlert("Erro", "Não foi possível conectar ao servidor.");
     } finally {
       setLoading(false);
     }
@@ -97,6 +99,7 @@ export default function LoginScreen() {
           <Text style={s.registerTxt}>Não tem conta? <Text style={s.registerLink}>Criar conta</Text></Text>
         </TouchableOpacity>
       </Animated.View>
+      {AlertNode}
     </KeyboardAvoidingView>
   );
 }

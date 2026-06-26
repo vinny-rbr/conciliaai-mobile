@@ -1,10 +1,11 @@
 import { useRef, useState } from "react";
 import {
-  ActivityIndicator, Alert, KeyboardAvoidingView, Platform,
+  ActivityIndicator, KeyboardAvoidingView, Platform,
   ScrollView, StyleSheet, Text, TextInput, TouchableOpacity,
 } from "react-native";
 import { useNavigation, useRoute } from "@react-navigation/native";
 import { apiUrl } from "../../lib/api";
+import { useAppAlert } from "../../components/AppAlert";
 
 type RouteParams = { email: string };
 
@@ -18,10 +19,11 @@ export default function VerifyEmailScreen() {
   const [resending, setResending]     = useState(false);
 
   const inputRef = useRef<TextInput>(null);
+  const { showAlert, AlertNode } = useAppAlert();
 
   async function handleConfirm() {
     if (code.length !== 6) {
-      Alert.alert("Atenção", "Digite o código completo de 6 dígitos.");
+      showAlert("Atenção", "Digite o código completo de 6 dígitos.");
       return;
     }
     setLoading(true);
@@ -33,16 +35,16 @@ export default function VerifyEmailScreen() {
       });
       const data = await res.json() as Record<string, unknown>;
       if (!res.ok) {
-        Alert.alert("Erro", (data.message as string) ?? "Código inválido ou expirado.");
+        showAlert("Erro", (data.message as string) ?? "Código inválido ou expirado.");
         return;
       }
-      Alert.alert(
+      showAlert(
         "E-mail confirmado!",
         "Faça seu login.",
         [{ text: "OK", onPress: () => navigation.navigate("Login" as never) }],
       );
     } catch {
-      Alert.alert("Erro", "Não foi possível conectar ao servidor.");
+      showAlert("Erro", "Não foi possível conectar ao servidor.");
     } finally {
       setLoading(false);
     }
@@ -58,12 +60,12 @@ export default function VerifyEmailScreen() {
       });
       if (!res.ok) {
         const data = await res.json() as { message?: string };
-        Alert.alert("Erro", data.message ?? "Não foi possível reenviar o código.");
+        showAlert("Erro", data.message ?? "Não foi possível reenviar o código.");
         return;
       }
-      Alert.alert("Código reenviado", "Verifique sua caixa de entrada (e o spam).");
+      showAlert("Código reenviado", "Verifique sua caixa de entrada (e o spam).");
     } catch {
-      Alert.alert("Erro", "Não foi possível conectar ao servidor.");
+      showAlert("Erro", "Não foi possível conectar ao servidor.");
     } finally {
       setResending(false);
     }
@@ -124,6 +126,7 @@ export default function VerifyEmailScreen() {
             : <Text style={s.linkTxt}>Reenviar código</Text>}
         </TouchableOpacity>
       </ScrollView>
+      {AlertNode}
     </KeyboardAvoidingView>
   );
 }

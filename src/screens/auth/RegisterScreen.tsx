@@ -1,15 +1,17 @@
 import { useState } from "react";
 import {
   View, Text, TextInput, TouchableOpacity, StyleSheet,
-  KeyboardAvoidingView, ActivityIndicator, Alert, ScrollView,
+  KeyboardAvoidingView, ActivityIndicator, ScrollView,
 } from "react-native";
 import { useNavigation } from "@react-navigation/native";
 import type { NativeStackNavigationProp } from "@react-navigation/native-stack";
 import type { AuthStackParamList } from "../../navigation";
 import { apiUrl } from "../../lib/api";
+import { useAppAlert } from "../../components/AppAlert";
 
 export default function RegisterScreen() {
   const navigation = useNavigation<NativeStackNavigationProp<AuthStackParamList>>();
+  const { showAlert, AlertNode } = useAppAlert();
   const [name, setName]               = useState("");
   const [email, setEmail]             = useState("");
   const [password, setPassword]       = useState("");
@@ -20,15 +22,15 @@ export default function RegisterScreen() {
 
   async function handleRegister() {
     if (!name.trim() || !email.trim() || !password) {
-      Alert.alert("Atenção", "Preencha nome, e-mail e senha.");
+      showAlert("Atenção", "Preencha nome, e-mail e senha.");
       return;
     }
     if (password.length < 6) {
-      Alert.alert("Atenção", "A senha deve ter pelo menos 6 caracteres.");
+      showAlert("Atenção", "A senha deve ter pelo menos 6 caracteres.");
       return;
     }
     if (password !== confirm) {
-      Alert.alert("Atenção", "As senhas não coincidem.");
+      showAlert("Atenção", "As senhas não coincidem.");
       return;
     }
     setLoading(true);
@@ -41,15 +43,15 @@ export default function RegisterScreen() {
       const data = await res.json() as Record<string, unknown>;
       if (!res.ok) {
         if (res.status === 409) {
-          Alert.alert("E-mail já cadastrado", "Tente fazer login ou recupere sua senha.");
+          showAlert("E-mail já cadastrado", "Tente fazer login ou recupere sua senha.");
           return;
         }
-        Alert.alert("Erro", (data.message as string) ?? "Não foi possível criar a conta.");
+        showAlert("Erro", (data.message as string) ?? "Não foi possível criar a conta.");
         return;
       }
       navigation.navigate("VerifyEmail", { email: email.trim().toLowerCase() });
     } catch {
-      Alert.alert("Erro", "Não foi possível conectar ao servidor.");
+      showAlert("Erro", "Não foi possível conectar ao servidor.");
     } finally {
       setLoading(false);
     }
@@ -118,6 +120,7 @@ export default function RegisterScreen() {
           <Text style={s.backTxt}>Já tenho conta — Entrar</Text>
         </TouchableOpacity>
       </ScrollView>
+      {AlertNode}
     </KeyboardAvoidingView>
   );
 }
