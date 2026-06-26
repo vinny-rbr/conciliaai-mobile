@@ -1,4 +1,5 @@
 import { View, Text, TouchableOpacity, StyleSheet, Animated } from "react-native";
+import { useSafeAreaInsets } from "react-native-safe-area-context";
 import type { BottomTabBarProps } from "@react-navigation/bottom-tabs";
 import { leftTranslateX, rightTranslateX, fabScale, fabOpacity } from "./tabBarScroll";
 import { fabRotation, fabTranslate, openFabAnim } from "./fabAnimState";
@@ -18,6 +19,8 @@ const PILL_BG    = "#0F172A";
 const PILL_BORD  = "#1E293B";
 
 export default function CustomTabBar({ state, navigation }: BottomTabBarProps) {
+  const insets = useSafeAreaInsets();
+
 function renderTab(route: typeof state.routes[0]) {
     const index = state.routes.indexOf(route);
     const isFocused = state.index === index;
@@ -41,7 +44,7 @@ function renderTab(route: typeof state.routes[0]) {
   const rightRoutes = state.routes.filter(r => r.name === "Grupos" || r.name === "Planejamento");
 
   return (
-    <View style={s.wrapper}>
+    <View style={[s.wrapper, { bottom: Math.max(insets.bottom + 8, 20) }]}>
       {/* Pill como dois lados que se tocam — parecem uma só */}
       <View style={s.pillRow}>
         {/* Metade esquerda — arredondada só na esquerda */}

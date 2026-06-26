@@ -14,6 +14,7 @@ export default function LoginScreen() {
   const [email, setEmail] = useState("");
   const [password, setPassword] = useState("");
   const [loading, setLoading] = useState(false);
+  const [showPass, setShowPass] = useState(false);
 
   const fadeAnim  = useRef(new Animated.Value(0)).current;
   const slideAnim = useRef(new Animated.Value(40)).current;
@@ -68,14 +69,19 @@ export default function LoginScreen() {
           value={email}
           onChangeText={setEmail}
         />
-        <TextInput
-          style={s.input}
-          placeholder="Senha"
-          placeholderTextColor="#64748B"
-          secureTextEntry
-          value={password}
-          onChangeText={setPassword}
-        />
+        <View style={s.passwordWrapper}>
+          <TextInput
+            style={[s.input, { paddingRight: 48 }]}
+            placeholder="Senha"
+            placeholderTextColor="#64748B"
+            secureTextEntry={!showPass}
+            value={password}
+            onChangeText={setPassword}
+          />
+          <TouchableOpacity style={s.eyeBtn} onPress={() => setShowPass(v => !v)} activeOpacity={0.7}>
+            <Text style={s.eyeIcon}>{showPass ? "🙈" : "👁"}</Text>
+          </TouchableOpacity>
+        </View>
 
         <TouchableOpacity style={s.btn} onPress={handleLogin} disabled={loading}>
           {loading
@@ -115,4 +121,13 @@ const s = StyleSheet.create({
   registerBtn:  { alignItems: "center", marginTop: 12 },
   registerTxt:  { color: "#94A3B8", fontSize: 14 },
   registerLink: { color: "#60A5FA", fontWeight: "700" },
+  passwordWrapper: { position: "relative" },
+  eyeBtn: {
+    position: "absolute",
+    right: 14,
+    top: 0,
+    bottom: 14,
+    justifyContent: "center",
+  },
+  eyeIcon: { fontSize: 18 },
 });

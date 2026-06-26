@@ -31,8 +31,9 @@ import ContasBancariasScreen from "../screens/app/ContasBancariasScreen";
 import FluxoCaixaScreen from "../screens/app/FluxoCaixaScreen";
 import BuscaScreen from "../screens/app/BuscaScreen";
 import { SessionExpiredScreen } from "../screens/auth/SessionExpiredScreen";
+import VerifyEmailScreen from "../screens/auth/VerifyEmailScreen";
 
-export type AuthStackParamList = { Login: undefined; ForgotPassword: undefined; Register: undefined };
+export type AuthStackParamList = { Login: undefined; ForgotPassword: undefined; Register: undefined; VerifyEmail: { email: string } };
 export type AppTabParamList = {
   Home: undefined;
   Categorias: undefined;
@@ -70,6 +71,7 @@ function AuthNavigator() {
       <AuthStack.Screen name="Login" component={LoginScreen} />
       <AuthStack.Screen name="ForgotPassword" component={ForgotPasswordScreen} />
       <AuthStack.Screen name="Register" component={RegisterScreen} />
+      <AuthStack.Screen name="VerifyEmail" component={VerifyEmailScreen} options={{ headerShown: false }} />
     </AuthStack.Navigator>
   );
 }
