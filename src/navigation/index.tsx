@@ -30,6 +30,7 @@ import LancarTransacaoScreen from "../screens/app/LancarTransacaoScreen";
 import ContasBancariasScreen from "../screens/app/ContasBancariasScreen";
 import FluxoCaixaScreen from "../screens/app/FluxoCaixaScreen";
 import BuscaScreen from "../screens/app/BuscaScreen";
+import { SessionExpiredScreen } from "../screens/auth/SessionExpiredScreen";
 
 export type AuthStackParamList = { Login: undefined; ForgotPassword: undefined; Register: undefined };
 export type AppTabParamList = {
@@ -121,13 +122,17 @@ function AppNavigator() {
 }
 
 export default function Navigation() {
-  const { isLoggedIn } = useAuth();
+  const { isLoggedIn, tokenExpired } = useAuth();
   return (
     <NavigationContainer
       ref={navigationRef}
       theme={{ dark: true, colors: { background: "#0F172A", card: "#0F172A", text: "#F1F5F9", border: "#1E293B", primary: "#3B82F6", notification: "#EF4444" }, fonts: { regular: { fontFamily: "System", fontWeight: "400" }, medium: { fontFamily: "System", fontWeight: "500" }, bold: { fontFamily: "System", fontWeight: "700" }, heavy: { fontFamily: "System", fontWeight: "900" } } }}
     >
-      {isLoggedIn ? <BiometricGate><AppNavigator /></BiometricGate> : <AuthNavigator />}
+      {isLoggedIn
+        ? tokenExpired
+          ? <SessionExpiredScreen />
+          : <BiometricGate><AppNavigator /></BiometricGate>
+        : <AuthNavigator />}
     </NavigationContainer>
   );
 }
