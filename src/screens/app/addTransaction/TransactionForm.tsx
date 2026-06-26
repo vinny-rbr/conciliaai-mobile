@@ -7,6 +7,7 @@ import { SafeAreaView } from "react-native-safe-area-context";
 import type { BankAccount, FinanceCategoryOption, FinanceItem } from "../../../types/finance";
 import { PAY_TYPES, TxType, f, m, fmtAmount as _fmtAmount } from "./shared";
 import { TagsMultiSelect } from "../../../components/TagsMultiSelect";
+import { CategoryTreeModal } from "../../../components/CategoryTreeModal";
 
 type Props = {
   formSlide: Animated.Value;
@@ -25,12 +26,9 @@ type Props = {
 
   // categories
   categories: FinanceCategoryOption[];
-  rootCats: FinanceCategoryOption[];
   selectedCat: FinanceCategoryOption | null;
   setSelectedCat: (v: FinanceCategoryOption | null) => void;
   catModal: boolean;        setCatModal: (v: boolean) => void;
-  expandedCatId: string | null;
-  setExpandedCatId: (v: string | null) => void;
 
   // accounts
   accounts: BankAccount[];
@@ -66,7 +64,7 @@ export default function TransactionForm({
   formSlide, formType, editItem, accent,
   title, setTitle, amount, setAmount, dateBR, onDateChange,
   payType, setPayType, paid, setPaid, note, setNote, tags, setTags, availableTags, saving,
-  categories, rootCats, selectedCat, setSelectedCat, catModal, setCatModal, expandedCatId, setExpandedCatId,
+  categories, selectedCat, setSelectedCat, catModal, setCatModal,
   accounts, selectedAcc, setSelectedAcc, accModal, setAccModal,
   isRecurring, setIsRecurring, recurringMode, setRecurringMode, recurringMonths, setRecurringMonths,
   recurringAction, setRecurringAction, deleteModal, setDeleteModal,
@@ -307,69 +305,13 @@ export default function TransactionForm({
       </SafeAreaView>
 
       {/* ── Modal: categoria ──────────────────────────────────────── */}
-      <Modal
+      <CategoryTreeModal
         visible={catModal}
-        transparent
-        animationType="slide"
-        onRequestClose={() => { setCatModal(false); setExpandedCatId(null); }}
-      >
-        <View style={m.overlay}>
-          <View style={m.sheet}>
-            <View style={m.handle} />
-            <View style={m.mHeader}>
-              <Text style={m.mTitle}>Categoria</Text>
-              <TouchableOpacity onPress={() => { setCatModal(false); setExpandedCatId(null); }}>
-                <Text style={m.mClose}>✕</Text>
-              </TouchableOpacity>
-            </View>
-            <ScrollView contentContainerStyle={{ paddingHorizontal: 16, paddingBottom: 24 }}>
-              {rootCats.length === 0
-                ? <Text style={m.empty}>Nenhuma categoria.</Text>
-                : rootCats.map(c => {
-                    const children   = categories.filter(sub => sub.parentId === c.id);
-                    const isExpanded = expandedCatId === c.id;
-                    const isSelected = selectedCat?.id === c.id;
-                    return (
-                      <View key={c.id}>
-                        <TouchableOpacity
-                          style={[m.row, isSelected && { backgroundColor: c.color + "18", borderColor: c.color }]}
-                          onPress={() => {
-                            if (children.length > 0) setExpandedCatId(isExpanded ? null : c.id);
-                            else { setSelectedCat(c); setCatModal(false); setExpandedCatId(null); }
-                          }}
-                        >
-                          <View style={[f.catDot, { backgroundColor: c.color + "33" }]}>
-                            <Text style={{ fontSize: 18 }}>{c.icon}</Text>
-                          </View>
-                          <Text style={[m.rowName, { flex: 1 }]}>{c.name}</Text>
-                          {isSelected && <Text style={[m.check, { color: c.color }]}>✓</Text>}
-                          {children.length > 0 && (
-                            <Text style={{ color: "#64748B", fontSize: 12, marginLeft: 4 }}>
-                              {isExpanded ? "▲" : "▼"}
-                            </Text>
-                          )}
-                        </TouchableOpacity>
-                        {isExpanded && children.map(sub => (
-                          <TouchableOpacity
-                            key={sub.id}
-                            style={[m.row, { marginLeft: 16, marginTop: -4 }, selectedCat?.id === sub.id && { backgroundColor: sub.color + "18", borderColor: sub.color }]}
-                            onPress={() => { setSelectedCat(sub); setCatModal(false); setExpandedCatId(null); }}
-                          >
-                            <View style={[f.catDot, { backgroundColor: sub.color + "33", width: 36, height: 36 }]}>
-                              <Text style={{ fontSize: 15 }}>{sub.icon}</Text>
-                            </View>
-                            <Text style={[m.rowName, { flex: 1, fontSize: 13 }]}>{sub.name}</Text>
-                            {selectedCat?.id === sub.id && <Text style={[m.check, { color: sub.color }]}>✓</Text>}
-                          </TouchableOpacity>
-                        ))}
-                      </View>
-                    );
-                  })
-              }
-            </ScrollView>
-          </View>
-        </View>
-      </Modal>
+        onClose={() => setCatModal(false)}
+        categories={categories}
+        selectedCat={selectedCat}
+        onSelect={c => { setSelectedCat(c); setCatModal(false); }}
+      />
 
       {/* ── Modal: conta ─────────────────────────────────────────── */}
       <Modal visible={accModal} transparent animationType="slide" onRequestClose={() => setAccModal(false)}>

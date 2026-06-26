@@ -253,7 +253,7 @@ export default function LancarTransacaoScreen() {
       <CategoryModal
         visible={catModal}
         onClose={() => setCatModal(false)}
-        categories={filteredCats}
+        categories={categories}
         selectedCat={selectedCat}
         onSelect={c => { setSelectedCat(c); setCatModal(false); }}
       />

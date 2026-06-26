@@ -1,51 +1,9 @@
-import { Modal, ScrollView, Text, TouchableOpacity, View } from "react-native";
-import type { FinanceCategoryOption, BankAccount } from "../../../types/finance";
+import { Text, TouchableOpacity, View, Modal, ScrollView } from "react-native";
+import type { BankAccount } from "../../../types/finance";
 import { s } from "./shared";
+import { CategoryTreeModal } from "../../../components/CategoryTreeModal";
 
-type CategoryModalProps = {
-  visible: boolean;
-  onClose: () => void;
-  categories: FinanceCategoryOption[];
-  selectedCat: FinanceCategoryOption | null;
-  onSelect: (c: FinanceCategoryOption) => void;
-};
-
-export function CategoryModal({ visible, onClose, categories, selectedCat, onSelect }: CategoryModalProps) {
-  return (
-    <Modal visible={visible} transparent animationType="slide" onRequestClose={onClose}>
-      <View style={s.modalOverlay}>
-        <View style={s.modalSheet}>
-          <View style={s.modalHandle} />
-          <View style={s.modalHeader}>
-            <Text style={s.modalTitle}>Categoria</Text>
-            <TouchableOpacity onPress={onClose}>
-              <Text style={s.modalClose}>✕</Text>
-            </TouchableOpacity>
-          </View>
-          <ScrollView contentContainerStyle={{ paddingHorizontal: 16, paddingBottom: 24 }}>
-            {categories.length === 0 ? (
-              <Text style={s.emptyTxt}>Nenhuma categoria cadastrada.</Text>
-            ) : (
-              categories.map(c => (
-                <TouchableOpacity
-                  key={c.id}
-                  style={[s.catRow, selectedCat?.id === c.id && { backgroundColor: c.color + "18", borderColor: c.color }]}
-                  onPress={() => onSelect(c)}
-                >
-                  <View style={[s.catDot, { backgroundColor: c.color + "33" }]}>
-                    <Text style={{ fontSize: 18 }}>{c.icon}</Text>
-                  </View>
-                  <Text style={s.catName}>{c.name}</Text>
-                  {selectedCat?.id === c.id && <Text style={[s.checkMark, { color: c.color }]}>✓</Text>}
-                </TouchableOpacity>
-              ))
-            )}
-          </ScrollView>
-        </View>
-      </View>
-    </Modal>
-  );
-}
+export { CategoryTreeModal as CategoryModal };
 
 type AccountModalProps = {
   visible: boolean;

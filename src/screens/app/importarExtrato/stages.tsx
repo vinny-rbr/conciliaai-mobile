@@ -4,6 +4,7 @@ import {
   TextInput, TouchableOpacity, View,
 } from "react-native";
 import { TagsMultiSelect } from "../../../components/TagsMultiSelect";
+import { CategoryTreeModal } from "../../../components/CategoryTreeModal";
 import { SafeAreaView } from "react-native-safe-area-context";
 import Svg, { Circle, Path } from "react-native-svg";
 import type { ParsedItem } from "../../../lib/ofxParser";
@@ -176,7 +177,6 @@ export function ReviewStep({
   const [searchOpen, setSearchOpen] = useState(false);
   const [editing, setEditing] = useState<EditState | null>(null);
   const [catModalOpen, setCatModalOpen] = useState(false);
-  const [expandedCatId, setExpandedCatId] = useState<string | null>(null);
   const searchRef = useRef<TextInput>(null);
 
   const visible = searchQuery.trim()
@@ -431,72 +431,13 @@ export function ReviewStep({
       </Modal>
 
       {/* Category picker modal */}
-      <Modal
+      <CategoryTreeModal
         visible={catModalOpen}
-        transparent
-        animationType="slide"
-        onRequestClose={() => { setCatModalOpen(false); setExpandedCatId(null); }}
-      >
-        <View style={ls.modalOverlay}>
-          <TouchableOpacity style={{ flex: 1 }} onPress={() => { setCatModalOpen(false); setExpandedCatId(null); }} activeOpacity={1} />
-          {editing && (() => {
-            const categories = allCategories.filter(c => c.type === editing.type);
-            const rootCats = categories.filter(c => !c.parentId);
-            return (
-              <View style={[ls.modalCard, { maxHeight: "70%" }]}>
-                <Text style={ls.modalTitle}>Categoria</Text>
-                <ScrollView keyboardShouldPersistTaps="handled" showsVerticalScrollIndicator={false}>
-                  {rootCats.map(c => {
-                    const children = categories.filter(sub => sub.parentId === c.id);
-                    const isExpanded = expandedCatId === c.id;
-                    const isSelected = editing.category === c.name;
-                    return (
-                      <View key={c.id}>
-                        <TouchableOpacity
-                          style={[ls.catRow, isSelected && { backgroundColor: (c.color) + "18", borderColor: c.color }]}
-                          onPress={() => {
-                            if (children.length > 0) setExpandedCatId(isExpanded ? null : c.id);
-                            else { setEditing(e => e ? { ...e, category: c.name } : e); setCatModalOpen(false); setExpandedCatId(null); }
-                          }}
-                          activeOpacity={0.8}
-                        >
-                          <View style={[ls.catDot, { backgroundColor: (c.color) + "33" }]}>
-                            <Text style={{ fontSize: 18 }}>{c.icon}</Text>
-                          </View>
-                          <Text style={ls.catName}>{c.name}</Text>
-                          {isSelected && <Text style={{ color: c.color, fontWeight: "800" }}>✓</Text>}
-                          {children.length > 0 && (
-                            <Text style={{ color: "#64748B", fontSize: 12, marginLeft: 4 }}>{isExpanded ? "▲" : "▼"}</Text>
-                          )}
-                        </TouchableOpacity>
-                        {isExpanded && children.map(sub => (
-                          <TouchableOpacity
-                            key={sub.id}
-                            style={[ls.catRow, { marginLeft: 16 }, editing.category === sub.name && { backgroundColor: (sub.color) + "18", borderColor: sub.color }]}
-                            onPress={() => { setEditing(e => e ? { ...e, category: sub.name } : e); setCatModalOpen(false); setExpandedCatId(null); }}
-                            activeOpacity={0.8}
-                          >
-                            <View style={[ls.catDot, { backgroundColor: (sub.color) + "33", width: 32, height: 32 }]}>
-                              <Text style={{ fontSize: 14 }}>{sub.icon}</Text>
-                            </View>
-                            <Text style={[ls.catName, { fontSize: 13 }]}>{sub.name}</Text>
-                            {editing.category === sub.name && <Text style={{ color: sub.color, fontWeight: "800" }}>✓</Text>}
-                          </TouchableOpacity>
-                        ))}
-                      </View>
-                    );
-                  })}
-                  {rootCats.length === 0 && (
-                    <Text style={{ color: "#64748B", textAlign: "center", paddingVertical: 24, fontSize: 14 }}>
-                      Nenhuma categoria encontrada
-                    </Text>
-                  )}
-                </ScrollView>
-              </View>
-            );
-          })()}
-        </View>
-      </Modal>
+        onClose={() => setCatModalOpen(false)}
+        categories={editing ? allCategories.filter(c => c.type === editing.type) : []}
+        selectedCat={editing ? (allCategories.find(c => c.name === editing.category) ?? null) : null}
+        onSelect={c => { setEditing(e => e ? { ...e, category: c.name } : e); setCatModalOpen(false); }}
+      />
     </SafeAreaView>
   );
 }

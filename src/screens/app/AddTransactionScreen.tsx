@@ -55,7 +55,6 @@ export default function AddTransactionScreen() {
   const [categories,       setCategories]       = useState<FinanceCategoryOption[]>([]);
   const [selectedCat,      setSelectedCat]      = useState<FinanceCategoryOption | null>(null);
   const [catModal,         setCatModal]         = useState(false);
-  const [expandedCatId,    setExpandedCatId]    = useState<string | null>(null);
   const [accounts,         setAccounts]         = useState<BankAccount[]>([]);
   const [selectedAcc,      setSelectedAcc]      = useState<BankAccount | null>(null);
   const [accModal,         setAccModal]         = useState(false);
@@ -307,7 +306,6 @@ export default function AddTransactionScreen() {
 
   // ── Render ────────────────────────────────────────────────────────
   const accent   = formType === "RECEITA" ? "#22C55E" : "#EF4444";
-  const rootCats = categories.filter(c => !c.parentId);
 
   return (
     <View style={{ flex: 1 }}>
@@ -343,10 +341,8 @@ export default function AddTransactionScreen() {
           availableTags={availableTags}
           saving={saving}
           categories={categories}
-          rootCats={rootCats}
           selectedCat={selectedCat}    setSelectedCat={setSelectedCat}
           catModal={catModal}          setCatModal={setCatModal}
-          expandedCatId={expandedCatId} setExpandedCatId={setExpandedCatId}
           accounts={accounts}
           selectedAcc={selectedAcc}    setSelectedAcc={setSelectedAcc}
           accModal={accModal}          setAccModal={setAccModal}

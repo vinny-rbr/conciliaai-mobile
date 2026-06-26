@@ -32,7 +32,7 @@ function ChipItem({
   const isOpen     = expandedSubs.has(sub.id);
   const isDragging = draggingSubId === sub.id;
   const isNew      = newlyAddedId === sub.id && depth === 0;
-  const indent     = Math.min(depth, 4) * 14;
+  const indent     = Math.min(depth, 4) * 10;
 
   return (
     <Animated.View style={{ opacity: isDragging ? 0.2 : 1 }}>
@@ -42,19 +42,19 @@ function ChipItem({
             style={[c.chip, depth > 0 && c.nestedChip, { flex: 1 }]}
             activeOpacity={0.7}
             delayLongPress={450}
-            onPress={() => { if (children.length > 0) toggleSub(sub.id); }}
+            onPress={() => { if (children.length > 0) toggleSub(sub.id); else onSubMenu?.(sub); }}
             onLongPress={depth === 0 ? (e) => {
               onLongPressChip?.(sub, e.nativeEvent.pageX, e.nativeEvent.pageY, idx);
             } : undefined}
             hitSlop={4}
           >
             <View style={[c.chipDot, { backgroundColor: sub.color }]} />
-            <Text style={c.chipTxt} numberOfLines={1}>{sub.name}</Text>
+            <Text style={[c.chipTxt, depth > 0 && { fontSize: 11 }]} numberOfLines={1}>{sub.name}</Text>
             {children.length > 0 && (
               <Text style={c.chipArrow}>{isOpen ? "▲" : "▼"}</Text>
             )}
           </TouchableOpacity>
-          <TouchableOpacity onPress={() => onSubMenu?.(sub)} hitSlop={8} style={c.chipMenuBtn}>
+          <TouchableOpacity onPress={() => onSubMenu?.(sub)} hitSlop={12} style={c.chipMenuBtn}>
             <Text style={c.chipEdit}>•••</Text>
           </TouchableOpacity>
         </View>
