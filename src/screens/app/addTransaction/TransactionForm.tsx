@@ -199,7 +199,12 @@ export default function TransactionForm({
           </View>
 
           {/* Recorrência */}
-          {!editItem ? (
+          {editItem?.recurringGroupId ? (
+            <View style={{ flexDirection: "row", alignItems: "center", backgroundColor: "#3B82F611", borderRadius: 12, padding: 12, borderWidth: 1, borderColor: "#3B82F622", gap: 8 }}>
+              <Text style={{ fontSize: 16 }}>🔄</Text>
+              <Text style={{ color: "#60A5FA", fontSize: 13, fontWeight: "600", flex: 1 }}>Gasto fixo mensal</Text>
+            </View>
+          ) : (
             <View style={{ gap: 10 }}>
               <TouchableOpacity
                 style={[f.toggleCard, isRecurring && f.toggleCardActive]}
@@ -211,7 +216,9 @@ export default function TransactionForm({
                 </View>
                 <View style={{ flex: 1 }}>
                   <Text style={f.toggleCardTitle}>Gasto fixo mensal</Text>
-                  <Text style={f.toggleCardSub}>Repete nos próximos meses automaticamente</Text>
+                  <Text style={f.toggleCardSub}>
+                    {editItem ? "Marca como fixo e cria os próximos meses" : "Repete nos próximos meses automaticamente"}
+                  </Text>
                 </View>
                 <View style={[f.switchTrack, isRecurring && { backgroundColor: "#3B82F6" }]}>
                   <View style={[f.switchThumb, isRecurring && { transform: [{ translateX: 18 }] }]} />
@@ -263,12 +270,7 @@ export default function TransactionForm({
                 </>
               )}
             </View>
-          ) : editItem.recurringGroupId ? (
-            <View style={{ flexDirection: "row", alignItems: "center", backgroundColor: "#3B82F611", borderRadius: 12, padding: 12, borderWidth: 1, borderColor: "#3B82F622", gap: 8 }}>
-              <Text style={{ fontSize: 16 }}>🔄</Text>
-              <Text style={{ color: "#60A5FA", fontSize: 13, fontWeight: "600", flex: 1 }}>Gasto fixo mensal</Text>
-            </View>
-          ) : null}
+          )}
 
           {/* Conta */}
           {accounts.length > 0 && (

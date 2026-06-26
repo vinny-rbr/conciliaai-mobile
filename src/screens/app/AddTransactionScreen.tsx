@@ -248,6 +248,23 @@ export default function AddTransactionScreen() {
             body: JSON.stringify({ ...payload, date: it.dateISO, status: it.status }),
           });
         }
+      } else if (!editItem.recurringGroupId && isRecurring) {
+        const totalMonths = recurringMode === "forever" ? 12 : Math.max(1, parseInt(recurringMonths, 10) || 12);
+        const groupId = makeGroupId();
+        const r = await fetch(apiUrl(`/api/finance/${editItem.id}`), {
+          method: "PUT",
+          headers: { Authorization: `Bearer ${token ?? ""}`, "Content-Type": "application/json" },
+          body: JSON.stringify({ ...payload, recurringGroupId: groupId, recurringKind: "fixo", recurringTotal: totalMonths }),
+        });
+        if (!r.ok) { const e = await r.json().catch(()=>null) as {message?:string}|null; throw new Error(e?.message ?? `Erro ${r.status}`); }
+        for (let i = 1; i < totalMonths; i++) {
+          const r2 = await fetch(apiUrl("/api/finance"), {
+            method: "POST",
+            headers: { Authorization: `Bearer ${token ?? ""}`, "Content-Type": "application/json" },
+            body: JSON.stringify({ ...payload, date: addMonthsISO(dateISO, i), recurringGroupId: groupId, recurringKind: "fixo", recurringTotal: totalMonths, status: "pending" }),
+          });
+          if (!r2.ok) { const e = await r2.json().catch(()=>null) as {message?:string}|null; throw new Error(e?.message ?? `Erro ${r2.status}`); }
+        }
       } else {
         const r = await fetch(apiUrl(`/api/finance/${editItem.id}`), {
           method: "PUT",
