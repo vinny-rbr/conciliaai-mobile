@@ -4,6 +4,8 @@ import {
   KeyboardAvoidingView, Platform, ActivityIndicator, Animated,
 } from "react-native";
 import { useNavigation } from "@react-navigation/native";
+import type { NativeStackNavigationProp } from "@react-navigation/native-stack";
+import type { AuthStackParamList } from "../../navigation";
 import { apiUrl } from "../../lib/api";
 import { useAuth } from "../../context/AuthContext";
 import { saveEmail } from "../../lib/auth";
@@ -11,7 +13,7 @@ import { useAppAlert } from "../../components/AppAlert";
 
 export default function LoginScreen() {
   const { signIn } = useAuth();
-  const navigation = useNavigation();
+  const navigation = useNavigation<NativeStackNavigationProp<AuthStackParamList>>();
   const [email, setEmail] = useState("");
   const [password, setPassword] = useState("");
   const [loading, setLoading] = useState(false);
@@ -42,7 +44,18 @@ export default function LoginScreen() {
       });
       const data = await res.json() as Record<string, unknown>;
       if (!res.ok) {
-        showAlert("Erro", (data.message as string) ?? "Credenciais inválidas.");
+        const msg = (data.message as string) ?? "Credenciais inválidas.";
+        const needsVerify = res.status === 403 ||
+          msg.toLowerCase().includes("confirme") ||
+          msg.toLowerCase().includes("verif");
+        if (needsVerify) {
+          showAlert("Confirme seu e-mail", msg, [{
+            text: "Verificar agora",
+            onPress: () => navigation.navigate("VerifyEmail", { email: email.trim().toLowerCase() }),
+          }]);
+        } else {
+          showAlert("Erro", msg);
+        }
         return;
       }
       const token = (data.token ?? data.accessToken ?? data.jwt) as string;
