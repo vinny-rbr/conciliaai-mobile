@@ -187,7 +187,7 @@ export const s = StyleSheet.create({
   roleTxtAdmin:   { color: "#60A5FA" },
 
   modalOverlay:  { flex: 1, backgroundColor: "rgba(0,0,0,0.7)", justifyContent: "flex-end" },
-  modalSheet:    { backgroundColor: "#0F172A", borderTopLeftRadius: 24, borderTopRightRadius: 24, padding: 20, paddingBottom: 40, maxHeight: "92%" },
+  modalSheet:    { backgroundColor: "#0F172A", borderTopLeftRadius: 24, borderTopRightRadius: 24, padding: 20, paddingBottom: 8, maxHeight: "92%" },
   modalHandle:   { width: 40, height: 4, borderRadius: 2, backgroundColor: "#334155", alignSelf: "center", marginBottom: 18 },
   modalTitle:    { color: "#F1F5F9", fontSize: 20, fontWeight: "900", marginBottom: 4 },
   modalSub:      { color: "#64748B", fontSize: 13, marginBottom: 16 },

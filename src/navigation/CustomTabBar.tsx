@@ -9,7 +9,7 @@ const ICONS: Record<string, string> = {
   Home: "⌂", Categorias: "◈", Grupos: "⊕", Planejamento: "≡",
 };
 const LABELS: Record<string, string> = {
-  Home: "Início", Categorias: "Categorias", Grupos: "Grupos", Planejamento: "Planos",
+  Home: "Início", Categorias: "Categorias", Grupos: "Grupos", Planejamento: "Planejamento",
 };
 const TAB_COLORS: Record<string, string> = {
   Home: "#60A5FA", Categorias: "#A78BFA", Grupos: "#34D399", Planejamento: "#FBBF24",

@@ -7,7 +7,7 @@ import { ToastContainer } from "./src/components/Toast";
 import { ErrorBoundary } from "./src/components/ErrorBoundary";
 import { OfflineBanner } from "./src/components/OfflineBanner";
 import { PrivacyScreen } from "./src/components/PrivacyScreen";
-import { setupNotificationChannel } from "./src/lib/notificationService";
+import { setupAllChannels, setupForegroundNotificationListener } from "./src/lib/notificationService";
 
 // Silencia todos os logs em produção para não vazar dados em ferramentas de debug
 if (!__DEV__) {
@@ -18,7 +18,8 @@ if (!__DEV__) {
 
 export default function App() {
   useEffect(() => {
-    void setupNotificationChannel();
+    void setupAllChannels();
+    return setupForegroundNotificationListener();
   }, []);
 
   return (

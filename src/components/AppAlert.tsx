@@ -1,5 +1,22 @@
 import { useCallback, useEffect, useRef, useState } from "react";
 import { Animated, Modal, StyleSheet, Text, TouchableOpacity, View } from "react-native";
+import { Audio } from "expo-av";
+
+const ALERT_SOUNDS: Record<string, ReturnType<typeof require>> = {
+  error:   require("../../assets/sounds/blare.mp3"),
+  warning: require("../../assets/sounds/wink.mp3"),
+  success: require("../../assets/sounds/twinkle.mp3"),
+  info:    require("../../assets/sounds/notification_bell.mp3"),
+};
+
+async function playAlertSound(variant: string) {
+  try {
+    const { sound } = await Audio.Sound.createAsync(ALERT_SOUNDS[variant], { shouldPlay: true, volume: 1 });
+    sound.setOnPlaybackStatusUpdate(s => {
+      if (s.isLoaded && s.didJustFinish) sound.unloadAsync();
+    });
+  } catch { /* silently ignore */ }
+}
 
 export type AlertButton = { text: string; onPress?: () => void; style?: "default" | "cancel" | "destructive" };
 
@@ -38,6 +55,7 @@ export function useAppAlert() {
         Animated.spring(scaleAnim, { toValue: 1, tension: 200, friction: 12, useNativeDriver: true }),
         Animated.timing(fadeAnim,  { toValue: 1, duration: 160, useNativeDriver: true }),
       ]).start();
+      void playAlertSound(detectVariant(state.title));
     }
   }, [state]);
 

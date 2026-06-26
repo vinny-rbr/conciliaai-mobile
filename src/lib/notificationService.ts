@@ -1,25 +1,16 @@
 import * as Notifications from "expo-notifications";
 import * as SecureStore from "expo-secure-store";
+import { Audio } from "expo-av";
 import { Platform } from "react-native";
 import { apiFetch } from "./api";
 import { getToken } from "./auth";
 
-const PROJECT_ID    = "d1da11ae-d1fc-4657-bc1b-d191b62ed667";
+const PROJECT_ID     = "d1da11ae-d1fc-4657-bc1b-d191b62ed667";
 const KEY_PUSH_TOKEN = "conciliaai_push_token";
 const KEY_NOTIF_IDS  = "conciliaai_notif_ids";
+export const KEY_SOUND = "conciliaai_notif_sound";
 
-// Som padrão quando o app está em foreground
-Notifications.setNotificationHandler({
-  handleNotification: async () => ({
-    shouldShowAlert:  true,
-    shouldShowBanner: true,
-    shouldShowList:   true,
-    shouldPlaySound:  true,
-    shouldSetBadge:   false,
-  }),
-});
-
-// Mapeamento: id da UI → nome do arquivo em res/raw (sem extensão)
+// Mapeamento: id da UI → nome do arquivo (sem extensão)
 export const SOUND_FILE: Record<string, string> = {
   "default":           "default",
   "notification-bell": "notification_bell",
@@ -36,22 +27,77 @@ export const SOUND_FILE: Record<string, string> = {
   "tlan-tlan":         "tlan_tlan",
 };
 
-// ID versionado — Android não atualiza canal existente, novo ID força criação com o som correto
-const CHANNEL_ID = "conciliaai_v2";
+// Assets para foreground (require() precisa ser estático)
+export const SOUND_ASSETS: Record<string, number> = {
+  notification_bell: require("../../assets/sounds/notification_bell.mp3"),
+  premium:           require("../../assets/sounds/premium.mp3"),
+  twinkle:           require("../../assets/sounds/twinkle.mp3"),
+  welcome_chime:     require("../../assets/sounds/welcome_chime.mp3"),
+  threads:           require("../../assets/sounds/threads.mp3"),
+  blackberry:        require("../../assets/sounds/blackberry.mp3"),
+  wink:              require("../../assets/sounds/wink.mp3"),
+  bottle_cap:        require("../../assets/sounds/bottle_cap.mp3"),
+  beeper_rush:       require("../../assets/sounds/beeper_rush.mp3"),
+  blare:             require("../../assets/sounds/blare.mp3"),
+  crosswalk:         require("../../assets/sounds/crosswalk.mp3"),
+  tlan_tlan:         require("../../assets/sounds/tlan_tlan.mp3"),
+};
 
-export async function setupNotificationChannel(soundId = "default") {
+// Android não permite alterar o som de um canal depois de criado.
+// Solução: um canal por som — cada soundId tem seu próprio channelId.
+export function getChannelId(soundId: string): string {
+  const normalized = soundId.replace(/-/g, "_");
+  return `conciliaai_v3_${normalized}`;
+}
+
+// Foreground: o handler não toca som — tratamos manualmente via expo-av
+// para garantir o som escolhido pelo usuário.
+Notifications.setNotificationHandler({
+  handleNotification: async () => ({
+    shouldShowAlert:  true,
+    shouldShowBanner: true,
+    shouldShowList:   true,
+    shouldPlaySound:  false, // gerenciado pelo setupForegroundNotificationListener
+    shouldSetBadge:   false,
+  }),
+});
+
+// Cria todos os canais Android no startup — um por som.
+// Canais novos aceitam o som configurado; canais já existentes são ignorados pelo Android
+// mas como usamos IDs diferentes por som, isso nunca acontece.
+export async function setupAllChannels(): Promise<void> {
   if (Platform.OS !== "android") return;
-  const soundFile = SOUND_FILE[soundId] ?? "default";
-  // Android busca em res/raw/ pelo nome SEM extensão
-  const sound = soundFile === "default" ? "default" : soundFile;
-  await Notifications.setNotificationChannelAsync(CHANNEL_ID, {
-    name: "ConciliaAI",
-    importance:       Notifications.AndroidImportance.HIGH,
-    sound,
-    vibrationPattern: [0, 250, 250, 250],
-    lightColor:       "#3B82F6",
-    enableVibrate:    true,
+  for (const [soundId, soundFile] of Object.entries(SOUND_FILE)) {
+    const sound = soundFile === "default" ? "default" : soundFile;
+    await Notifications.setNotificationChannelAsync(getChannelId(soundId), {
+      name:             "ConciliaAI",
+      importance:       Notifications.AndroidImportance.HIGH,
+      sound,
+      vibrationPattern: [0, 250, 250, 250],
+      lightColor:       "#3B82F6",
+      enableVibrate:    true,
+    });
+  }
+}
+
+// Listener de foreground: quando chega push com app aberto, toca o som do usuário via expo-av.
+// Retorna a função de cleanup para usar no useEffect.
+export function setupForegroundNotificationListener(): () => void {
+  const sub = Notifications.addNotificationReceivedListener(async () => {
+    try {
+      const soundId  = await SecureStore.getItemAsync(KEY_SOUND) ?? "default";
+      const file     = SOUND_FILE[soundId] ?? "default";
+      if (file === "default") return;
+      const asset = SOUND_ASSETS[file];
+      if (!asset) return;
+      await Audio.setAudioModeAsync({ playsInSilentModeIOS: true });
+      const { sound } = await Audio.Sound.createAsync(asset, { shouldPlay: true, volume: 1 });
+      sound.setOnPlaybackStatusUpdate(s => {
+        if (s.isLoaded && s.didJustFinish) void sound.unloadAsync();
+      });
+    } catch { /* silencioso */ }
   });
+  return () => sub.remove();
 }
 
 export async function requestNotificationPermissions(): Promise<boolean> {
@@ -69,6 +115,8 @@ export async function getOrRegisterPushToken(): Promise<string | null> {
   return token.data;
 }
 
+// Registra token e channelId preferido no backend.
+// O backend deve usar o channelId ao enviar push de grupos para este usuário.
 export async function registerExpoTokenWithBackend(): Promise<void> {
   try {
     const authToken = await getToken();
@@ -81,16 +129,32 @@ export async function registerExpoTokenWithBackend(): Promise<void> {
       return;
     }
     if (!expoPushToken) { if (__DEV__) console.warn("[push-reg] token nulo"); return; }
-    if (__DEV__) console.log("[push-reg] enviando token:", expoPushToken.slice(0, 30));
+    const soundId   = await SecureStore.getItemAsync(KEY_SOUND) ?? "default";
+    const channelId = getChannelId(soundId);
+    if (__DEV__) console.log("[push-reg] enviando token:", expoPushToken.slice(0, 30), "channelId:", channelId);
     const res = await apiFetch("/api/push/expo-token", {
       method: "POST",
       headers: { Authorization: `Bearer ${authToken}` },
-      body: JSON.stringify({ token: expoPushToken }),
+      body: JSON.stringify({ token: expoPushToken, channelId }),
     });
     if (__DEV__) console.log("[push-reg] resposta:", res.status);
   } catch (e) {
     if (__DEV__) console.warn("[push-reg] erro geral:", e);
   }
+}
+
+// Sincroniza o channelId preferido com o backend quando o usuário muda o som.
+export async function syncChannelPreference(soundId: string): Promise<void> {
+  try {
+    const authToken = await getToken();
+    if (!authToken) return;
+    const channelId = getChannelId(soundId);
+    await apiFetch("/api/push/channel-preference", {
+      method: "PATCH",
+      headers: { Authorization: `Bearer ${authToken}` },
+      body: JSON.stringify({ channelId }),
+    });
+  } catch { /* best-effort */ }
 }
 
 const SCHEDULE: { hour: number; title: string; body: string }[] = [
@@ -102,8 +166,7 @@ const SCHEDULE: { hour: number; title: string; body: string }[] = [
 
 export async function scheduleRecurringNotifications(soundId = "default") {
   await cancelAllScheduledNotifications();
-  await setupNotificationChannel(soundId);
-
+  const channelId = getChannelId(soundId);
   const soundFile = SOUND_FILE[soundId] ?? "default";
   const ids: string[] = [];
   for (const item of SCHEDULE) {
@@ -111,14 +174,13 @@ export async function scheduleRecurringNotifications(soundId = "default") {
       content: {
         title: item.title,
         body:  item.body,
-        // iOS usa o nome do arquivo; Android usa o canal (CHANNEL_ID)
         sound: soundFile === "default" ? "default" : `${soundFile}.mp3`,
       },
       trigger: {
-        type:             Notifications.SchedulableTriggerInputTypes.DAILY,
-        hour:             item.hour,
-        minute:           0,
-        channelId:        CHANNEL_ID,
+        type:      Notifications.SchedulableTriggerInputTypes.DAILY,
+        hour:      item.hour,
+        minute:    0,
+        channelId,
       },
     });
     ids.push(id);
@@ -132,18 +194,33 @@ export async function cancelAllScheduledNotifications() {
 }
 
 export async function sendTestNotification(soundId = "default") {
-  await setupNotificationChannel(soundId);
+  const channelId = getChannelId(soundId);
   const soundFile = SOUND_FILE[soundId] ?? "default";
   await Notifications.scheduleNotificationAsync({
     content: {
-      title:   "ConciliaAI 🔔",
-      body:    "Notificações funcionando!",
-      sound:   soundFile === "default" ? "default" : `${soundFile}.mp3`,
+      title: "ConciliaAI 🔔",
+      body:  "Notificações funcionando!",
+      sound: soundFile === "default" ? "default" : `${soundFile}.mp3`,
     },
     trigger: {
       type:      Notifications.SchedulableTriggerInputTypes.TIME_INTERVAL,
       seconds:   2,
-      channelId: CHANNEL_ID,
+      channelId,
     },
+  });
+}
+
+// Mantida por compatibilidade — cria só o canal do soundId passado
+export async function setupNotificationChannel(soundId = "default") {
+  if (Platform.OS !== "android") return;
+  const soundFile = SOUND_FILE[soundId] ?? "default";
+  const sound = soundFile === "default" ? "default" : soundFile;
+  await Notifications.setNotificationChannelAsync(getChannelId(soundId), {
+    name:             "ConciliaAI",
+    importance:       Notifications.AndroidImportance.HIGH,
+    sound,
+    vibrationPattern: [0, 250, 250, 250],
+    lightColor:       "#3B82F6",
+    enableVibrate:    true,
   });
 }

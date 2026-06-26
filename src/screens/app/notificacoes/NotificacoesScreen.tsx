@@ -10,28 +10,14 @@ import {
   scheduleRecurringNotifications,
   cancelAllScheduledNotifications,
   sendTestNotification,
+  syncChannelPreference,
   SOUND_FILE,
+  SOUND_ASSETS,
+  KEY_SOUND,
 } from "../../../lib/notificationService";
-
-// mapa estático — require() não aceita strings dinâmicas
-const SOUND_ASSETS: Record<string, number> = {
-  notification_bell: require("../../../../assets/sounds/notification_bell.mp3"),
-  premium:           require("../../../../assets/sounds/premium.mp3"),
-  twinkle:           require("../../../../assets/sounds/twinkle.mp3"),
-  welcome_chime:     require("../../../../assets/sounds/welcome_chime.mp3"),
-  threads:           require("../../../../assets/sounds/threads.mp3"),
-  blackberry:        require("../../../../assets/sounds/blackberry.mp3"),
-  wink:              require("../../../../assets/sounds/wink.mp3"),
-  bottle_cap:        require("../../../../assets/sounds/bottle_cap.mp3"),
-  beeper_rush:       require("../../../../assets/sounds/beeper_rush.mp3"),
-  blare:             require("../../../../assets/sounds/blare.mp3"),
-  crosswalk:         require("../../../../assets/sounds/crosswalk.mp3"),
-  tlan_tlan:         require("../../../../assets/sounds/tlan_tlan.mp3"),
-};
 
 const KEY_ENABLED = "conciliaai_notif_enabled";
 const KEY_VIBRATE = "conciliaai_notif_vibrate";
-const KEY_SOUND   = "conciliaai_notif_sound";
 
 const SOUNDS = [
   { id: "default",           label: "Padrão do sistema" },
@@ -136,6 +122,7 @@ export default function NotificacoesScreen() {
     setSound(id);
     void previewSound(id);
     await SecureStore.setItemAsync(KEY_SOUND, id);
+    void syncChannelPreference(id);
     if (enabled) {
       await scheduleRecurringNotifications(id);
     }
