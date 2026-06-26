@@ -12,6 +12,74 @@ if (Platform.OS === "android" && UIManager.setLayoutAnimationEnabledExperimental
 
 const CHIP_SLOT_H = 34;
 
+function ChipItem({
+  sub, depth, childrenOf, expandedSubs, toggleSub, onSubMenu,
+  draggingSubId, newlyAddedId, chipEnterScale, onLongPressChip, idx,
+}: {
+  sub: FinanceCategoryOption;
+  depth: number;
+  childrenOf?: (id: string) => FinanceCategoryOption[];
+  expandedSubs: Set<string>;
+  toggleSub: (id: string) => void;
+  onSubMenu?: (sub: FinanceCategoryOption) => void;
+  draggingSubId?: string | null;
+  newlyAddedId: string | null;
+  chipEnterScale: Animated.Value;
+  onLongPressChip?: (sub: FinanceCategoryOption, pageX: number, pageY: number, idx: number) => void;
+  idx: number;
+}) {
+  const children = childrenOf?.(sub.id) ?? [];
+  const isOpen     = expandedSubs.has(sub.id);
+  const isDragging = draggingSubId === sub.id;
+  const isNew      = newlyAddedId === sub.id && depth === 0;
+  const indent     = Math.min(depth, 4) * 14;
+
+  return (
+    <Animated.View style={{ opacity: isDragging ? 0.2 : 1 }}>
+      <Animated.View style={isNew ? { transform: [{ scale: chipEnterScale }] } : undefined}>
+        <View style={[c.chipRow, indent > 0 && { marginLeft: indent }]}>
+          <TouchableOpacity
+            style={[c.chip, depth > 0 && c.nestedChip, { flex: 1 }]}
+            activeOpacity={0.7}
+            delayLongPress={450}
+            onPress={() => { if (children.length > 0) toggleSub(sub.id); }}
+            onLongPress={depth === 0 ? (e) => {
+              onLongPressChip?.(sub, e.nativeEvent.pageX, e.nativeEvent.pageY, idx);
+            } : undefined}
+            hitSlop={4}
+          >
+            <View style={[c.chipDot, { backgroundColor: sub.color }]} />
+            <Text style={c.chipTxt} numberOfLines={1}>{sub.name}</Text>
+            {children.length > 0 && (
+              <Text style={c.chipArrow}>{isOpen ? "▲" : "▼"}</Text>
+            )}
+          </TouchableOpacity>
+          <TouchableOpacity onPress={() => onSubMenu?.(sub)} hitSlop={8} style={c.chipMenuBtn}>
+            <Text style={c.chipEdit}>•••</Text>
+          </TouchableOpacity>
+        </View>
+      </Animated.View>
+
+      {isOpen && children.map(child => (
+        <ChipItem
+          key={child.id}
+          sub={child}
+          depth={depth + 1}
+          childrenOf={childrenOf}
+          expandedSubs={expandedSubs}
+          toggleSub={toggleSub}
+          onSubMenu={onSubMenu}
+          draggingSubId={draggingSubId}
+          newlyAddedId={newlyAddedId}
+          chipEnterScale={chipEnterScale}
+          onLongPressChip={onLongPressChip}
+          idx={idx}
+        />
+      ))}
+    </Animated.View>
+  );
+}
+
 export function CategoryCard({
   cat, subs, onMenu, onLongPress, onSubMenu, childrenOf,
   onChipDragStart, onChipDragMove, onChipDragEnd, onChipDragCancel, draggingSubId,
@@ -31,17 +99,14 @@ export function CategoryCard({
   isHovered?: boolean;
   isDragActive?: boolean;
 }) {
-  const [expanded, setExpanded]       = useState(false);
+  const [expanded, setExpanded]         = useState(false);
   const [expandedSubs, setExpandedSubs] = useState<Set<string>>(new Set());
-  const [subOrder, setSubOrder]       = useState<string[]>(() => subs.map(s => s.id));
+  const [subOrder, setSubOrder]         = useState<string[]>(() => subs.map(s => s.id));
   const [newlyAddedId, setNewlyAddedId] = useState<string | null>(null);
   const LIMIT = 4;
 
-  // Card hover glow (useNativeDriver:false — opacity on overlay)
-  const glowAnim = useRef(new Animated.Value(0)).current;
-  // Card dim when another card is being hovered (useNativeDriver:true — opacity)
-  const dimAnim  = useRef(new Animated.Value(1)).current;
-  // Chip entrance spring scale
+  const glowAnim       = useRef(new Animated.Value(0)).current;
+  const dimAnim        = useRef(new Animated.Value(1)).current;
   const chipEnterScale = useRef(new Animated.Value(1)).current;
 
   useEffect(() => {
@@ -56,7 +121,6 @@ export function CategoryCard({
     }).start();
   }, [isDragActive, isHovered, dimAnim]);
 
-  // Sync subOrder + detect newly added chip → entrance bounce
   useEffect(() => {
     setSubOrder(prev => {
       const existingSet = new Set(subs.map(s => s.id));
@@ -80,15 +144,14 @@ export function CategoryCard({
     });
   }, [subs, chipEnterScale]);
 
-  const orderedSubs    = subOrder.map(id => subs.find(s => s.id === id)).filter(Boolean) as FinanceCategoryOption[];
-  const visibleSubs    = expanded ? orderedSubs : orderedSubs.slice(0, LIMIT);
-  const hiddenCount    = orderedSubs.length - LIMIT;
+  const orderedSubs = subOrder.map(id => subs.find(s => s.id === id)).filter(Boolean) as FinanceCategoryOption[];
+  const visibleSubs = expanded ? orderedSubs : orderedSubs.slice(0, LIMIT);
+  const hiddenCount = orderedSubs.length - LIMIT;
 
-  // Drag refs
-  const chipDragRef      = useRef<string | null>(null);
-  const dragStartSlot    = useRef(-1);
-  const hoverSlotRef     = useRef(-1);
-  const orderedSubsRef   = useRef<FinanceCategoryOption[]>(orderedSubs);
+  const chipDragRef    = useRef<string | null>(null);
+  const dragStartSlot  = useRef(-1);
+  const hoverSlotRef   = useRef(-1);
+  const orderedSubsRef = useRef<FinanceCategoryOption[]>(orderedSubs);
   orderedSubsRef.current = orderedSubs;
   const cbRef = useRef({ onChipDragMove, onChipDragEnd, onChipDragCancel });
   cbRef.current = { onChipDragMove, onChipDragEnd, onChipDragCancel };
@@ -150,7 +213,6 @@ export function CategoryCard({
 
   return (
     <Animated.View style={[c.card, { opacity: dimAnim }]}>
-      {/* Blue glow overlay when this card is the drop target */}
       {isDragActive && (
         <Animated.View
           pointerEvents="none"
@@ -182,60 +244,27 @@ export function CategoryCard({
       {subs.length > 0 && (
         <View {...chipAreaPan.panHandlers}>
           <View style={c.chips}>
-            {visibleSubs.map((sub, idx) => {
-              const grandchildren = childrenOf?.(sub.id) ?? [];
-              const isOpen     = expandedSubs.has(sub.id);
-              const isDragging = draggingSubId === sub.id;
-              const isNew      = newlyAddedId === sub.id;
-              return (
-                <Animated.View
-                  key={sub.id}
-                  style={[
-                    { opacity: isDragging ? 0.2 : 1 },
-                    isNew && { transform: [{ scale: chipEnterScale }] },
-                  ]}
-                >
-                  <View style={c.chipRow}>
-                    <TouchableOpacity
-                      style={[c.chip, { flex: 1 }]}
-                      activeOpacity={0.7}
-                      delayLongPress={450}
-                      onPress={() => { if (grandchildren.length > 0) toggleSub(sub.id); }}
-                      onLongPress={(e) => {
-                        chipDragRef.current   = sub.id;
-                        dragStartSlot.current = idx;
-                        hoverSlotRef.current  = idx;
-                        onChipDragStart?.(sub, e.nativeEvent.pageX, e.nativeEvent.pageY);
-                      }}
-                      hitSlop={4}
-                    >
-                      <View style={[c.chipDot, { backgroundColor: sub.color }]} />
-                      <Text style={c.chipTxt} numberOfLines={1}>{sub.name}</Text>
-                      {grandchildren.length > 0 && (
-                        <Text style={c.chipArrow}>{isOpen ? "▲" : "▼"}</Text>
-                      )}
-                    </TouchableOpacity>
-                    <TouchableOpacity onPress={() => onSubMenu?.(sub)} hitSlop={8} style={c.chipMenuBtn}>
-                      <Text style={c.chipEdit}>•••</Text>
-                    </TouchableOpacity>
-                  </View>
-
-                  {isOpen && grandchildren.map(gc => (
-                    <TouchableOpacity
-                      key={gc.id}
-                      style={c.grandchip}
-                      activeOpacity={0.7}
-                      onPress={() => onSubMenu?.(gc)}
-                      hitSlop={4}
-                    >
-                      <View style={[c.chipDot, { backgroundColor: gc.color }]} />
-                      <Text style={c.chipTxt} numberOfLines={1}>{gc.name}</Text>
-                      <Text style={c.chipEdit}>•••</Text>
-                    </TouchableOpacity>
-                  ))}
-                </Animated.View>
-              );
-            })}
+            {visibleSubs.map((sub, idx) => (
+              <ChipItem
+                key={sub.id}
+                sub={sub}
+                depth={0}
+                childrenOf={childrenOf}
+                expandedSubs={expandedSubs}
+                toggleSub={toggleSub}
+                onSubMenu={onSubMenu}
+                draggingSubId={draggingSubId}
+                newlyAddedId={newlyAddedId}
+                chipEnterScale={chipEnterScale}
+                onLongPressChip={(s, pageX, pageY, i) => {
+                  chipDragRef.current   = s.id;
+                  dragStartSlot.current = i;
+                  hoverSlotRef.current  = i;
+                  onChipDragStart?.(s, pageX, pageY);
+                }}
+                idx={idx}
+              />
+            ))}
 
             {!expanded && hiddenCount > 0 && (
               <TouchableOpacity style={c.moreBtn} onPress={() => setExpanded(true)} hitSlop={8}>
@@ -261,7 +290,6 @@ const c = StyleSheet.create({
     borderWidth: 2,
     borderColor: "#3B82F6",
     backgroundColor: "rgba(59,130,246,0.07)",
-    // iOS glow
     shadowColor: "#3B82F6",
     shadowOpacity: 1,
     shadowRadius: 18,
@@ -278,12 +306,12 @@ const c = StyleSheet.create({
   chips: { gap: 6 },
   chipRow: { flexDirection: "row", alignItems: "center", gap: 4 },
   chip: { flexDirection: "row", alignItems: "center", gap: 6, backgroundColor: "#0F172A", borderRadius: 8, paddingHorizontal: 8, paddingVertical: 5 },
+  nestedChip: { backgroundColor: "#0a1628", borderLeftWidth: 2, borderLeftColor: "#3B82F6" },
   chipDot: { width: 7, height: 7, borderRadius: 4 },
   chipTxt: { color: "#94A3B8", fontSize: 12, fontWeight: "500", flex: 1 },
   chipEdit: { color: "#334155", fontSize: 10, letterSpacing: 0.5 },
   chipArrow: { color: "#60A5FA", fontSize: 9, fontWeight: "700" },
   chipMenuBtn: { paddingHorizontal: 6, paddingVertical: 5 },
-  grandchip: { flexDirection: "row", alignItems: "center", gap: 6, backgroundColor: "#0a1628", borderRadius: 8, paddingHorizontal: 8, paddingVertical: 5, marginLeft: 16, marginTop: 3, borderLeftWidth: 2, borderLeftColor: "#3B82F6" },
   moreBtn: { marginTop: 2, alignSelf: "flex-start" },
   moreTxt: { color: "#60a5fa", fontSize: 11, fontWeight: "600" },
 });
