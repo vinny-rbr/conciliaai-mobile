@@ -29,7 +29,7 @@
       },
       "predictiveBackGestureEnabled": false,
       "package": "br.app.conciliaai.www.twa",
-      "googleServicesFile": "./google-services.json",
+      "googleServicesFile": "./google-services.template.json",
       "permissions": [
         "VIBRATE",
         "POST_NOTIFICATIONS",

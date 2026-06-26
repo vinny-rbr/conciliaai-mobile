@@ -1,0 +1,29 @@
+{
+  "project_info": {
+    "project_number": "425921805037",
+    "project_id": "conciliaai-9dd4e",
+    "storage_bucket": "conciliaai-9dd4e.firebasestorage.app"
+  },
+  "client": [
+    {
+      "client_info": {
+        "mobilesdk_app_id": "1:425921805037:android:859ea9e146bb65a0c86ae4",
+        "android_client_info": {
+          "package_name": "br.app.conciliaai.www.twa"
+        }
+      },
+      "oauth_client": [],
+      "api_key": [
+        {
+          "current_key": "REPLACE_WITH_REAL_KEY_VIA_EAS_ENV_VAR"
+        }
+      ],
+      "services": {
+        "appinvite_service": {
+          "other_platform_oauth_client": []
+        }
+      }
+    }
+  ],
+  "configuration_version": "1"
+}

@@ -14,7 +14,7 @@
     "production": {
       "autoIncrement": true,
       "credentialsSource": "remote",
-      "prebuildCommand": "cp $GOOGLE_SERVICES_JSON google-services.json"
+      "prebuildCommand": "[ -n \"$GOOGLE_SERVICES_JSON\" ] && cp \"$GOOGLE_SERVICES_JSON\" google-services.template.json && echo 'google-services: real keys applied' || echo 'GOOGLE_SERVICES_JSON not set, using template'"
     }
   },
   "submit": {
