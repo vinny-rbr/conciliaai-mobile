@@ -6,7 +6,7 @@ export type PlanTab    = "orcamento" | "poupanca" | "previsao" | "objetivos" | "
 export type BudgetLimit = { category: string; limitCents: number };
 export type Goal        = { id: string; name: string; emoji: string; targetCents: number; savedCents: number; deadline: string };
 export type WorkType    = "mototaxi" | "entregador" | "motorista" | "autonomo" | "outro";
-export type DiariaView    = "meta" | "registro";
+export type DiariaView    = "meta" | "registro" | "relatorios";
 export type DiariaExpense = { id: string; name: string; amountCents: number };
 export type DiariaLog     = { date: string; earnedCents: number }; // date = YYYY-MM-DD
 export type DiariaPerfil  = {

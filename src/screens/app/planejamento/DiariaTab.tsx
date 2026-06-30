@@ -212,6 +212,17 @@ export default function DiariaTab({ refreshing, onRefresh }: Props) {
     await SecureStore.setItemAsync(DIARIA_LOGS_KEY(curYM()), JSON.stringify(next));
   }
 
+  function changeLogDate(delta: number) {
+    if (!logModal) return;
+    const d = new Date(logModal.date + "T12:00:00");
+    d.setDate(d.getDate() + delta);
+    const newDate = d.toISOString().slice(0, 10);
+    if (newDate > todayISO()) return;
+    const existing = diariaLogs.find(l => l.date === newDate);
+    setLogModal({ date: newDate, current: existing?.earnedCents });
+    setLogVal(existing ? fmtBRL(String(existing.earnedCents)) : "");
+  }
+
   // ── Calculations ──────────────────────────────────────────────────
   const wt               = WORK_TYPES.find(w => w.type === workType)!;
   const totalFixedCents  = diariaExpenses.reduce((a, e) => a + e.amountCents, 0);
@@ -245,12 +256,13 @@ export default function DiariaTab({ refreshing, onRefresh }: Props) {
     <>
       {/* ── Segmented toggle ──────────────────────────────────── */}
       <View style={{ flexDirection: "row", marginHorizontal: 18, marginTop: 8, marginBottom: 4, backgroundColor: "#0d1626", borderWidth: 1, borderColor: "rgba(148,163,184,0.08)", borderRadius: 16, padding: 5, gap: 4 }}>
-        {(["meta", "registro"] as DiariaView[]).map(v => {
+        {(["meta", "registro", "relatorios"] as DiariaView[]).map(v => {
           const active = diariaView === v;
+          const label = v === "meta" ? "Configurar" : v === "registro" ? "Registro" : "Relatórios";
           return (
             <TouchableOpacity key={v} onPress={() => setDiariaView(v)} style={{ flex: 1, paddingVertical: 11, borderRadius: 12, alignItems: "center", backgroundColor: active ? "#1b2840" : "transparent" }}>
-              <Text style={{ color: active ? C.white : C.muted, fontSize: 14, fontWeight: active ? "700" : "500" }}>
-                {v === "meta" ? "Configurar meta" : "Registro do mês"}
+              <Text style={{ color: active ? C.white : C.muted, fontSize: 13, fontWeight: active ? "700" : "500" }}>
+                {label}
               </Text>
             </TouchableOpacity>
           );
@@ -617,16 +629,138 @@ export default function DiariaTab({ refreshing, onRefresh }: Props) {
         </ScrollView>
       )}
 
+      {/* ══════════════ RELATÓRIOS VIEW ═══════════════════════ */}
+      {diariaView === "relatorios" && (
+        <ScrollView style={{ flex: 1 }} contentContainerStyle={{ padding: 18, paddingBottom: 100, gap: 16 }} refreshControl={refreshCtrl} showsVerticalScrollIndicator={false}>
+
+          {/* Summary hero */}
+          <View style={{ backgroundColor: C.hero, borderRadius: 24, borderWidth: 1, borderColor: C.heroBorder, padding: 22 }}>
+            <Text style={{ color: "#93a3bd", fontSize: 11, fontWeight: "800", letterSpacing: 1.6, marginBottom: 14 }}>RESUMO DO MÊS</Text>
+
+            <View style={{ flexDirection: "row", gap: 12, marginBottom: 14 }}>
+              <View style={{ flex: 1, backgroundColor: C.innerCard, borderRadius: 16, padding: 14, gap: 4 }}>
+                <Text style={{ color: C.muted, fontSize: 11, fontWeight: "700", letterSpacing: 0.8 }}>ACUMULADO</Text>
+                <Text style={{ color: C.green, fontSize: 22, fontWeight: "800" }}>{fmt(totalEarned)}</Text>
+              </View>
+              <View style={{ flex: 1, backgroundColor: C.innerCard, borderRadius: 16, padding: 14, gap: 4 }}>
+                <Text style={{ color: C.muted, fontSize: 11, fontWeight: "700", letterSpacing: 0.8 }}>META MÊS</Text>
+                <Text style={{ color: C.accent, fontSize: 22, fontWeight: "800" }}>{grossMonth > 0 ? fmt(grossMonth) : "—"}</Text>
+              </View>
+            </View>
+
+            {grossMonth > 0 && (
+              <>
+                <View style={{ backgroundColor: C.innerCard, borderRadius: 14, padding: 14, flexDirection: "row", justifyContent: "space-between", alignItems: "center", marginBottom: 14 }}>
+                  <Text style={{ color: C.slate, fontSize: 13, fontWeight: "600" }}>Diferença acumulada</Text>
+                  <Text style={{ color: totalEarned >= grossMonth ? C.green : C.red, fontSize: 15, fontWeight: "800" }}>
+                    {totalEarned >= grossMonth ? "+" : ""}{fmt(totalEarned - grossMonth)}
+                  </Text>
+                </View>
+                <View style={{ height: 10, borderRadius: 99, backgroundColor: "rgba(7,12,22,0.7)", overflow: "hidden", marginBottom: 8 }}>
+                  <View style={{ height: "100%", width: `${Math.min(100, Math.round(totalEarned / grossMonth * 100))}%`, backgroundColor: totalEarned >= grossMonth ? C.green : C.accent, borderRadius: 99 }} />
+                </View>
+                <View style={{ flexDirection: "row", justifyContent: "space-between" }}>
+                  <Text style={{ color: C.muted, fontSize: 12 }}>{daysLogged} dias registrados</Text>
+                  <Text style={{ color: totalEarned >= grossMonth ? C.green : C.accent, fontSize: 12, fontWeight: "700" }}>
+                    {Math.round(totalEarned / grossMonth * 100)}%
+                  </Text>
+                </View>
+              </>
+            )}
+          </View>
+
+          {/* Média vs Meta stat cards */}
+          {daysLogged > 0 && (
+            <View style={{ flexDirection: "row", gap: 12 }}>
+              <View style={{ flex: 1, backgroundColor: C.card, borderRadius: 20, borderWidth: 1, borderColor: C.cardBorder, padding: 16, alignItems: "center", gap: 5 }}>
+                <Text style={{ color: C.muted, fontSize: 11, fontWeight: "700", letterSpacing: 0.8 }}>MÉDIA/DIA</Text>
+                <Text style={{ color: C.amber, fontSize: 18, fontWeight: "800" }}>{fmt(avgEarned)}</Text>
+                {dailyGross > 0 && (
+                  <Text style={{ color: avgEarned >= Math.round(dailyGross) ? C.green : C.red, fontSize: 11, fontWeight: "600" }}>
+                    {avgEarned >= Math.round(dailyGross) ? "↑ acima" : "↓ abaixo"} da meta
+                  </Text>
+                )}
+              </View>
+              {dailyGross > 0 && (
+                <View style={{ flex: 1, backgroundColor: C.card, borderRadius: 20, borderWidth: 1, borderColor: C.cardBorder, padding: 16, alignItems: "center", gap: 5 }}>
+                  <Text style={{ color: C.muted, fontSize: 11, fontWeight: "700", letterSpacing: 0.8 }}>META/DIA</Text>
+                  <Text style={{ color: C.accent, fontSize: 18, fontWeight: "800" }}>{fmt(Math.round(dailyGross))}</Text>
+                  <Text style={{ color: C.dim, fontSize: 11 }}>bruto esperado</Text>
+                </View>
+              )}
+            </View>
+          )}
+
+          {/* Per-day breakdown table */}
+          {diariaLogs.length === 0 ? (
+            <View style={s.emptyCard}>
+              <Text style={{ fontSize: 32, marginBottom: 8 }}>📊</Text>
+              <Text style={s.emptyTitle}>Sem registros</Text>
+              <Text style={s.emptyTxt}>Registre seus ganhos na aba Registro para ver o relatório detalhado.</Text>
+            </View>
+          ) : (
+            <View style={{ backgroundColor: C.card, borderRadius: 22, borderWidth: 1, borderColor: C.cardBorder, overflow: "hidden" }}>
+              <View style={{ flexDirection: "row", paddingHorizontal: 16, paddingVertical: 11, borderBottomWidth: 1, borderColor: "rgba(148,163,184,0.12)" }}>
+                <Text style={{ flex: 1.2, color: C.muted, fontSize: 11, fontWeight: "700", letterSpacing: 0.8 }}>DATA</Text>
+                <Text style={{ flex: 1.3, color: C.muted, fontSize: 11, fontWeight: "700", letterSpacing: 0.8, textAlign: "right" }}>REALIZADO</Text>
+                <Text style={{ flex: 1.3, color: C.muted, fontSize: 11, fontWeight: "700", letterSpacing: 0.8, textAlign: "right" }}>ACUMULADO</Text>
+                <Text style={{ flex: 1, color: C.muted, fontSize: 11, fontWeight: "700", letterSpacing: 0.8, textAlign: "right" }}>DIFER.</Text>
+              </View>
+              {(() => {
+                const sorted = [...diariaLogs].sort((a, b) => a.date.localeCompare(b.date));
+                let running = 0;
+                return sorted.map((log, i) => {
+                  running += log.earnedCents;
+                  const [, m, d] = log.date.split("-");
+                  const isToday = log.date === todayISO();
+                  const meta = Math.round(dailyGross);
+                  const diff = meta > 0 ? log.earnedCents - meta : null;
+                  const hit = diff !== null && diff >= 0;
+                  return (
+                    <View key={log.date} style={{ flexDirection: "row", alignItems: "center", paddingHorizontal: 16, paddingVertical: 12, borderBottomWidth: i < sorted.length - 1 ? 1 : 0, borderColor: "rgba(148,163,184,0.07)" }}>
+                      <View style={{ flex: 1.2 }}>
+                        <Text style={{ color: isToday ? C.accent : C.text, fontSize: 13, fontWeight: isToday ? "700" : "600" }}>{d}/{m}</Text>
+                        {isToday && <Text style={{ color: C.accent, fontSize: 9, fontWeight: "700", letterSpacing: 0.5 }}>HOJE</Text>}
+                      </View>
+                      <Text style={{ flex: 1.3, color: diff === null || hit ? C.green : C.amber, fontSize: 13, fontWeight: "700", textAlign: "right" }}>{fmt(log.earnedCents)}</Text>
+                      <Text style={{ flex: 1.3, color: C.slate, fontSize: 12, fontWeight: "600", textAlign: "right" }}>{fmt(running)}</Text>
+                      <Text style={{ flex: 1, color: diff === null ? C.dim : hit ? C.green : C.red, fontSize: 12, fontWeight: "700", textAlign: "right" }}>
+                        {diff === null ? "—" : `${hit ? "+" : ""}${fmt(diff)}`}
+                      </Text>
+                    </View>
+                  );
+                });
+              })()}
+            </View>
+          )}
+        </ScrollView>
+      )}
+
       {/* ── MODAL: Ganho do dia ──────────────────────────────── */}
       <Modal visible={logModal !== null} transparent animationType="fade" onRequestClose={() => setLogModal(null)}>
         <KeyboardAvoidingView behavior={Platform.OS === "ios" ? "padding" : undefined} style={{ flex: 1 }}>
           <View style={s.overlay}>
             <View style={s.modal}>
               <Text style={s.modalTitle}>Ganho do dia</Text>
-              <Text style={s.modalSub}>
-                {logModal?.date ? logModal.date.split("-").reverse().join("/") : ""}
-                {dailyGross > 0 ? ` · meta: ${fmt(Math.round(dailyGross))}` : ""}
-              </Text>
+              <View style={{ flexDirection: "row", alignItems: "center", justifyContent: "space-between", marginTop: 4 }}>
+                <TouchableOpacity onPress={() => changeLogDate(-1)} style={{ padding: 8, marginLeft: -8 }}>
+                  <Text style={{ color: C.accent, fontSize: 24, fontWeight: "700" }}>‹</Text>
+                </TouchableOpacity>
+                <View style={{ alignItems: "center" }}>
+                  <Text style={{ color: C.text, fontSize: 15, fontWeight: "700" }}>
+                    {logModal?.date ? logModal.date.split("-").reverse().slice(0, 2).join("/") : ""}
+                  </Text>
+                  {dailyGross > 0 && (
+                    <Text style={{ color: C.muted, fontSize: 12, marginTop: 2 }}>meta: {fmt(Math.round(dailyGross))}</Text>
+                  )}
+                </View>
+                <TouchableOpacity
+                  onPress={() => changeLogDate(1)}
+                  disabled={logModal?.date === todayISO()}
+                  style={{ padding: 8, marginRight: -8 }}>
+                  <Text style={{ color: logModal?.date === todayISO() ? C.dim : C.accent, fontSize: 24, fontWeight: "700" }}>›</Text>
+                </TouchableOpacity>
+              </View>
               <TextInput style={s.input} placeholder="Quanto você ganhou hoje? (R$)" placeholderTextColor={C.dim} keyboardType="numeric" value={logVal} onChangeText={v => setLogVal(fmtBRL(v))} autoFocus />
               <View style={s.modalBtns}>
                 <TouchableOpacity style={s.btnCancel} onPress={() => { setLogModal(null); setLogVal(""); }}>
