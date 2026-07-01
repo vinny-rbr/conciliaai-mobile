@@ -3,6 +3,7 @@ import {
   View, Text, ScrollView, TouchableOpacity, Modal,
   TextInput, KeyboardAvoidingView, Platform, RefreshControl,
 } from "react-native";
+import DateTimePicker from "@react-native-community/datetimepicker";
 import * as SecureStore from "expo-secure-store";
 import { useFocusEffect } from "@react-navigation/native";
 import { fmt } from "../../../lib/financeService";
@@ -109,6 +110,7 @@ export default function DiariaTab({ refreshing, onRefresh }: Props) {
   const [diariaLogs,       setDiariaLogs]     = useState<DiariaLog[]>([]);
   const [logModal,         setLogModal]       = useState<{ date: string; current?: number } | null>(null);
   const [logVal,           setLogVal]         = useState("");
+  const [showDatePicker,   setShowDatePicker] = useState(false);
   const [addExpModal,      setAddExpModal]    = useState(false);
   const [editExpItem,      setEditExpItem]    = useState<DiariaExpense | null>(null);
   const [expName,          setExpName]        = useState("");
@@ -746,14 +748,14 @@ export default function DiariaTab({ refreshing, onRefresh }: Props) {
                 <TouchableOpacity onPress={() => changeLogDate(-1)} style={{ padding: 8, marginLeft: -8 }}>
                   <Text style={{ color: C.accent, fontSize: 24, fontWeight: "700" }}>‹</Text>
                 </TouchableOpacity>
-                <View style={{ alignItems: "center" }}>
-                  <Text style={{ color: C.text, fontSize: 15, fontWeight: "700" }}>
+                <TouchableOpacity onPress={() => setShowDatePicker(true)} style={{ alignItems: "center" }}>
+                  <Text style={{ color: C.accent, fontSize: 15, fontWeight: "700", textDecorationLine: "underline" }}>
                     {logModal?.date ? logModal.date.split("-").reverse().slice(0, 2).join("/") : ""}
                   </Text>
                   {dailyGross > 0 && (
                     <Text style={{ color: C.muted, fontSize: 12, marginTop: 2 }}>meta: {fmt(Math.round(dailyGross))}</Text>
                   )}
-                </View>
+                </TouchableOpacity>
                 <TouchableOpacity
                   onPress={() => changeLogDate(1)}
                   disabled={logModal?.date === todayISO()}
@@ -761,6 +763,22 @@ export default function DiariaTab({ refreshing, onRefresh }: Props) {
                   <Text style={{ color: logModal?.date === todayISO() ? C.dim : C.accent, fontSize: 24, fontWeight: "700" }}>›</Text>
                 </TouchableOpacity>
               </View>
+              {showDatePicker && logModal && (
+                <DateTimePicker
+                  value={new Date(logModal.date + "T12:00:00")}
+                  mode="date"
+                  display={Platform.OS === "ios" ? "inline" : "calendar"}
+                  maximumDate={new Date()}
+                  onChange={(_e, selected) => {
+                    setShowDatePicker(false);
+                    if (!selected) return;
+                    const newDate = selected.toISOString().slice(0, 10);
+                    const existing = diariaLogs.find(l => l.date === newDate);
+                    setLogModal({ date: newDate, current: existing?.earnedCents });
+                    setLogVal(existing ? fmtBRL(String(existing.earnedCents)) : "");
+                  }}
+                />
+              )}
               <TextInput style={s.input} placeholder="Quanto você ganhou hoje? (R$)" placeholderTextColor={C.dim} keyboardType="numeric" value={logVal} onChangeText={v => setLogVal(fmtBRL(v))} autoFocus />
               <View style={s.modalBtns}>
                 <TouchableOpacity style={s.btnCancel} onPress={() => { setLogModal(null); setLogVal(""); }}>
