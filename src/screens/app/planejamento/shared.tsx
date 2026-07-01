@@ -12,6 +12,7 @@ export type DiariaLog     = { date: string; earnedCents: number }; // date = YYY
 export type DiariaPerfil  = {
   workType: WorkType;
   workDays: number;
+  workDaysList?: number[]; // dias específicos do mês (1–31)
   fuelCents: number;
   maintenanceCents: number;
   platformCutPct: number;

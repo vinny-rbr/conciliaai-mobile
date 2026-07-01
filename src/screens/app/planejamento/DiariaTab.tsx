@@ -111,6 +111,10 @@ export default function DiariaTab({ refreshing, onRefresh }: Props) {
   const [logModal,         setLogModal]       = useState<{ date: string; current?: number } | null>(null);
   const [logVal,           setLogVal]         = useState("");
   const [showDatePicker,   setShowDatePicker] = useState(false);
+  const [workDaysList,     setWorkDaysList]   = useState<number[]>([]);
+  const [workDaysCalModal, setWorkDaysCalModal] = useState(false);
+  const [selectedDays,     setSelectedDays]   = useState<number[]>([]);
+  const [tempWorkDays,     setTempWorkDays]   = useState(22);
   const [addExpModal,      setAddExpModal]    = useState(false);
   const [editExpItem,      setEditExpItem]    = useState<DiariaExpense | null>(null);
   const [expName,          setExpName]        = useState("");
@@ -139,6 +143,7 @@ export default function DiariaTab({ refreshing, onRefresh }: Props) {
         const liq  = d.liquidMeta ?? 0;
         setWorkType(wt); setWorkDays(wd); setFuelCents(fc); setMaintCents(mc);
         setPlatformCutPct(pct); setLiquidMeta(liq); setDiariaExpenses(d.expenses ?? []);
+        setWorkDaysList(d.workDaysList ?? []);
         setLiquidInput(liq > 0 ? fmtBRL(String(liq)) : "");
         setFuelInput(fc > 0 ? fmtBRL(String(fc)) : "");
         setMaintInput(mc > 0 ? fmtBRL(String(mc)) : "");
@@ -151,6 +156,7 @@ export default function DiariaTab({ refreshing, onRefresh }: Props) {
     const next: DiariaPerfil = {
       workType: patch.workType ?? workType,
       workDays: patch.workDays ?? workDays,
+      workDaysList: patch.workDaysList !== undefined ? patch.workDaysList : workDaysList,
       fuelCents: patch.fuelCents ?? fuelCents,
       maintenanceCents: patch.maintenanceCents ?? maintenanceCents,
       platformCutPct: patch.platformCutPct ?? platformCutPct,
@@ -159,12 +165,44 @@ export default function DiariaTab({ refreshing, onRefresh }: Props) {
     };
     if (patch.workType !== undefined) setWorkType(patch.workType);
     if (patch.workDays !== undefined) setWorkDays(patch.workDays);
+    if (patch.workDaysList !== undefined) setWorkDaysList(patch.workDaysList);
     if (patch.fuelCents !== undefined) setFuelCents(patch.fuelCents);
     if (patch.maintenanceCents !== undefined) setMaintCents(patch.maintenanceCents);
     if (patch.platformCutPct !== undefined) setPlatformCutPct(patch.platformCutPct);
     if (patch.liquidMeta !== undefined) setLiquidMeta(patch.liquidMeta);
     if (patch.expenses !== undefined) setDiariaExpenses(patch.expenses);
     await SecureStore.setItemAsync(DIARIA_KEY, JSON.stringify(next));
+  }
+
+  function openWorkDaysModal() {
+    setSelectedDays([...workDaysList]);
+    setTempWorkDays(workDays);
+    setWorkDaysCalModal(true);
+  }
+
+  function toggleDay(day: number) {
+    setSelectedDays(prev =>
+      prev.includes(day) ? prev.filter(d => d !== day) : [...prev, day].sort((a, b) => a - b)
+    );
+  }
+
+  async function confirmWorkDaysModal() {
+    if (selectedDays.length > 0) {
+      await saveDiaria({ workDays: selectedDays.length, workDaysList: selectedDays });
+    } else {
+      await saveDiaria({ workDays: tempWorkDays, workDaysList: [] });
+    }
+    setWorkDaysCalModal(false);
+  }
+
+  function buildMonthGrid(): (number | null)[] {
+    const now = new Date();
+    const total = new Date(now.getFullYear(), now.getMonth() + 1, 0).getDate();
+    const firstWd = new Date(now.getFullYear(), now.getMonth(), 1).getDay();
+    const cells: (number | null)[] = Array(firstWd).fill(null);
+    for (let d = 1; d <= total; d++) cells.push(d);
+    while (cells.length % 7 !== 0) cells.push(null);
+    return cells;
   }
 
   function openAddExp(item?: DiariaExpense) {
@@ -299,17 +337,23 @@ export default function DiariaTab({ refreshing, onRefresh }: Props) {
 
           {/* Dias trabalhados */}
           <Card style={{ flexDirection: "row", justifyContent: "space-between", alignItems: "center" }}>
-            <View>
+            <View style={{ flex: 1 }}>
               <Text style={{ color: C.text, fontSize: 15, fontWeight: "600" }}>Dias trabalhados</Text>
-              <Text style={{ color: C.muted, fontSize: 12, marginTop: 2 }}>por mês</Text>
+              <Text style={{ color: C.muted, fontSize: 12, marginTop: 2 }}>
+                {workDaysList.length > 0 ? `dias ${workDaysList.slice(0, 5).join(", ")}${workDaysList.length > 5 ? "…" : ""}` : "por mês"}
+              </Text>
             </View>
-            <View style={{ flexDirection: "row", alignItems: "center", gap: 14 }}>
-              <TouchableOpacity onPress={() => void saveDiaria({ workDays: Math.max(1, workDays - 1) })}
+            <View style={{ flexDirection: "row", alignItems: "center", gap: 10 }}>
+              <TouchableOpacity onPress={openWorkDaysModal}
+                style={{ width: 40, height: 40, borderRadius: 13, backgroundColor: C.accentBg, borderWidth: 1, borderColor: C.accentBorder, alignItems: "center", justifyContent: "center" }}>
+                <Text style={{ fontSize: 18 }}>📅</Text>
+              </TouchableOpacity>
+              <TouchableOpacity onPress={() => void saveDiaria({ workDays: Math.max(1, workDays - 1), workDaysList: [] })}
                 style={{ width: 40, height: 40, borderRadius: 13, backgroundColor: "#0d1626", borderWidth: 1, borderColor: "rgba(148,163,184,0.12)", alignItems: "center", justifyContent: "center" }}>
                 <Text style={{ color: C.slate, fontSize: 22, fontWeight: "700", lineHeight: 28 }}>−</Text>
               </TouchableOpacity>
               <Text style={{ color: C.white, fontSize: 22, fontWeight: "800", minWidth: 34, textAlign: "center" }}>{workDays}</Text>
-              <TouchableOpacity onPress={() => void saveDiaria({ workDays: Math.min(31, workDays + 1) })}
+              <TouchableOpacity onPress={() => void saveDiaria({ workDays: Math.min(31, workDays + 1), workDaysList: [] })}
                 style={{ width: 40, height: 40, borderRadius: 13, backgroundColor: C.accentBg, borderWidth: 1, borderColor: C.accentBorder, alignItems: "center", justifyContent: "center" }}>
                 <Text style={{ color: C.accent, fontSize: 22, fontWeight: "700", lineHeight: 28 }}>+</Text>
               </TouchableOpacity>
@@ -737,6 +781,100 @@ export default function DiariaTab({ refreshing, onRefresh }: Props) {
           )}
         </ScrollView>
       )}
+
+      {/* ── MODAL: Dias de trabalho ──────────────────────────── */}
+      <Modal visible={workDaysCalModal} transparent animationType="fade" onRequestClose={() => setWorkDaysCalModal(false)}>
+        <View style={s.overlay}>
+          <View style={[s.modal, { maxHeight: "88%" }]}>
+            <Text style={s.modalTitle}>Dias de trabalho</Text>
+            <Text style={[s.modalSub, { marginTop: -4 }]}>{monthLabel()} · toque para marcar os dias</Text>
+
+            {/* Cabeçalho semana */}
+            <View style={{ flexDirection: "row", marginTop: 4 }}>
+              {["D","S","T","Q","Q","S","S"].map((d, i) => (
+                <Text key={i} style={{ flex: 1, textAlign: "center", color: C.muted, fontSize: 11, fontWeight: "700" }}>{d}</Text>
+              ))}
+            </View>
+
+            {/* Grade dos dias */}
+            <View style={{ flexDirection: "row", flexWrap: "wrap" }}>
+              {buildMonthGrid().map((day, i) => {
+                const sel = day !== null && selectedDays.includes(day);
+                return (
+                  <TouchableOpacity
+                    key={i}
+                    disabled={day === null}
+                    onPress={() => day !== null && toggleDay(day)}
+                    style={{
+                      width: `${100 / 7}%`, aspectRatio: 1,
+                      alignItems: "center", justifyContent: "center",
+                    }}>
+                    {day !== null && (
+                      <View style={{
+                        width: 34, height: 34, borderRadius: 17,
+                        backgroundColor: sel ? C.accent : "transparent",
+                        borderWidth: sel ? 0 : 1,
+                        borderColor: "rgba(148,163,184,0.15)",
+                        alignItems: "center", justifyContent: "center",
+                      }}>
+                        <Text style={{ color: sel ? "#fff" : C.text, fontSize: 13, fontWeight: sel ? "800" : "500" }}>{day}</Text>
+                      </View>
+                    )}
+                  </TouchableOpacity>
+                );
+              })}
+            </View>
+
+            {/* Ações rápidas */}
+            <View style={{ flexDirection: "row", gap: 8, marginTop: 4 }}>
+              <TouchableOpacity
+                onPress={() => { const t = new Date().getDate(); setSelectedDays(prev => prev.includes(t) ? prev.filter(d => d !== t) : [...prev, t].sort((a,b) => a-b)); }}
+                style={{ flex: 1, backgroundColor: "#0d1626", borderRadius: 8, borderWidth: 1, borderColor: "rgba(148,163,184,0.12)", paddingVertical: 7, alignItems: "center" }}>
+                <Text style={{ color: C.muted, fontSize: 12, fontWeight: "600" }}>Hoje</Text>
+              </TouchableOpacity>
+              <TouchableOpacity
+                onPress={() => setSelectedDays([])}
+                style={{ flex: 1, backgroundColor: "#0d1626", borderRadius: 8, borderWidth: 1, borderColor: "rgba(148,163,184,0.12)", paddingVertical: 7, alignItems: "center" }}>
+                <Text style={{ color: C.muted, fontSize: 12, fontWeight: "600" }}>Limpar</Text>
+              </TouchableOpacity>
+            </View>
+
+            {/* Separador */}
+            <View style={{ height: 1, backgroundColor: "rgba(148,163,184,0.10)", marginVertical: 4 }} />
+
+            {/* Contador manual */}
+            <Text style={{ color: C.muted, fontSize: 12, textAlign: "center" }}>
+              {selectedDays.length > 0
+                ? `${selectedDays.length} dias selecionados`
+                : "Ou ajuste o número diretamente:"}
+            </Text>
+            {selectedDays.length === 0 && (
+              <View style={{ flexDirection: "row", alignItems: "center", justifyContent: "center", gap: 16 }}>
+                <TouchableOpacity
+                  onPress={() => setTempWorkDays(d => Math.max(1, d - 1))}
+                  style={{ width: 40, height: 40, borderRadius: 13, backgroundColor: "#0d1626", borderWidth: 1, borderColor: "rgba(148,163,184,0.12)", alignItems: "center", justifyContent: "center" }}>
+                  <Text style={{ color: C.slate, fontSize: 22, fontWeight: "700", lineHeight: 28 }}>−</Text>
+                </TouchableOpacity>
+                <Text style={{ color: C.white, fontSize: 28, fontWeight: "800", minWidth: 40, textAlign: "center" }}>{tempWorkDays}</Text>
+                <TouchableOpacity
+                  onPress={() => setTempWorkDays(d => Math.min(31, d + 1))}
+                  style={{ width: 40, height: 40, borderRadius: 13, backgroundColor: C.accentBg, borderWidth: 1, borderColor: C.accentBorder, alignItems: "center", justifyContent: "center" }}>
+                  <Text style={{ color: C.accent, fontSize: 22, fontWeight: "700", lineHeight: 28 }}>+</Text>
+                </TouchableOpacity>
+              </View>
+            )}
+
+            <View style={s.modalBtns}>
+              <TouchableOpacity style={s.btnCancel} onPress={() => setWorkDaysCalModal(false)}>
+                <Text style={s.btnCancelTxt}>Cancelar</Text>
+              </TouchableOpacity>
+              <TouchableOpacity style={s.btnConfirm} onPress={() => void confirmWorkDaysModal()}>
+                <Text style={s.btnConfirmTxt}>Salvar</Text>
+              </TouchableOpacity>
+            </View>
+          </View>
+        </View>
+      </Modal>
 
       {/* ── MODAL: Ganho do dia ──────────────────────────────── */}
       <Modal visible={logModal !== null} transparent animationType="fade" onRequestClose={() => setLogModal(null)}>
