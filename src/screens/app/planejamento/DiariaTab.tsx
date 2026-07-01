@@ -10,7 +10,7 @@ import { fmt } from "../../../lib/financeService";
 import {
   WorkType, DiariaView, DiariaExpense, DiariaLog, DiariaPerfil,
   WORK_TYPES, DIARIA_KEY, DIARIA_LOGS_KEY,
-  fmtBRL, parseCents, curYM, uid, s,
+  fmtBRL, parseCents, curYM, uid, s, monthLabel,
 } from "./shared";
 
 // ── Local design tokens ─────────────────────────────────────────────
