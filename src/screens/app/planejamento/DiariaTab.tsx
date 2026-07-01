@@ -715,6 +715,42 @@ export default function DiariaTab({ refreshing, onRefresh }: Props) {
             )}
           </View>
 
+          {/* Meta ajustada */}
+          {(() => {
+            if (grossMonth <= 0 || dailyGross <= 0) return null;
+            const todayDay = new Date().getDate();
+            const remainingDays = workDaysList.length > 0
+              ? workDaysList.filter(d => d > todayDay).length
+              : Math.max(0, workDays - daysLogged);
+            if (remainingDays <= 0) return null;
+            const falta = Math.max(0, grossMonth - totalEarned);
+            if (falta <= 0) return null;
+            const metaAjustada = Math.ceil(falta / remainingDays);
+            const acima = metaAjustada > Math.round(dailyGross);
+            return (
+              <View style={{ backgroundColor: acima ? "rgba(239,68,68,0.08)" : "rgba(74,222,128,0.08)", borderRadius: 20, borderWidth: 1, borderColor: acima ? "rgba(239,68,68,0.25)" : "rgba(74,222,128,0.25)", padding: 18, gap: 8 }}>
+                <Text style={{ color: acima ? C.red : C.green, fontSize: 10, fontWeight: "800", letterSpacing: 1.4 }}>META AJUSTADA</Text>
+                <View style={{ flexDirection: "row", alignItems: "flex-end", gap: 6 }}>
+                  <Text style={{ color: acima ? C.red : C.green, fontSize: 28, fontWeight: "800", lineHeight: 32 }}>{fmt(metaAjustada)}</Text>
+                  <Text style={{ color: acima ? "rgba(239,68,68,0.7)" : "rgba(74,222,128,0.7)", fontSize: 13, fontWeight: "600", marginBottom: 2 }}>/dia</Text>
+                </View>
+                <Text style={{ color: C.muted, fontSize: 12 }}>
+                  para fechar o mês na meta nos próximos <Text style={{ color: C.text, fontWeight: "700" }}>{remainingDays} dias</Text> de trabalho
+                </Text>
+                <View style={{ flexDirection: "row", gap: 10, marginTop: 2 }}>
+                  <View style={{ flex: 1, backgroundColor: "rgba(0,0,0,0.2)", borderRadius: 10, padding: 10, alignItems: "center" }}>
+                    <Text style={{ color: C.muted, fontSize: 10, fontWeight: "700" }}>FALTA GANHAR</Text>
+                    <Text style={{ color: C.text, fontSize: 14, fontWeight: "800", marginTop: 2 }}>{fmt(falta)}</Text>
+                  </View>
+                  <View style={{ flex: 1, backgroundColor: "rgba(0,0,0,0.2)", borderRadius: 10, padding: 10, alignItems: "center" }}>
+                    <Text style={{ color: C.muted, fontSize: 10, fontWeight: "700" }}>META ORIGINAL</Text>
+                    <Text style={{ color: C.dim, fontSize: 14, fontWeight: "800", marginTop: 2 }}>{fmt(Math.round(dailyGross))}/dia</Text>
+                  </View>
+                </View>
+              </View>
+            );
+          })()}
+
           {/* Média vs Meta stat cards */}
           {daysLogged > 0 && (
             <View style={{ flexDirection: "row", gap: 12 }}>
