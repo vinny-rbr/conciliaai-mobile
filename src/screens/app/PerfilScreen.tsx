@@ -270,7 +270,12 @@ export default function PerfilScreen() {
           />
         </View>
 
-        <Text style={s.footer}>ConciliaAI · Versão {Constants.expoConfig?.version ?? "1.0.0"}</Text>
+        <View style={{ alignItems: "center", paddingTop: 22, paddingBottom: 30, gap: 4 }}>
+          <Text style={{ color: "#64748B", fontSize: 12, fontWeight: "500" }}>ConciliaAI</Text>
+          <Text style={{ color: "#94A3B8", fontSize: 13, fontWeight: "700" }}>
+            v{Constants.expoConfig?.version ?? "1.0.0"} · build {Constants.expoConfig?.android?.versionCode ?? "—"}
+          </Text>
+        </View>
       </ScrollView>
     </SafeAreaView>
   );

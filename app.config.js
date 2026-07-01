@@ -1,8 +1,10 @@
+const { version } = require("./package.json");
+
 export default {
   expo: {
     name: "ConciliaAI",
     slug: "conciliaai-mobile",
-    version: "1.0.18",
+    version,
     orientation: "portrait",
     icon: "./assets/icon.png",
     userInterfaceStyle: "dark",
