@@ -750,8 +750,8 @@ export default function DiariaTab({ refreshing, onRefresh }: Props) {
               <View style={{ flexDirection: "row", paddingHorizontal: 12, paddingVertical: 11, borderBottomWidth: 1, borderColor: "rgba(148,163,184,0.12)" }}>
                 <Text style={{ flex: 1, color: C.muted, fontSize: 10, fontWeight: "700", letterSpacing: 0.6 }}>DIA</Text>
                 <Text style={{ flex: 1.2, color: C.muted, fontSize: 10, fontWeight: "700", letterSpacing: 0.6, textAlign: "right" }}>META</Text>
-                <Text style={{ flex: 1.2, color: C.muted, fontSize: 10, fontWeight: "700", letterSpacing: 0.6, textAlign: "right" }}>REALIZADO</Text>
                 <Text style={{ flex: 1.2, color: C.muted, fontSize: 10, fontWeight: "700", letterSpacing: 0.6, textAlign: "right" }}>ACUMULADO</Text>
+                <Text style={{ flex: 1.2, color: C.muted, fontSize: 10, fontWeight: "700", letterSpacing: 0.6, textAlign: "right" }}>REALIZADO</Text>
                 <Text style={{ flex: 1, color: C.muted, fontSize: 10, fontWeight: "700", letterSpacing: 0.6, textAlign: "right" }}>DIFER.</Text>
               </View>
               {(() => {
@@ -797,10 +797,10 @@ export default function DiariaTab({ refreshing, onRefresh }: Props) {
                         {row.isProjection && <Text style={{ color: C.muted, fontSize: 8, fontWeight: "700", letterSpacing: 0.5 }}>PROJ.</Text>}
                       </View>
                       <Text style={{ flex: 1.2, color: C.dim, fontSize: 11, fontWeight: "600", textAlign: "right" }}>{metaDay > 0 ? fmt(metaDay) : "—"}</Text>
+                      <Text style={{ flex: 1.2, color: C.slate, fontSize: 11, fontWeight: "600", textAlign: "right" }}>{fmt(running)}</Text>
                       <Text style={{ flex: 1.2, color: row.isProjection ? C.muted : (diff === null || hit ? C.green : C.amber), fontSize: 12, fontWeight: "700", textAlign: "right" }}>
                         {row.isProjection ? fmt(metaDay) : fmt(row.earned)}
                       </Text>
-                      <Text style={{ flex: 1.2, color: C.slate, fontSize: 11, fontWeight: "600", textAlign: "right" }}>{fmt(running)}</Text>
                       <Text style={{ flex: 1, color: diff === null ? C.dim : hit ? C.green : C.red, fontSize: 11, fontWeight: "700", textAlign: "right" }}>
                         {diff === null ? "—" : `${hit ? "+" : ""}${fmt(diff)}`}
                       </Text>
