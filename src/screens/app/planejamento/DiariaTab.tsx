@@ -760,26 +760,24 @@ export default function DiariaTab({ refreshing, onRefresh }: Props) {
                 const metaDay = Math.round(dailyGross);
 
                 // Monta lista de linhas
-                type Row = { date: string; earned: number; isProjection: boolean };
+                type Row = { date: string; earned: number; hasLog: boolean; isProjection: boolean };
                 let rows: Row[] = [];
 
                 if (workDaysList.length > 0) {
-                  // Dias específicos selecionados
                   rows = workDaysList.map(dayNum => {
                     const dateStr = `${ym}-${String(dayNum).padStart(2, "0")}`;
                     const log = diariaLogs.find(l => l.date === dateStr);
-                    const isPast = dayNum <= todayDay;
                     return {
                       date: dateStr,
-                      earned: isPast ? (log?.earnedCents ?? 0) : metaDay,
-                      isProjection: !isPast,
+                      earned: log?.earnedCents ?? 0,
+                      hasLog: log !== undefined,
+                      isProjection: dayNum > todayDay,
                     };
                   });
                 } else {
-                  // Sem seleção: apenas dias com log registrado
                   rows = [...diariaLogs]
                     .sort((a, b) => a.date.localeCompare(b.date))
-                    .map(log => ({ date: log.date, earned: log.earnedCents, isProjection: false }));
+                    .map(log => ({ date: log.date, earned: log.earnedCents, hasLog: true, isProjection: false }));
                 }
 
                 let running = 0;
@@ -787,7 +785,7 @@ export default function DiariaTab({ refreshing, onRefresh }: Props) {
                   running += metaDay;
                   const [, mm, dd] = row.date.split("-");
                   const isToday = row.date === todayISO();
-                  const diff = metaDay > 0 ? row.earned - metaDay : null;
+                  const diff = row.hasLog && metaDay > 0 ? row.earned - metaDay : null;
                   const hit = diff !== null && diff >= 0;
                   return (
                     <View key={row.date} style={{ flexDirection: "row", alignItems: "center", paddingHorizontal: 12, paddingVertical: 11, borderBottomWidth: i < rows.length - 1 ? 1 : 0, borderColor: "rgba(148,163,184,0.07)", opacity: row.isProjection ? 0.55 : 1 }}>
@@ -798,8 +796,8 @@ export default function DiariaTab({ refreshing, onRefresh }: Props) {
                       </View>
                       <Text style={{ flex: 1.2, color: C.dim, fontSize: 11, fontWeight: "600", textAlign: "right" }}>{metaDay > 0 ? fmt(metaDay) : "—"}</Text>
                       <Text style={{ flex: 1.2, color: C.slate, fontSize: 11, fontWeight: "600", textAlign: "right" }}>{fmt(running)}</Text>
-                      <Text style={{ flex: 1.2, color: row.isProjection ? C.muted : (diff === null || hit ? C.green : C.amber), fontSize: 12, fontWeight: "700", textAlign: "right" }}>
-                        {row.isProjection ? fmt(metaDay) : fmt(row.earned)}
+                      <Text style={{ flex: 1.2, color: row.hasLog ? (hit ? C.green : C.amber) : C.dim, fontSize: 12, fontWeight: "700", textAlign: "right" }}>
+                        {fmt(row.earned)}
                       </Text>
                       <Text style={{ flex: 1, color: diff === null ? C.dim : hit ? C.green : C.red, fontSize: 11, fontWeight: "700", textAlign: "right" }}>
                         {diff === null ? "—" : `${hit ? "+" : ""}${fmt(diff)}`}
