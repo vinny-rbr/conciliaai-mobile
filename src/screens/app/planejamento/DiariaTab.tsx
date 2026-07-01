@@ -737,40 +737,71 @@ export default function DiariaTab({ refreshing, onRefresh }: Props) {
             </View>
           )}
 
-          {/* Per-day breakdown table */}
-          {diariaLogs.length === 0 ? (
+          {/* Per-day breakdown table — projeção */}
+          {workDaysList.length === 0 && diariaLogs.length === 0 ? (
             <View style={s.emptyCard}>
               <Text style={{ fontSize: 32, marginBottom: 8 }}>📊</Text>
               <Text style={s.emptyTitle}>Sem registros</Text>
-              <Text style={s.emptyTxt}>Registre seus ganhos na aba Registro para ver o relatório detalhado.</Text>
+              <Text style={s.emptyTxt}>Registre seus ganhos na aba Registro ou selecione os dias de trabalho para ver a projeção.</Text>
             </View>
           ) : (
             <View style={{ backgroundColor: C.card, borderRadius: 22, borderWidth: 1, borderColor: C.cardBorder, overflow: "hidden" }}>
-              <View style={{ flexDirection: "row", paddingHorizontal: 16, paddingVertical: 11, borderBottomWidth: 1, borderColor: "rgba(148,163,184,0.12)" }}>
-                <Text style={{ flex: 1.2, color: C.muted, fontSize: 11, fontWeight: "700", letterSpacing: 0.8 }}>DATA</Text>
-                <Text style={{ flex: 1.3, color: C.muted, fontSize: 11, fontWeight: "700", letterSpacing: 0.8, textAlign: "right" }}>REALIZADO</Text>
-                <Text style={{ flex: 1.3, color: C.muted, fontSize: 11, fontWeight: "700", letterSpacing: 0.8, textAlign: "right" }}>ACUMULADO</Text>
-                <Text style={{ flex: 1, color: C.muted, fontSize: 11, fontWeight: "700", letterSpacing: 0.8, textAlign: "right" }}>DIFER.</Text>
+              {/* header */}
+              <View style={{ flexDirection: "row", paddingHorizontal: 12, paddingVertical: 11, borderBottomWidth: 1, borderColor: "rgba(148,163,184,0.12)" }}>
+                <Text style={{ flex: 1, color: C.muted, fontSize: 10, fontWeight: "700", letterSpacing: 0.6 }}>DIA</Text>
+                <Text style={{ flex: 1.2, color: C.muted, fontSize: 10, fontWeight: "700", letterSpacing: 0.6, textAlign: "right" }}>META</Text>
+                <Text style={{ flex: 1.2, color: C.muted, fontSize: 10, fontWeight: "700", letterSpacing: 0.6, textAlign: "right" }}>REALIZADO</Text>
+                <Text style={{ flex: 1.2, color: C.muted, fontSize: 10, fontWeight: "700", letterSpacing: 0.6, textAlign: "right" }}>ACUMULADO</Text>
+                <Text style={{ flex: 1, color: C.muted, fontSize: 10, fontWeight: "700", letterSpacing: 0.6, textAlign: "right" }}>DIFER.</Text>
               </View>
               {(() => {
-                const sorted = [...diariaLogs].sort((a, b) => a.date.localeCompare(b.date));
+                const ym = curYM();
+                const todayDay = new Date().getDate();
+                const metaDay = Math.round(dailyGross);
+
+                // Monta lista de linhas
+                type Row = { date: string; earned: number; isProjection: boolean };
+                let rows: Row[] = [];
+
+                if (workDaysList.length > 0) {
+                  // Dias específicos selecionados
+                  rows = workDaysList.map(dayNum => {
+                    const dateStr = `${ym}-${String(dayNum).padStart(2, "0")}`;
+                    const log = diariaLogs.find(l => l.date === dateStr);
+                    const isPast = dayNum <= todayDay;
+                    return {
+                      date: dateStr,
+                      earned: isPast ? (log?.earnedCents ?? 0) : metaDay,
+                      isProjection: !isPast,
+                    };
+                  });
+                } else {
+                  // Sem seleção: apenas dias com log registrado
+                  rows = [...diariaLogs]
+                    .sort((a, b) => a.date.localeCompare(b.date))
+                    .map(log => ({ date: log.date, earned: log.earnedCents, isProjection: false }));
+                }
+
                 let running = 0;
-                return sorted.map((log, i) => {
-                  running += log.earnedCents;
-                  const [, m, d] = log.date.split("-");
-                  const isToday = log.date === todayISO();
-                  const meta = Math.round(dailyGross);
-                  const diff = meta > 0 ? log.earnedCents - meta : null;
+                return rows.map((row, i) => {
+                  running += row.earned;
+                  const [, mm, dd] = row.date.split("-");
+                  const isToday = row.date === todayISO();
+                  const diff = metaDay > 0 ? row.earned - metaDay : null;
                   const hit = diff !== null && diff >= 0;
                   return (
-                    <View key={log.date} style={{ flexDirection: "row", alignItems: "center", paddingHorizontal: 16, paddingVertical: 12, borderBottomWidth: i < sorted.length - 1 ? 1 : 0, borderColor: "rgba(148,163,184,0.07)" }}>
-                      <View style={{ flex: 1.2 }}>
-                        <Text style={{ color: isToday ? C.accent : C.text, fontSize: 13, fontWeight: isToday ? "700" : "600" }}>{d}/{m}</Text>
-                        {isToday && <Text style={{ color: C.accent, fontSize: 9, fontWeight: "700", letterSpacing: 0.5 }}>HOJE</Text>}
+                    <View key={row.date} style={{ flexDirection: "row", alignItems: "center", paddingHorizontal: 12, paddingVertical: 11, borderBottomWidth: i < rows.length - 1 ? 1 : 0, borderColor: "rgba(148,163,184,0.07)", opacity: row.isProjection ? 0.55 : 1 }}>
+                      <View style={{ flex: 1 }}>
+                        <Text style={{ color: isToday ? C.accent : C.text, fontSize: 12, fontWeight: isToday ? "700" : "600" }}>{dd}/{mm}</Text>
+                        {isToday && <Text style={{ color: C.accent, fontSize: 8, fontWeight: "800", letterSpacing: 0.5 }}>HOJE</Text>}
+                        {row.isProjection && <Text style={{ color: C.muted, fontSize: 8, fontWeight: "700", letterSpacing: 0.5 }}>PROJ.</Text>}
                       </View>
-                      <Text style={{ flex: 1.3, color: diff === null || hit ? C.green : C.amber, fontSize: 13, fontWeight: "700", textAlign: "right" }}>{fmt(log.earnedCents)}</Text>
-                      <Text style={{ flex: 1.3, color: C.slate, fontSize: 12, fontWeight: "600", textAlign: "right" }}>{fmt(running)}</Text>
-                      <Text style={{ flex: 1, color: diff === null ? C.dim : hit ? C.green : C.red, fontSize: 12, fontWeight: "700", textAlign: "right" }}>
+                      <Text style={{ flex: 1.2, color: C.dim, fontSize: 11, fontWeight: "600", textAlign: "right" }}>{metaDay > 0 ? fmt(metaDay) : "—"}</Text>
+                      <Text style={{ flex: 1.2, color: row.isProjection ? C.muted : (diff === null || hit ? C.green : C.amber), fontSize: 12, fontWeight: "700", textAlign: "right" }}>
+                        {row.isProjection ? fmt(metaDay) : fmt(row.earned)}
+                      </Text>
+                      <Text style={{ flex: 1.2, color: C.slate, fontSize: 11, fontWeight: "600", textAlign: "right" }}>{fmt(running)}</Text>
+                      <Text style={{ flex: 1, color: diff === null ? C.dim : hit ? C.green : C.red, fontSize: 11, fontWeight: "700", textAlign: "right" }}>
                         {diff === null ? "—" : `${hit ? "+" : ""}${fmt(diff)}`}
                       </Text>
                     </View>
