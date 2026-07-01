@@ -750,7 +750,7 @@ export default function DiariaTab({ refreshing, onRefresh }: Props) {
               <View style={{ flexDirection: "row", paddingHorizontal: 12, paddingVertical: 11, borderBottomWidth: 1, borderColor: "rgba(148,163,184,0.12)" }}>
                 <Text style={{ flex: 1, color: C.muted, fontSize: 10, fontWeight: "700", letterSpacing: 0.6 }}>DIA</Text>
                 <Text style={{ flex: 1.2, color: C.muted, fontSize: 10, fontWeight: "700", letterSpacing: 0.6, textAlign: "right" }}>META</Text>
-                <Text style={{ flex: 1.2, color: C.muted, fontSize: 10, fontWeight: "700", letterSpacing: 0.6, textAlign: "right" }}>ACUMULADO</Text>
+                <Text style={{ flex: 1.2, color: C.muted, fontSize: 10, fontWeight: "700", letterSpacing: 0.6, textAlign: "right" }}>PREVISÃO</Text>
                 <Text style={{ flex: 1.2, color: C.muted, fontSize: 10, fontWeight: "700", letterSpacing: 0.6, textAlign: "right" }}>REALIZADO</Text>
                 <Text style={{ flex: 1, color: C.muted, fontSize: 10, fontWeight: "700", letterSpacing: 0.6, textAlign: "right" }}>DIFER.</Text>
               </View>
