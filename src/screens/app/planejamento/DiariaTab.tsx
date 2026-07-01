@@ -784,7 +784,7 @@ export default function DiariaTab({ refreshing, onRefresh }: Props) {
 
                 let running = 0;
                 return rows.map((row, i) => {
-                  running += row.earned;
+                  running += metaDay;
                   const [, mm, dd] = row.date.split("-");
                   const isToday = row.date === todayISO();
                   const diff = metaDay > 0 ? row.earned - metaDay : null;
