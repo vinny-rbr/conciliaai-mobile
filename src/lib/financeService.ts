@@ -20,6 +20,7 @@ type ApiItem = {
   recurringGroupId?: string;
   recurringKind?: string;
   recurringTotal?: number;
+  recurringStartDate?: string;
 };
 
 function normalize(raw: ApiItem): FinanceItem {
@@ -41,6 +42,7 @@ function normalize(raw: ApiItem): FinanceItem {
       recurringGroupId: raw.recurringGroupId,
       recurringKind: raw.recurringKind,
       recurringTotal: raw.recurringTotal,
+      ...(raw.recurringStartDate ? { recurringStartDate: raw.recurringStartDate.slice(0, 10) } : {}),
     } : {}),
   };
 }

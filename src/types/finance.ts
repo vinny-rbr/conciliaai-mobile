@@ -35,5 +35,6 @@ export type FinanceItem = {
   recurringGroupId?: string;
   recurringKind?: string;
   recurringTotal?: number;
+  recurringStartDate?: string;
   ignoreInReports?: boolean;
 };

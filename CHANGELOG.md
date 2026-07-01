@@ -1,5 +1,11 @@
 # Changelog
 
+## 1.0.23
+- feat(fixo): selo "🔄 Fixo" nos lançamentos recorrentes da lista
+- feat(fixo): ao editar "todos do grupo", detecta e recria meses apagados da série (com confirmação)
+- feat(fixo): banner "Corrigir" ao abrir um fixo com meses faltando na série
+- feat(fixo): ação "Desativar" para tirar a recorrência (só este mês ou toda a série, mantendo os lançamentos)
+
 ## 1.0.6
 - fix(cartao): botão "Gerenciar" no dashboard agora navega para CartaoScreen
 - feat(cartao): editar cartão de crédito (apelido, limite, datas, cor) e excluir

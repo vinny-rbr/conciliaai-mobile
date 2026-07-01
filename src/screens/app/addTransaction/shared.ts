@@ -1,4 +1,5 @@
 import { StyleSheet } from "react-native";
+import type { FinanceItem } from "../../../types/finance";
 
 export type TxType  = "RECEITA" | "DESPESA";
 export type Summary = { saldo: number; receitas: number; despesas: number };
@@ -58,6 +59,30 @@ export function addMonthsISO(iso: string, months: number): string {
   const target  = new Date(y, m - 1 + months, 1);
   const lastDay = new Date(target.getFullYear(), target.getMonth() + 1, 0).getDate();
   return `${target.getFullYear()}-${String(target.getMonth()+1).padStart(2,"0")}-${String(Math.min(d, lastDay)).padStart(2,"0")}`;
+}
+
+const MONTH_NAMES = ["Janeiro","Fevereiro","Março","Abril","Maio","Junho","Julho","Agosto","Setembro","Outubro","Novembro","Dezembro"];
+
+// "2026-08" → "Agosto/2026"
+export function monthLabel(ym: string): string {
+  const [y, m] = ym.split("-").map(Number);
+  return `${MONTH_NAMES[(m || 1) - 1]}/${y}`;
+}
+
+// Reconstrói a série recorrente a partir da âncora (data de início gravada, ou o
+// mês mais antigo que sobreviveu) e retorna os meses (YYYY-MM) que estão faltando.
+export function seriesInfo(group: FinanceItem[], fallbackStart: string): { startDate: string; total: number; missing: string[] } {
+  if (group.length === 0) return { startDate: fallbackStart, total: 0, missing: [] };
+  const startDate = group.find(it => it.recurringStartDate)?.recurringStartDate
+    ?? group.reduce((min, it) => (it.dateISO < min ? it.dateISO : min), group[0].dateISO);
+  const total = group.find(it => it.recurringTotal)?.recurringTotal ?? group.length;
+  const byMonth = new Set(group.map(it => it.dateISO.slice(0, 7)));
+  const missing: string[] = [];
+  for (let i = 0; i < total; i++) {
+    const ym = addMonthsISO(startDate, i).slice(0, 7);
+    if (!byMonth.has(ym)) missing.push(ym);
+  }
+  return { startDate, total, missing };
 }
 
 // ── StyleSheets ───────────────────────────────────────────────────────

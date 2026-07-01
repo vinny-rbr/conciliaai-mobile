@@ -5,7 +5,7 @@ import {
 } from "react-native";
 import { SafeAreaView } from "react-native-safe-area-context";
 import type { BankAccount, FinanceCategoryOption, FinanceItem } from "../../../types/finance";
-import { PAY_TYPES, TxType, f, m, fmtAmount as _fmtAmount } from "./shared";
+import { PAY_TYPES, TxType, f, m, fmtAmount as _fmtAmount, monthLabel } from "./shared";
 import { TagsMultiSelect } from "../../../components/TagsMultiSelect";
 import { CategoryTreeModal } from "../../../components/CategoryTreeModal";
 
@@ -43,8 +43,18 @@ type Props = {
   setRecurringMode: (v: "forever" | "months") => void;
   recurringMonths: string;
   setRecurringMonths: (v: string) => void;
-  recurringAction: "edit" | "delete" | null;
-  setRecurringAction: (v: "edit" | "delete" | null) => void;
+  recurringAction: "edit" | "delete" | "unset" | null;
+  setRecurringAction: (v: "edit" | "delete" | "unset" | null) => void;
+
+  // recorrência: meses apagados na série (null = modal escondido)
+  recurringGaps: string[] | null;
+  onRefillConfirm: (recreate: boolean) => void;
+  onRefillCancel: () => void;
+
+  // recorrência: buracos detectados ao abrir (banner inline) + ação de desativar
+  seriesGaps: string[];
+  onFixGaps: () => void;
+  onPerformUnset: (scope: "one" | "all") => Promise<void>;
 
   // tags
   tags: string; setTags: (v: string) => void;
@@ -68,6 +78,8 @@ export default function TransactionForm({
   accounts, selectedAcc, setSelectedAcc, accModal, setAccModal,
   isRecurring, setIsRecurring, recurringMode, setRecurringMode, recurringMonths, setRecurringMonths,
   recurringAction, setRecurringAction, deleteModal, setDeleteModal,
+  recurringGaps, onRefillConfirm, onRefillCancel,
+  seriesGaps, onFixGaps, onPerformUnset,
   onClose, onSave, onPerformSave, onPerformDelete,
 }: Props) {
   return (
@@ -200,9 +212,29 @@ export default function TransactionForm({
 
           {/* Recorrência */}
           {editItem?.recurringGroupId ? (
-            <View style={{ flexDirection: "row", alignItems: "center", backgroundColor: "#3B82F611", borderRadius: 12, padding: 12, borderWidth: 1, borderColor: "#3B82F622", gap: 8 }}>
-              <Text style={{ fontSize: 16 }}>🔄</Text>
-              <Text style={{ color: "#60A5FA", fontSize: 13, fontWeight: "600", flex: 1 }}>Gasto fixo mensal</Text>
+            <View style={{ gap: 10 }}>
+              <View style={{ flexDirection: "row", alignItems: "center", backgroundColor: "#3B82F611", borderRadius: 12, padding: 12, borderWidth: 1, borderColor: "#3B82F622", gap: 8 }}>
+                <Text style={{ fontSize: 16 }}>🔄</Text>
+                <Text style={{ color: "#60A5FA", fontSize: 13, fontWeight: "600", flex: 1 }}>Gasto fixo mensal</Text>
+                <TouchableOpacity onPress={() => setRecurringAction("unset")} activeOpacity={0.7}>
+                  <Text style={{ color: "#94A3B8", fontSize: 12, fontWeight: "700" }}>Desativar</Text>
+                </TouchableOpacity>
+              </View>
+
+              {seriesGaps.length > 0 && (
+                <View style={{ flexDirection: "row", alignItems: "center", backgroundColor: "#F59E0B14", borderRadius: 12, padding: 12, borderWidth: 1, borderColor: "#F59E0B33", gap: 10 }}>
+                  <Text style={{ fontSize: 16 }}>⚠️</Text>
+                  <View style={{ flex: 1 }}>
+                    <Text style={{ color: "#FBBF24", fontSize: 13, fontWeight: "700" }}>Faltam meses nesta série</Text>
+                    <Text style={{ color: "#94A3B8", fontSize: 11, marginTop: 2 }}>
+                      {seriesGaps.map(monthLabel).join(", ")} apagado{seriesGaps.length > 1 ? "s" : ""}.
+                    </Text>
+                  </View>
+                  <TouchableOpacity onPress={onFixGaps} activeOpacity={0.8} style={{ backgroundColor: "#F59E0B", borderRadius: 10, paddingHorizontal: 12, paddingVertical: 8 }}>
+                    <Text style={{ color: "#0F172A", fontSize: 12, fontWeight: "800" }}>Corrigir</Text>
+                  </TouchableOpacity>
+                </View>
+              )}
             </View>
           ) : (
             <View style={{ gap: 10 }}>
@@ -362,6 +394,8 @@ export default function TransactionForm({
             <Text style={{ color: "#64748B", fontSize: 14, textAlign: "center", marginBottom: 24, lineHeight: 20 }}>
               {recurringAction === "delete"
                 ? "Deseja excluir apenas este lançamento\nou todos os do grupo?"
+                : recurringAction === "unset"
+                ? "Deseja tirar a recorrência apenas deste\nmês ou de toda a série? (mantém os lançamentos)"
                 : "Deseja alterar apenas este lançamento\nou todos os do grupo?"}
             </Text>
             <View style={{ gap: 10 }}>
@@ -371,7 +405,7 @@ export default function TransactionForm({
                 onPress={() => {
                   const action = recurringAction;
                   setRecurringAction(null);
-                  void (action === "delete" ? onPerformDelete("one") : onPerformSave("one"));
+                  void (action === "delete" ? onPerformDelete("one") : action === "unset" ? onPerformUnset("one") : onPerformSave("one"));
                 }}
               >
                 <Text style={{ color: "#fff", fontSize: 14, fontWeight: "700" }}>Só este lançamento</Text>
@@ -382,7 +416,7 @@ export default function TransactionForm({
                 onPress={() => {
                   const action = recurringAction;
                   setRecurringAction(null);
-                  void (action === "delete" ? onPerformDelete("all") : onPerformSave("all"));
+                  void (action === "delete" ? onPerformDelete("all") : action === "unset" ? onPerformUnset("all") : onPerformSave("all"));
                 }}
               >
                 <Text style={{ color: "#F1F5F9", fontSize: 14, fontWeight: "700" }}>Todos do grupo</Text>
@@ -391,6 +425,49 @@ export default function TransactionForm({
                 <Text style={{ color: "#64748B", fontSize: 14, fontWeight: "700" }}>Cancelar</Text>
               </TouchableOpacity>
             </View>
+          </View>
+        </View>
+      </Modal>
+
+      {/* ── Modal: meses apagados na série (buracos) ──────────────── */}
+      <Modal visible={recurringGaps !== null} transparent animationType="fade" onRequestClose={onRefillCancel}>
+        <View style={{ flex: 1, backgroundColor: "rgba(0,0,0,.65)", justifyContent: "center", alignItems: "center", padding: 28 }}>
+          <View style={{ backgroundColor: "#1E293B", borderRadius: 20, padding: 24, width: "100%", borderWidth: 1, borderColor: "#334155" }}>
+            <View style={{ width: 48, height: 48, borderRadius: 16, backgroundColor: "#F59E0B18", alignItems: "center", justifyContent: "center", alignSelf: "center", marginBottom: 16, borderWidth: 1, borderColor: "#F59E0B33" }}>
+              <Text style={{ fontSize: 22 }}>🔄</Text>
+            </View>
+            <Text style={{ color: "#F1F5F9", fontSize: 17, fontWeight: "800", textAlign: "center", marginBottom: 8 }}>
+              Meses apagados nesta série
+            </Text>
+            <Text style={{ color: "#64748B", fontSize: 14, textAlign: "center", marginBottom: 16, lineHeight: 20 }}>
+              Encontramos meses faltando no gasto fixo. Deseja recriá-los ao atualizar?
+            </Text>
+            <View style={{ backgroundColor: "#0F172A", borderRadius: 12, padding: 12, marginBottom: 20, borderWidth: 1, borderColor: "#334155", maxHeight: 140 }}>
+              <ScrollView>
+                {(recurringGaps ?? []).map(ym => (
+                  <Text key={ym} style={{ color: "#FBBF24", fontSize: 13, fontWeight: "700", textAlign: "center", paddingVertical: 2 }}>
+                    {monthLabel(ym)}
+                  </Text>
+                ))}
+              </ScrollView>
+            </View>
+            <TouchableOpacity
+              style={{ backgroundColor: "#3B82F6", borderRadius: 14, paddingVertical: 14, alignItems: "center", marginBottom: 10 }}
+              activeOpacity={0.8}
+              onPress={() => onRefillConfirm(true)}
+            >
+              <Text style={{ color: "#fff", fontSize: 14, fontWeight: "700" }}>Sim, recriar os meses</Text>
+            </TouchableOpacity>
+            <TouchableOpacity
+              style={{ backgroundColor: "#0F172A", borderRadius: 14, paddingVertical: 14, alignItems: "center", borderWidth: 1, borderColor: "#334155", marginBottom: 4 }}
+              activeOpacity={0.8}
+              onPress={() => onRefillConfirm(false)}
+            >
+              <Text style={{ color: "#F1F5F9", fontSize: 14, fontWeight: "700" }}>Não, só atualizar os existentes</Text>
+            </TouchableOpacity>
+            <TouchableOpacity style={{ paddingVertical: 10, alignItems: "center" }} onPress={onRefillCancel}>
+              <Text style={{ color: "#64748B", fontSize: 14, fontWeight: "700" }}>Cancelar</Text>
+            </TouchableOpacity>
           </View>
         </View>
       </Modal>

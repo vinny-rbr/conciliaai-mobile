@@ -54,7 +54,14 @@ function FinanceItemRow({ it, isReceita, onPress }: { it: FinanceItem; isReceita
         </View>
         <View style={s.itemBody}>
           <Text style={s.itemTitle} numberOfLines={2}>{it.title}</Text>
-          <Text style={s.itemCat}>{it.category}</Text>
+          <View style={s.itemMetaRow}>
+            <Text style={s.itemCat}>{it.category}</Text>
+            {it.recurringGroupId && (
+              <View style={s.fixedBadge}>
+                <Text style={s.fixedBadgeTxt}>🔄 Fixo</Text>
+              </View>
+            )}
+          </View>
         </View>
         <View style={s.itemRight}>
           <Text style={[s.itemAmt, { color: isReceita ? "#4ADE80" : "#F87171" }]}>
@@ -422,6 +429,9 @@ const s = StyleSheet.create({
   itemBody: { flex: 1 },
   itemTitle: { color: "#F1F5F9", fontSize: 14, fontWeight: "600", lineHeight: 20 },
   itemCat: { color: "#64748B", fontSize: 12, marginTop: 2 },
+  itemMetaRow: { flexDirection: "row", alignItems: "center", gap: 6, flexWrap: "wrap" },
+  fixedBadge: { flexDirection: "row", alignItems: "center", backgroundColor: "rgba(59,130,246,.15)", borderRadius: 6, paddingHorizontal: 6, paddingVertical: 1, marginTop: 2 },
+  fixedBadgeTxt: { color: "#60A5FA", fontSize: 10, fontWeight: "700" },
   itemRight: { alignItems: "flex-end", gap: 6 },
   itemAmt: { fontSize: 15, fontWeight: "700" },
   checkBadge: { width: 22, height: 22, borderRadius: 11, alignItems: "center", justifyContent: "center" },

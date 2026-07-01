@@ -14,7 +14,7 @@ import { getToken } from "../../lib/auth";
 import type { BankAccount, FinanceCategoryOption, FinanceItem } from "../../types/finance";
 import {
   TxType, Summary, QUICK, MORE,
-  fmtAmount, todayBR, brToISO, parseCents, makeGroupId, addMonthsISO,
+  fmtAmount, todayBR, brToISO, parseCents, makeGroupId, addMonthsISO, seriesInfo,
 } from "./addTransaction/shared";
 import QuickActionsSheet from "./addTransaction/QuickActionsSheet";
 import TransactionForm   from "./addTransaction/TransactionForm";
@@ -62,7 +62,9 @@ export default function AddTransactionScreen() {
   const [isRecurring,      setIsRecurring]      = useState(false);
   const [recurringMode,    setRecurringMode]    = useState<"forever" | "months">("forever");
   const [recurringMonths,  setRecurringMonths]  = useState("12");
-  const [recurringAction,  setRecurringAction]  = useState<"edit" | "delete" | null>(null);
+  const [recurringAction,  setRecurringAction]  = useState<"edit" | "delete" | "unset" | null>(null);
+  const [recurringGaps,    setRecurringGaps]    = useState<string[] | null>(null);   // meses (YYYY-MM) apagados na série (modal)
+  const [seriesGaps,       setSeriesGaps]       = useState<string[]>([]);            // buracos detectados ao abrir (banner inline)
 
   // ── Mount: entrada ────────────────────────────────────────────────
   useEffect(() => {
@@ -98,6 +100,10 @@ export default function AddTransactionScreen() {
         setAccounts(accs);
         if (editItem)           setSelectedAcc(accs.find(a => a.id === editItem.accountId) ?? null);
         else if (accs.length === 1) setSelectedAcc(accs[0]);
+        if (editItem?.recurringGroupId) {
+          const group = items.filter(it => it.recurringGroupId === editItem.recurringGroupId);
+          setSeriesGaps(seriesInfo(group, editItem.dateISO).missing);
+        }
         const tagSet = new Set<string>();
         for (const it of items) {
           if (it.tags) it.tags.split(",").map(t => t.trim()).filter(Boolean).forEach(t => tagSet.add(t));
@@ -205,7 +211,7 @@ export default function AddTransactionScreen() {
     await performSave("one");
   }
 
-  async function performSave(scope: "one" | "all") {
+  async function performSave(scope: "one" | "all", refill?: boolean) {
     setSaving(true);
     const dateISO = brToISO(dateBR)!;
     try {
@@ -227,7 +233,7 @@ export default function AddTransactionScreen() {
             const r = await fetch(apiUrl("/api/finance"), {
               method: "POST",
               headers: { Authorization: `Bearer ${token ?? ""}`, "Content-Type": "application/json" },
-              body: JSON.stringify({ ...payload, date: addMonthsISO(dateISO, i), recurringGroupId: groupId, recurringKind: "fixo", recurringTotal: totalMonths, status: i === 0 ? payload.status : "pending" }),
+              body: JSON.stringify({ ...payload, date: addMonthsISO(dateISO, i), recurringGroupId: groupId, recurringKind: "fixo", recurringTotal: totalMonths, recurringStartDate: dateISO, status: i === 0 ? payload.status : "pending" }),
             });
             if (!r.ok) { const e = await r.json().catch(()=>null) as {message?:string}|null; throw new Error(e?.message ?? `Erro ${r.status}`); }
           }
@@ -240,13 +246,37 @@ export default function AddTransactionScreen() {
           if (!r.ok) { const e = await r.json().catch(()=>null) as {message?:string}|null; throw new Error(e?.message ?? `Erro ${r.status}`); }
         }
       } else if (scope === "all" && editItem.recurringGroupId) {
-        const allItems = await fetchFinanceItems();
-        for (const it of allItems.filter(it => it.recurringGroupId === editItem.recurringGroupId)) {
-          await fetch(apiUrl(`/api/finance/${it.id}`), {
-            method: "PUT",
-            headers: { Authorization: `Bearer ${token ?? ""}`, "Content-Type": "application/json" },
-            body: JSON.stringify({ ...payload, date: it.dateISO, status: it.status }),
-          });
+        const groupId = editItem.recurringGroupId;
+        const group = (await fetchFinanceItems()).filter(it => it.recurringGroupId === groupId);
+
+        const { startDate, total, missing } = seriesInfo(group, dateISO);
+        const byMonth = new Map(group.map(it => [it.dateISO.slice(0, 7), it] as const));
+
+        // 1ª passada: há buracos e o usuário ainda não decidiu → pergunta.
+        if (missing.length > 0 && refill === undefined) {
+          setSaving(false);
+          setRecurringGaps(missing);
+          return;
+        }
+
+        const recreate = refill === true;
+        for (let i = 0; i < total; i++) {
+          const dISO = addMonthsISO(startDate, i);
+          const existing = byMonth.get(dISO.slice(0, 7));
+          if (existing) {
+            await fetch(apiUrl(`/api/finance/${existing.id}`), {
+              method: "PUT",
+              headers: { Authorization: `Bearer ${token ?? ""}`, "Content-Type": "application/json" },
+              body: JSON.stringify({ ...payload, date: existing.dateISO, status: existing.status, recurringGroupId: groupId, recurringKind: "fixo", recurringTotal: total, recurringStartDate: startDate }),
+            });
+          } else if (recreate) {
+            const r = await fetch(apiUrl("/api/finance"), {
+              method: "POST",
+              headers: { Authorization: `Bearer ${token ?? ""}`, "Content-Type": "application/json" },
+              body: JSON.stringify({ ...payload, date: dISO, status: "pending", recurringGroupId: groupId, recurringKind: "fixo", recurringTotal: total, recurringStartDate: startDate }),
+            });
+            if (!r.ok) { const e = await r.json().catch(()=>null) as {message?:string}|null; throw new Error(e?.message ?? `Erro ${r.status}`); }
+          }
         }
       } else if (!editItem.recurringGroupId && isRecurring) {
         const totalMonths = recurringMode === "forever" ? 12 : Math.max(1, parseInt(recurringMonths, 10) || 12);
@@ -254,14 +284,14 @@ export default function AddTransactionScreen() {
         const r = await fetch(apiUrl(`/api/finance/${editItem.id}`), {
           method: "PUT",
           headers: { Authorization: `Bearer ${token ?? ""}`, "Content-Type": "application/json" },
-          body: JSON.stringify({ ...payload, recurringGroupId: groupId, recurringKind: "fixo", recurringTotal: totalMonths }),
+          body: JSON.stringify({ ...payload, recurringGroupId: groupId, recurringKind: "fixo", recurringTotal: totalMonths, recurringStartDate: dateISO }),
         });
         if (!r.ok) { const e = await r.json().catch(()=>null) as {message?:string}|null; throw new Error(e?.message ?? `Erro ${r.status}`); }
         for (let i = 1; i < totalMonths; i++) {
           const r2 = await fetch(apiUrl("/api/finance"), {
             method: "POST",
             headers: { Authorization: `Bearer ${token ?? ""}`, "Content-Type": "application/json" },
-            body: JSON.stringify({ ...payload, date: addMonthsISO(dateISO, i), recurringGroupId: groupId, recurringKind: "fixo", recurringTotal: totalMonths, status: "pending" }),
+            body: JSON.stringify({ ...payload, date: addMonthsISO(dateISO, i), recurringGroupId: groupId, recurringKind: "fixo", recurringTotal: totalMonths, recurringStartDate: dateISO, status: "pending" }),
           });
           if (!r2.ok) { const e = await r2.json().catch(()=>null) as {message?:string}|null; throw new Error(e?.message ?? `Erro ${r2.status}`); }
         }
@@ -311,6 +341,36 @@ export default function AddTransactionScreen() {
       ]).start(() => navigation.goBack());
     } catch {
       Alert.alert("Erro","Não foi possível excluir o lançamento.");
+    }
+  }
+
+  async function performUnsetRecurring(scope: "one" | "all") {
+    if (!editItem) return;
+    setRecurringAction(null);
+    setSaving(true);
+    try {
+      const token = await getToken();
+      const strip = { recurringGroupId: null, recurringKind: null, recurringTotal: null, recurringStartDate: null };
+      const targets = scope === "all" && editItem.recurringGroupId
+        ? (await fetchFinanceItems()).filter(it => it.recurringGroupId === editItem.recurringGroupId)
+        : [editItem];
+      for (const it of targets) {
+        const r = await fetch(apiUrl(`/api/finance/${it.id}`), {
+          method: "PUT",
+          headers: { Authorization: `Bearer ${token ?? ""}`, "Content-Type": "application/json" },
+          body: JSON.stringify(strip),
+        });
+        if (!r.ok) { const e = await r.json().catch(()=>null) as {message?:string}|null; throw new Error(e?.message ?? `Erro ${r.status}`); }
+      }
+      closeFabAnim();
+      Animated.parallel([
+        Animated.timing(formSlide, { toValue: SCREEN_H, duration: 260, useNativeDriver: true }),
+        Animated.timing(slideAnim, { toValue: SCREEN_H, duration: 260, useNativeDriver: true }),
+      ]).start(() => navigation.goBack());
+    } catch (e) {
+      Alert.alert("Erro", e instanceof Error ? e.message : "Não foi possível remover a recorrência.");
+    } finally {
+      setSaving(false);
     }
   }
 
@@ -367,11 +427,17 @@ export default function AddTransactionScreen() {
           recurringMode={recurringMode} setRecurringMode={setRecurringMode}
           recurringMonths={recurringMonths} setRecurringMonths={setRecurringMonths}
           recurringAction={recurringAction} setRecurringAction={setRecurringAction}
+          recurringGaps={recurringGaps}
+          onRefillConfirm={(recreate) => { setRecurringGaps(null); void performSave("all", recreate); }}
+          onRefillCancel={() => setRecurringGaps(null)}
+          seriesGaps={seriesGaps}
+          onFixGaps={() => { setSeriesGaps([]); void performSave("all", true); }}
           deleteModal={deleteModal}    setDeleteModal={setDeleteModal}
           onClose={closeForm}
           onSave={() => void handleSave()}
           onPerformSave={performSave}
           onPerformDelete={performDelete}
+          onPerformUnset={performUnsetRecurring}
         />
       )}
     </View>
