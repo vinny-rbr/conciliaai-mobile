@@ -1,13 +1,12 @@
-import React, { useRef } from "react";
+import React, { useRef, useState, useEffect } from "react";
 import {
-  ActivityIndicator, Animated, Keyboard, KeyboardAvoidingView, Modal, Platform,
+  ActivityIndicator, Animated, Keyboard, Modal, Platform,
   ScrollView, Text, TextInput, TouchableOpacity, View,
 } from "react-native";
 import { SafeAreaView } from "react-native-safe-area-context";
 import DateTimePicker from "@react-native-community/datetimepicker";
 import type { BankAccount, FinanceCategoryOption, FinanceItem } from "../../../types/finance";
 import { PAY_TYPES, TxType, f, m, fmtAmount as _fmtAmount, monthLabel } from "./shared";
-import { TagsMultiSelect } from "../../../components/TagsMultiSelect";
 import { CategoryTreeModal } from "../../../components/CategoryTreeModal";
 
 type Props = {
@@ -84,7 +83,23 @@ export default function TransactionForm({
   onClose, onSave, onPerformSave, onPerformDelete,
 }: Props) {
   const scrollRef = useRef<ScrollView>(null);
-  const [showDatePicker, setShowDatePicker] = React.useState(false);
+  const [showDatePicker, setShowDatePicker] = useState(false);
+  const [kbHeight, setKbHeight] = useState(0);
+  const [tagModal, setTagModal] = useState(false);
+  const [tagSearch, setTagSearch] = useState("");
+
+  useEffect(() => {
+    const show = Keyboard.addListener("keyboardDidShow", e => setKbHeight(e.endCoordinates.height));
+    const hide = Keyboard.addListener("keyboardDidHide", () => setKbHeight(0));
+    return () => { show.remove(); hide.remove(); };
+  }, []);
+
+  const selectedTags = tags ? tags.split(",").map(t => t.trim()).filter(Boolean) : [];
+  const toggleTag = (tag: string) => {
+    if (selectedTags.includes(tag)) setTags(selectedTags.filter(t => t !== tag).join(","));
+    else setTags([...selectedTags, tag].join(","));
+  };
+  const filteredTags = availableTags.filter(t => t.toLowerCase().includes(tagSearch.trim().toLowerCase()));
 
   const parseBRDate = (str: string): Date => {
     const [d, mo, y] = str.split("/").map(Number);
@@ -126,13 +141,9 @@ export default function TransactionForm({
           </TouchableOpacity>
         </View>
 
-        <KeyboardAvoidingView
-          style={{ flex: 1 }}
-          behavior={Platform.OS === "ios" ? "padding" : undefined}
-        >
         <ScrollView
           ref={scrollRef}
-          contentContainerStyle={f.body}
+          contentContainerStyle={[f.body, { paddingBottom: 60 + kbHeight }]}
           keyboardShouldPersistTaps="handled"
           showsVerticalScrollIndicator={false}
         >
@@ -361,7 +372,12 @@ export default function TransactionForm({
           {/* Tags */}
           <View style={f.field}>
             <Text style={f.label}>Tags (opcional)</Text>
-            <TagsMultiSelect value={tags} onChange={setTags} availableTags={availableTags} />
+            <TouchableOpacity style={f.selectBtn} onPress={() => { Keyboard.dismiss(); setTagSearch(""); setTagModal(true); }}>
+              <Text style={selectedTags.length ? f.selectVal : f.selectPlaceholder}>
+                {selectedTags.length ? selectedTags.map(t => `#${t}`).join("  ") : "Selecionar tags"}
+              </Text>
+              <Text style={f.chevronTxt}>›</Text>
+            </TouchableOpacity>
           </View>
 
           {/* Observação */}
@@ -374,11 +390,10 @@ export default function TransactionForm({
               placeholder="Adicionar nota..."
               placeholderTextColor="#475569"
               multiline
-              onFocus={() => setTimeout(() => scrollRef.current?.scrollToEnd({ animated: true }), 150)}
+              onFocus={() => setTimeout(() => scrollRef.current?.scrollToEnd({ animated: true }), 250)}
             />
           </View>
         </ScrollView>
-        </KeyboardAvoidingView>
       </SafeAreaView>
 
       {/* ── Modal: categoria ──────────────────────────────────────── */}
@@ -389,6 +404,60 @@ export default function TransactionForm({
         selectedCat={selectedCat}
         onSelect={c => { setSelectedCat(c); setCatModal(false); }}
       />
+
+      {/* ── Modal: seletor de tags (busca nas cadastradas) ────────── */}
+      <Modal visible={tagModal} transparent animationType="slide" onRequestClose={() => setTagModal(false)}>
+        <View style={{ flex: 1, backgroundColor: "rgba(0,0,0,.6)", justifyContent: "flex-end" }}>
+          <View style={{ backgroundColor: "#0F172A", borderTopLeftRadius: 24, borderTopRightRadius: 24, borderWidth: 1, borderColor: "#334155", maxHeight: "75%", paddingTop: 16, paddingBottom: 24 }}>
+            <View style={{ flexDirection: "row", alignItems: "center", justifyContent: "space-between", paddingHorizontal: 20, marginBottom: 12 }}>
+              <Text style={{ color: "#F1F5F9", fontSize: 17, fontWeight: "800" }}>Tags</Text>
+              <TouchableOpacity onPress={() => setTagModal(false)}>
+                <Text style={{ color: "#60A5FA", fontSize: 15, fontWeight: "700" }}>Concluir</Text>
+              </TouchableOpacity>
+            </View>
+
+            <View style={{ paddingHorizontal: 20, marginBottom: 12 }}>
+              <TextInput
+                style={[f.input]}
+                value={tagSearch}
+                onChangeText={setTagSearch}
+                placeholder="Pesquisar tags..."
+                placeholderTextColor="#475569"
+                autoCapitalize="none"
+              />
+            </View>
+
+            <ScrollView keyboardShouldPersistTaps="handled" style={{ paddingHorizontal: 20 }}>
+              {availableTags.length === 0 ? (
+                <Text style={{ color: "#64748B", fontSize: 14, textAlign: "center", paddingVertical: 24, lineHeight: 20 }}>
+                  Nenhuma tag cadastrada ainda.{"\n"}Crie suas tags na aba Tags.
+                </Text>
+              ) : filteredTags.length === 0 ? (
+                <Text style={{ color: "#64748B", fontSize: 14, textAlign: "center", paddingVertical: 24 }}>
+                  Nenhuma tag encontrada para "{tagSearch}".
+                </Text>
+              ) : (
+                filteredTags.map(tag => {
+                  const isSel = selectedTags.includes(tag);
+                  return (
+                    <TouchableOpacity
+                      key={tag}
+                      onPress={() => toggleTag(tag)}
+                      activeOpacity={0.7}
+                      style={{ flexDirection: "row", alignItems: "center", justifyContent: "space-between", paddingVertical: 14, borderBottomWidth: 1, borderBottomColor: "#1E293B" }}
+                    >
+                      <Text style={{ color: isSel ? "#93C5FD" : "#E2E8F0", fontSize: 15, fontWeight: isSel ? "700" : "500" }}>#{tag}</Text>
+                      <View style={{ width: 24, height: 24, borderRadius: 12, borderWidth: 2, borderColor: isSel ? "#3B82F6" : "#334155", backgroundColor: isSel ? "#3B82F6" : "transparent", alignItems: "center", justifyContent: "center" }}>
+                        {isSel && <Text style={{ color: "#fff", fontSize: 13, fontWeight: "800" }}>✓</Text>}
+                      </View>
+                    </TouchableOpacity>
+                  );
+                })
+              )}
+            </ScrollView>
+          </View>
+        </View>
+      </Modal>
 
       {/* ── Modal: conta ─────────────────────────────────────────── */}
       <Modal visible={accModal} transparent animationType="slide" onRequestClose={() => setAccModal(false)}>
