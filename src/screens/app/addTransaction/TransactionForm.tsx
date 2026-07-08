@@ -1,9 +1,10 @@
-import React from "react";
+import React, { useRef } from "react";
 import {
-  ActivityIndicator, Animated, Keyboard, Modal,
+  ActivityIndicator, Animated, Keyboard, KeyboardAvoidingView, Modal, Platform,
   ScrollView, Text, TextInput, TouchableOpacity, View,
 } from "react-native";
 import { SafeAreaView } from "react-native-safe-area-context";
+import DateTimePicker from "@react-native-community/datetimepicker";
 import type { BankAccount, FinanceCategoryOption, FinanceItem } from "../../../types/finance";
 import { PAY_TYPES, TxType, f, m, fmtAmount as _fmtAmount, monthLabel } from "./shared";
 import { TagsMultiSelect } from "../../../components/TagsMultiSelect";
@@ -82,6 +83,17 @@ export default function TransactionForm({
   seriesGaps, onFixGaps, onPerformUnset,
   onClose, onSave, onPerformSave, onPerformDelete,
 }: Props) {
+  const scrollRef = useRef<ScrollView>(null);
+  const [showDatePicker, setShowDatePicker] = React.useState(false);
+
+  const parseBRDate = (str: string): Date => {
+    const [d, mo, y] = str.split("/").map(Number);
+    if (!d || !mo || !y) return new Date();
+    return new Date(y, mo - 1, d);
+  };
+  const formatBRDate = (dt: Date): string =>
+    `${String(dt.getDate()).padStart(2, "0")}/${String(dt.getMonth() + 1).padStart(2, "0")}/${dt.getFullYear()}`;
+
   return (
     <Animated.View style={[f.root, { transform: [{ translateY: formSlide }] }]}>
       <SafeAreaView style={{ flex: 1 }}>
@@ -114,7 +126,16 @@ export default function TransactionForm({
           </TouchableOpacity>
         </View>
 
-        <ScrollView contentContainerStyle={f.body} keyboardShouldPersistTaps="handled" showsVerticalScrollIndicator={false}>
+        <KeyboardAvoidingView
+          style={{ flex: 1 }}
+          behavior={Platform.OS === "ios" ? "padding" : undefined}
+        >
+        <ScrollView
+          ref={scrollRef}
+          contentContainerStyle={f.body}
+          keyboardShouldPersistTaps="handled"
+          showsVerticalScrollIndicator={false}
+        >
           {/* Valor */}
           <View style={[f.amountBlock, { borderColor: accent + "44", backgroundColor: accent + "11" }]}>
             <Text style={f.currencySign}>R$</Text>
@@ -165,15 +186,35 @@ export default function TransactionForm({
           {/* Data */}
           <View style={f.field}>
             <Text style={f.label}>Data</Text>
-            <TextInput
-              style={f.input}
-              value={dateBR}
-              onChangeText={onDateChange}
-              placeholder="DD/MM/AAAA"
-              placeholderTextColor="#475569"
-              keyboardType="numeric"
-              maxLength={10}
-            />
+            <View style={{ flexDirection: "row", gap: 8 }}>
+              <TextInput
+                style={[f.input, { flex: 1 }]}
+                value={dateBR}
+                onChangeText={onDateChange}
+                placeholder="DD/MM/AAAA"
+                placeholderTextColor="#475569"
+                keyboardType="numeric"
+                maxLength={10}
+              />
+              <TouchableOpacity
+                style={[f.input, { width: 52, alignItems: "center", justifyContent: "center" }]}
+                onPress={() => { Keyboard.dismiss(); setShowDatePicker(true); }}
+                activeOpacity={0.7}
+              >
+                <Text style={{ fontSize: 20 }}>📅</Text>
+              </TouchableOpacity>
+            </View>
+            {showDatePicker && (
+              <DateTimePicker
+                value={parseBRDate(dateBR)}
+                mode="date"
+                display={Platform.OS === "ios" ? "spinner" : "calendar"}
+                onChange={(event, selected) => {
+                  setShowDatePicker(false);
+                  if (event.type === "set" && selected) onDateChange(formatBRDate(selected));
+                }}
+              />
+            )}
           </View>
 
           {/* Categoria */}
@@ -333,9 +374,11 @@ export default function TransactionForm({
               placeholder="Adicionar nota..."
               placeholderTextColor="#475569"
               multiline
+              onFocus={() => setTimeout(() => scrollRef.current?.scrollToEnd({ animated: true }), 150)}
             />
           </View>
         </ScrollView>
+        </KeyboardAvoidingView>
       </SafeAreaView>
 
       {/* ── Modal: categoria ──────────────────────────────────────── */}

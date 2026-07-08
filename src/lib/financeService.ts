@@ -17,6 +17,7 @@ type ApiItem = {
   account_id?: string;
   accountId?: string;
   note?: string;
+  tags?: string;
   recurringGroupId?: string;
   recurringKind?: string;
   recurringTotal?: number;
@@ -38,6 +39,7 @@ function normalize(raw: ApiItem): FinanceItem {
     status: raw.status,
     ...(accountId ? { accountId } : {}),
     note: raw.note,
+    tags: raw.tags,
     ...(raw.recurringGroupId ? {
       recurringGroupId: raw.recurringGroupId,
       recurringKind: raw.recurringKind,

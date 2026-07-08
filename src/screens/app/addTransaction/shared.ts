@@ -69,6 +69,13 @@ export function monthLabel(ym: string): string {
   return `${MONTH_NAMES[(m || 1) - 1]}/${y}`;
 }
 
+// Diferença em meses entre duas datas ISO (ignora o dia). Ex: 2026-07 → 2026-09 = 2.
+export function monthsBetween(fromISO: string, toISO: string): number {
+  const [fy, fm] = fromISO.split("-").map(Number);
+  const [ty, tm] = toISO.split("-").map(Number);
+  return (ty - fy) * 12 + (tm - fm);
+}
+
 // Reconstrói a série recorrente a partir da âncora (data de início gravada, ou o
 // mês mais antigo que sobreviveu) e retorna os meses (YYYY-MM) que estão faltando.
 export function seriesInfo(group: FinanceItem[], fallbackStart: string): { startDate: string; total: number; missing: string[] } {
@@ -151,7 +158,7 @@ export const f = StyleSheet.create({
   radioDot:         { width:10, height:10, borderRadius:5, backgroundColor:"#3B82F6" },
   radioTitle:       { color:"#F1F5F9", fontSize:14, fontWeight:"700" as const },
   radioSub:         { color:"#64748B", fontSize:12, marginTop:2 },
-  body:             { paddingHorizontal:16, paddingBottom:40, gap:20 },
+  body:             { paddingHorizontal:16, paddingBottom:60, gap:20 },
   amountBlock:      { borderRadius:18, borderWidth:1.5, flexDirection:"row", alignItems:"center", paddingHorizontal:20, paddingVertical:16, gap:6 },
   currencySign:     { color:"#94A3B8", fontSize:22, fontWeight:"700" },
   amountInput:      { flex:1, fontSize:36, fontWeight:"800" },

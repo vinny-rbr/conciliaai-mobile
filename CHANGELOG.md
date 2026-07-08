@@ -1,5 +1,12 @@
 # Changelog
 
+## 1.0.24
+- fix(tags): tags voltaram a salvar e aparecer ao editar (mapeamento de tags na leitura do backend)
+- fix(tags): tag digitada e não confirmada agora é salva ao sair do campo
+- feat(data): botão de calendário no campo de data para selecionar em vez de digitar
+- fix(form): teclado não cobre mais o campo de observação (rola junto ao focar)
+- fix(fixo): editar a data do lançamento e aplicar em "todos do grupo" agora desloca a série inteira (frente ou trás), mantendo o espaçamento entre parcelas
+
 ## 1.0.23
 - feat(fixo): selo "🔄 Fixo" nos lançamentos recorrentes da lista
 - feat(fixo): ao editar "todos do grupo", detecta e recria meses apagados da série (com confirmação)

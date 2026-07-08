@@ -14,7 +14,7 @@ import { getToken } from "../../lib/auth";
 import type { BankAccount, FinanceCategoryOption, FinanceItem } from "../../types/finance";
 import {
   TxType, Summary, QUICK, MORE,
-  fmtAmount, todayBR, brToISO, parseCents, makeGroupId, addMonthsISO, seriesInfo,
+  fmtAmount, todayBR, brToISO, parseCents, makeGroupId, addMonthsISO, seriesInfo, monthsBetween,
 } from "./addTransaction/shared";
 import QuickActionsSheet from "./addTransaction/QuickActionsSheet";
 import TransactionForm   from "./addTransaction/TransactionForm";
@@ -248,34 +248,51 @@ export default function AddTransactionScreen() {
       } else if (scope === "all" && editItem.recurringGroupId) {
         const groupId = editItem.recurringGroupId;
         const group = (await fetchFinanceItems()).filter(it => it.recurringGroupId === groupId);
-
         const { startDate, total, missing } = seriesInfo(group, dateISO);
-        const byMonth = new Map(group.map(it => [it.dateISO.slice(0, 7), it] as const));
 
-        // 1ª passada: há buracos e o usuário ainda não decidiu → pergunta.
-        if (missing.length > 0 && refill === undefined) {
-          setSaving(false);
-          setRecurringGaps(missing);
-          return;
-        }
-
-        const recreate = refill === true;
-        for (let i = 0; i < total; i++) {
-          const dISO = addMonthsISO(startDate, i);
-          const existing = byMonth.get(dISO.slice(0, 7));
-          if (existing) {
-            await fetch(apiUrl(`/api/finance/${existing.id}`), {
+        // Se a data do item editado mudou, desloca a série inteira (pra frente ou pra
+        // trás), mantendo o espaçamento entre as parcelas. Cada item herda o dia da
+        // nova data e o mês relativo à sua posição original.
+        const dateChanged = dateISO !== editItem.dateISO;
+        if (dateChanged) {
+          const newStart = addMonthsISO(dateISO, monthsBetween(editItem.dateISO, startDate));
+          for (const it of group) {
+            const newDate = addMonthsISO(dateISO, monthsBetween(editItem.dateISO, it.dateISO));
+            const r = await fetch(apiUrl(`/api/finance/${it.id}`), {
               method: "PUT",
               headers: { Authorization: `Bearer ${token ?? ""}`, "Content-Type": "application/json" },
-              body: JSON.stringify({ ...payload, date: existing.dateISO, status: existing.status, recurringGroupId: groupId, recurringKind: "fixo", recurringTotal: total, recurringStartDate: startDate }),
-            });
-          } else if (recreate) {
-            const r = await fetch(apiUrl("/api/finance"), {
-              method: "POST",
-              headers: { Authorization: `Bearer ${token ?? ""}`, "Content-Type": "application/json" },
-              body: JSON.stringify({ ...payload, date: dISO, status: "pending", recurringGroupId: groupId, recurringKind: "fixo", recurringTotal: total, recurringStartDate: startDate }),
+              body: JSON.stringify({ ...payload, date: newDate, status: it.status, recurringGroupId: groupId, recurringKind: "fixo", recurringTotal: total, recurringStartDate: newStart }),
             });
             if (!r.ok) { const e = await r.json().catch(()=>null) as {message?:string}|null; throw new Error(e?.message ?? `Erro ${r.status}`); }
+          }
+        } else {
+          const byMonth = new Map(group.map(it => [it.dateISO.slice(0, 7), it] as const));
+
+          // 1ª passada: há buracos e o usuário ainda não decidiu → pergunta.
+          if (missing.length > 0 && refill === undefined) {
+            setSaving(false);
+            setRecurringGaps(missing);
+            return;
+          }
+
+          const recreate = refill === true;
+          for (let i = 0; i < total; i++) {
+            const dISO = addMonthsISO(startDate, i);
+            const existing = byMonth.get(dISO.slice(0, 7));
+            if (existing) {
+              await fetch(apiUrl(`/api/finance/${existing.id}`), {
+                method: "PUT",
+                headers: { Authorization: `Bearer ${token ?? ""}`, "Content-Type": "application/json" },
+                body: JSON.stringify({ ...payload, date: existing.dateISO, status: existing.status, recurringGroupId: groupId, recurringKind: "fixo", recurringTotal: total, recurringStartDate: startDate }),
+              });
+            } else if (recreate) {
+              const r = await fetch(apiUrl("/api/finance"), {
+                method: "POST",
+                headers: { Authorization: `Bearer ${token ?? ""}`, "Content-Type": "application/json" },
+                body: JSON.stringify({ ...payload, date: dISO, status: "pending", recurringGroupId: groupId, recurringKind: "fixo", recurringTotal: total, recurringStartDate: startDate }),
+              });
+              if (!r.ok) { const e = await r.json().catch(()=>null) as {message?:string}|null; throw new Error(e?.message ?? `Erro ${r.status}`); }
+            }
           }
         }
       } else if (!editItem.recurringGroupId && isRecurring) {

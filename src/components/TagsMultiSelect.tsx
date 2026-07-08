@@ -48,6 +48,7 @@ export function TagsMultiSelect({ value, onChange, availableTags = [] }: Props) 
         value={input}
         onChangeText={text => { if (text.endsWith(",")) addNew(text.slice(0, -1)); else setInput(text); }}
         onSubmitEditing={() => addNew(input)}
+        onBlur={() => addNew(input)}
         placeholder={pool.length === 0 ? "Ex: viagem, trabalho, família" : "Nova tag…"}
         placeholderTextColor="#475569"
         returnKeyType="done"
