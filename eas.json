@@ -11,6 +11,13 @@
     "preview": {
       "distribution": "internal"
     },
+    "apk": {
+      "distribution": "internal",
+      "credentialsSource": "local",
+      "android": {
+        "buildType": "apk"
+      }
+    },
     "production": {
       "autoIncrement": false,
       "credentialsSource": "local"
