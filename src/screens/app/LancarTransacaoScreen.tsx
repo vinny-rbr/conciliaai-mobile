@@ -14,6 +14,7 @@ import type { RootStackParamList } from "../../navigation";
 import { closeFabAnim } from "../../navigation/fabAnimState";
 import { PAY_TYPES, todayBR, brToISO, formatAmount, parseCents, s } from "./lancarTransacao/shared";
 import { CategoryModal, AccountModal } from "./lancarTransacao/Modals";
+import { KeyboardAwareScroll } from "../../components/KeyboardAwareScroll";
 
 type RouteP = RouteProp<RootStackParamList, "LancarTransacao">;
 
@@ -124,7 +125,7 @@ export default function LancarTransacaoScreen() {
           </TouchableOpacity>
         </View>
 
-        <ScrollView contentContainerStyle={s.body} keyboardShouldPersistTaps="handled" showsVerticalScrollIndicator={false}>
+        <KeyboardAwareScroll contentContainerStyle={s.body} keyboardShouldPersistTaps="handled" showsVerticalScrollIndicator={false}>
           <View style={[s.amountBlock, { borderColor: accent + "44", backgroundColor: accent + "11" }]}>
             <Text style={s.currencySign}>R$</Text>
             <TextInput
@@ -247,7 +248,7 @@ export default function LancarTransacaoScreen() {
               multiline
             />
           </View>
-        </ScrollView>
+        </KeyboardAwareScroll>
       </SafeAreaView>
 
       <CategoryModal

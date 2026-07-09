@@ -3,6 +3,7 @@ import {
   ActivityIndicator, Modal, ScrollView, StyleSheet, Text,
   TextInput, TouchableOpacity, View,
 } from "react-native";
+import { KeyboardAwareScroll } from "../../../components/KeyboardAwareScroll";
 import { TagsMultiSelect } from "../../../components/TagsMultiSelect";
 import { CategoryTreeModal } from "../../../components/CategoryTreeModal";
 import { SafeAreaView } from "react-native-safe-area-context";
@@ -360,7 +361,7 @@ export function ReviewStep({
           {editing && (
             <View style={ls.modalCard}>
               <Text style={ls.modalTitle}>Editar lançamento</Text>
-              <ScrollView keyboardShouldPersistTaps="handled" showsVerticalScrollIndicator={false} style={{ maxHeight: 420 }}>
+              <KeyboardAwareScroll keyboardShouldPersistTaps="handled" showsVerticalScrollIndicator={false} style={{ maxHeight: 420 }}>
               <Text style={ls.fieldLabel}>Descrição</Text>
               <TextInput
                 style={ls.fieldInput}
@@ -415,7 +416,7 @@ export function ReviewStep({
                 onChange={v => setEditing(e => e ? { ...e, tags: v } : e)}
                 availableTags={availableTags}
               />
-              </ScrollView>
+              </KeyboardAwareScroll>
 
               <View style={ls.modalBtns}>
                 <TouchableOpacity style={ls.cancelBtn} onPress={() => setEditing(null)} activeOpacity={0.7}>

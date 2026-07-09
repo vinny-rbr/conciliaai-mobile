@@ -1,5 +1,5 @@
 import { useEffect, useRef, useState } from "react";
-import { ActivityIndicator, Alert, AppState, Linking, Modal, ScrollView, StyleSheet, Text, TextInput, TouchableOpacity, View } from "react-native";
+import { ActivityIndicator, Alert, AppState, KeyboardAvoidingView, Linking, Modal, Platform, ScrollView, StyleSheet, Text, TextInput, TouchableOpacity, View } from "react-native";
 import { SafeAreaView } from "react-native-safe-area-context";
 import { useNavigation } from "@react-navigation/native";
 import Svg, { Path } from "react-native-svg";
@@ -254,7 +254,7 @@ export default function PlanosScreen() {
 
       {/* CPF Modal */}
       <Modal visible={showCpfModal} transparent animationType="slide" onRequestClose={() => setShowCpfModal(false)}>
-        <View style={s.modalOverlay}>
+        <KeyboardAvoidingView behavior={Platform.OS === "ios" ? "padding" : "height"} style={s.modalOverlay}>
           <TouchableOpacity style={{ flex: 1 }} onPress={() => setShowCpfModal(false)} activeOpacity={1} />
           <View style={s.modalCard}>
             <Text style={s.modalTitle}>Informe seu CPF</Text>
@@ -281,7 +281,7 @@ export default function PlanosScreen() {
               </TouchableOpacity>
             </View>
           </View>
-        </View>
+        </KeyboardAvoidingView>
       </Modal>
     </SafeAreaView>
   );

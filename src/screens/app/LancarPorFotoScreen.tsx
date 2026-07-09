@@ -15,6 +15,7 @@ import {
   type Stage, type OcrResult,
 } from "./lancarPorFoto/shared";
 import { SourceStage, ReadingStage, DoneStage } from "./lancarPorFoto/stages";
+import { KeyboardAwareScroll } from "../../components/KeyboardAwareScroll";
 
 export default function LancarPorFotoScreen() {
   const navigation = useNavigation();
@@ -174,7 +175,7 @@ export default function LancarPorFotoScreen() {
         </TouchableOpacity>
       </View>
 
-      <ScrollView contentContainerStyle={s.reviewBody} keyboardShouldPersistTaps="handled" showsVerticalScrollIndicator={false}>
+      <KeyboardAwareScroll contentContainerStyle={s.reviewBody} keyboardShouldPersistTaps="handled" showsVerticalScrollIndicator={false}>
         {imageUri && (
           <View style={s.thumbRow}>
             <Image source={{ uri: imageUri }} style={s.thumb} resizeMode="cover" />
@@ -282,7 +283,7 @@ export default function LancarPorFotoScreen() {
               </Text>
           }
         </TouchableOpacity>
-      </ScrollView>
+      </KeyboardAwareScroll>
     </SafeAreaView>
   );
 }

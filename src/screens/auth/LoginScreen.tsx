@@ -70,7 +70,7 @@ export default function LoginScreen() {
   }
 
   return (
-    <KeyboardAvoidingView style={s.root} behavior={Platform.OS === "ios" ? "padding" : undefined}>
+    <KeyboardAvoidingView style={s.root} behavior={Platform.OS === "ios" ? "padding" : "height"}>
       <Animated.View style={[s.inner, { opacity: fadeAnim, transform: [{ translateY: slideAnim }] }]}>
         <Text style={s.logo}>Conciliaaí</Text>
         <Text style={s.sub}>Suas finanças sob controle</Text>

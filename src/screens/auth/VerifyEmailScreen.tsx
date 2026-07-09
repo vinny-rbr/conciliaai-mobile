@@ -1,11 +1,12 @@
 import { useRef, useState } from "react";
 import {
   ActivityIndicator, KeyboardAvoidingView, Platform,
-  ScrollView, StyleSheet, Text, TextInput, TouchableOpacity,
+  StyleSheet, Text, TextInput, TouchableOpacity,
 } from "react-native";
 import { useNavigation, useRoute } from "@react-navigation/native";
 import { apiUrl } from "../../lib/api";
 import { useAppAlert } from "../../components/AppAlert";
+import { KeyboardAwareScroll } from "../../components/KeyboardAwareScroll";
 
 type RouteParams = { email: string };
 
@@ -73,7 +74,7 @@ export default function VerifyEmailScreen() {
 
   return (
     <KeyboardAvoidingView style={s.root} behavior={Platform.OS === "ios" ? "padding" : undefined}>
-      <ScrollView
+      <KeyboardAwareScroll
         contentContainerStyle={s.inner}
         keyboardShouldPersistTaps="handled"
         showsVerticalScrollIndicator={false}
@@ -125,7 +126,7 @@ export default function VerifyEmailScreen() {
             ? <ActivityIndicator color="#60A5FA" size="small" />
             : <Text style={s.linkTxt}>Reenviar código</Text>}
         </TouchableOpacity>
-      </ScrollView>
+      </KeyboardAwareScroll>
       {AlertNode}
     </KeyboardAvoidingView>
   );

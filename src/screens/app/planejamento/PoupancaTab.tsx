@@ -106,7 +106,7 @@ export default function PoupancaTab({
 
       {/* ── MODAL: Meta de poupança ────────────────────────────── */}
       <Modal visible={editSavings} transparent animationType="fade" onRequestClose={() => setEditSavings(false)}>
-        <KeyboardAvoidingView behavior={Platform.OS === "ios" ? "padding" : undefined} style={{ flex: 1 }}>
+        <KeyboardAvoidingView behavior={Platform.OS === "ios" ? "padding" : "height"} style={{ flex: 1 }}>
           <View style={s.overlay}>
             <View style={s.modal}>
               <Text style={s.modalTitle}>Meta de poupança</Text>

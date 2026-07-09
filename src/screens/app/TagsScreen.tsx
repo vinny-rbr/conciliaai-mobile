@@ -1,6 +1,6 @@
 import { useCallback, useEffect, useRef, useState } from "react";
 import {
-  ActivityIndicator, Alert, Modal, ScrollView, StyleSheet,
+  ActivityIndicator, Alert, KeyboardAvoidingView, Modal, Platform, ScrollView, StyleSheet,
   Text, TextInput, TouchableOpacity, View,
 } from "react-native";
 import { SafeAreaView } from "react-native-safe-area-context";
@@ -257,7 +257,7 @@ export default function TagsScreen() {
 
       {/* Create / Rename modal */}
       <Modal visible={!!tagModal} transparent animationType="slide" onRequestClose={() => setTagModal(null)}>
-        <View style={s.modalOverlay}>
+        <KeyboardAvoidingView style={s.modalOverlay} behavior={Platform.OS === "ios" ? "padding" : "height"}>
           <TouchableOpacity style={{ flex: 1 }} onPress={() => setTagModal(null)} activeOpacity={1} />
           <View style={s.modalCard}>
             <Text style={s.modalTitle}>
@@ -286,7 +286,7 @@ export default function TagsScreen() {
               </TouchableOpacity>
             </View>
           </View>
-        </View>
+        </KeyboardAvoidingView>
       </Modal>
     </SafeAreaView>
   );

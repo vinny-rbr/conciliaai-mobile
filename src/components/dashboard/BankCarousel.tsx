@@ -2,12 +2,14 @@ import { useState } from "react";
 import {
   View, Text, ScrollView, TouchableOpacity,
   Modal, TextInput, ActivityIndicator, Dimensions, Alert,
+  KeyboardAvoidingView, Platform,
 } from "react-native";
 import TransferenciaModal from "../TransferenciaModal";
 import { fmt } from "../../lib/financeService";
 import { createBankAccount, updateBankAccount } from "../../lib/bankAccountsService";
 import type { BankAccount, FinanceItem } from "../../types/finance";
 import { AnimatedCard } from "./CollapsePanel";
+import { KeyboardAwareScroll } from "../KeyboardAwareScroll";
 
 export const BANK_COLORS: Record<string, string> = {
   nubank: "#820AD1", inter: "#FF7A00", itau: "#003399",
@@ -207,7 +209,7 @@ export function NovoBancoModal({ visible, onClose, onSaved }: { visible: boolean
               </ScrollView>
             </>
           ) : (
-            <ScrollView contentContainerStyle={{ paddingHorizontal: 20, paddingBottom: 40 }} showsVerticalScrollIndicator={false} keyboardShouldPersistTaps="handled">
+            <KeyboardAwareScroll contentContainerStyle={{ paddingHorizontal: 20, paddingBottom: 40 }} showsVerticalScrollIndicator={false} keyboardShouldPersistTaps="handled">
               <View style={{ flexDirection: "row", alignItems: "center", gap: 12, paddingTop: 10, paddingBottom: 16 }}>
                 <TouchableOpacity onPress={() => setStep(0)}
                   style={{ width: 36, height: 36, borderRadius: 12, backgroundColor: "#1E293B", justifyContent: "center", alignItems: "center" }}>
@@ -266,7 +268,7 @@ export function NovoBancoModal({ visible, onClose, onSaved }: { visible: boolean
                 style={{ backgroundColor: saving || !nick.trim() ? "#1E293B" : "#D97706", borderRadius: 16, padding: 17, alignItems: "center" }}>
                 {saving ? <ActivityIndicator color="#fff" size="small" /> : <Text style={{ color: saving || !nick.trim() ? "#475569" : "#fff", fontSize: 16, fontWeight: "800" }}>Salvar conta</Text>}
               </TouchableOpacity>
-            </ScrollView>
+            </KeyboardAwareScroll>
           )}
         </View>
       </View>
@@ -494,7 +496,7 @@ export function BankCarousel({ accounts, hidden, onSaved, onBalanceSaved, items 
 
       {/* ── Modal: definir saldo de conta existente ── */}
       <Modal visible={!!editBalanceAcc} transparent animationType="fade" onRequestClose={() => setEditBalanceAcc(null)}>
-        <View style={{ flex: 1, backgroundColor: "rgba(0,0,0,0.7)", justifyContent: "center", alignItems: "center", padding: 24 }}>
+        <KeyboardAvoidingView behavior={Platform.OS === "ios" ? "padding" : "height"} style={{ flex: 1, backgroundColor: "rgba(0,0,0,0.7)", justifyContent: "center", alignItems: "center", padding: 24 }}>
           <View style={{ backgroundColor: "#1E293B", borderRadius: 20, padding: 24, width: "100%", borderWidth: 1, borderColor: "#334155" }}>
             {/* Header */}
             <Text style={{ color: "#F1F5F9", fontSize: 17, fontWeight: "800", marginBottom: 4 }}>
@@ -536,7 +538,7 @@ export function BankCarousel({ accounts, hidden, onSaved, onBalanceSaved, items 
               </TouchableOpacity>
             </View>
           </View>
-        </View>
+        </KeyboardAvoidingView>
       </Modal>
 
       {/* ── Modal: adicionar banco (2 passos) ── */}
@@ -577,7 +579,7 @@ export function BankCarousel({ accounts, hidden, onSaved, onBalanceSaved, items 
               </>
             ) : (
               /* ── Passo 2: Formulário da conta ── */
-              <ScrollView contentContainerStyle={{ paddingHorizontal: 20, paddingBottom: 40 }} showsVerticalScrollIndicator={false} keyboardShouldPersistTaps="handled">
+              <KeyboardAwareScroll contentContainerStyle={{ paddingHorizontal: 20, paddingBottom: 40 }} showsVerticalScrollIndicator={false} keyboardShouldPersistTaps="handled">
                 {/* Header com voltar */}
                 <View style={{ flexDirection: "row", alignItems: "center", gap: 12, paddingTop: 10, paddingBottom: 16 }}>
                   <TouchableOpacity onPress={() => setAddStep(0)}
@@ -666,7 +668,7 @@ export function BankCarousel({ accounts, hidden, onSaved, onBalanceSaved, items 
                     : <Text style={{ color: saving || !addNick.trim() ? "#475569" : "#fff", fontSize: 16, fontWeight: "800" }}>Salvar conta</Text>
                   }
                 </TouchableOpacity>
-              </ScrollView>
+              </KeyboardAwareScroll>
             )}
           </View>
         </View>

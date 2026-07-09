@@ -3,6 +3,7 @@ import {
   Modal, View, Text, TouchableOpacity, ScrollView,
   TextInput, ActivityIndicator, Alert,
 } from "react-native";
+import { KeyboardAwareScroll } from "./KeyboardAwareScroll";
 import { listBankAccounts, transferBetweenAccounts } from "../lib/bankAccountsService";
 import { fmt } from "../lib/financeService";
 import type { BankAccount } from "../types/finance";
@@ -96,7 +97,7 @@ export default function TransferenciaModal({
               </TouchableOpacity>
             </View>
           ) : (
-            <ScrollView contentContainerStyle={{ paddingHorizontal: 20, paddingBottom: 40 }} keyboardShouldPersistTaps="handled" showsVerticalScrollIndicator={false}>
+            <KeyboardAwareScroll contentContainerStyle={{ paddingHorizontal: 20, paddingBottom: 40 }} keyboardShouldPersistTaps="handled" showsVerticalScrollIndicator={false}>
               {accounts.length < 2 ? (
                 <View style={{ alignItems: "center", paddingVertical: 32 }}>
                   <Text style={{ fontSize: 40, marginBottom: 12 }}>🏦</Text>
@@ -203,7 +204,7 @@ export default function TransferenciaModal({
                   </TouchableOpacity>
                 </>
               )}
-            </ScrollView>
+            </KeyboardAwareScroll>
           )}
         </View>
       </View>

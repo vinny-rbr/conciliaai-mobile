@@ -1,5 +1,6 @@
 import { ActivityIndicator, Modal, Pressable, ScrollView, Text, TextInput, TouchableOpacity, View } from "react-native";
 import type { FinanceCategoryOption } from "../../../types/finance";
+import { KeyboardAwareScroll } from "../../../components/KeyboardAwareScroll";
 import { COLORS, ICONS, s, type EditState, type TabType } from "./shared";
 
 type Props = {
@@ -20,7 +21,7 @@ export function EditModal({ visible, onClose, edit, setEdit, saving, onSave, par
           <Text style={s.modalTitle}>{edit.id ? "Editar categoria" : "Nova categoria"}</Text>
           <Pressable onPress={onClose}><Text style={s.modalClose}>✕</Text></Pressable>
         </View>
-        <ScrollView contentContainerStyle={s.modalBody} keyboardShouldPersistTaps="handled">
+        <KeyboardAwareScroll contentContainerStyle={s.modalBody} keyboardShouldPersistTaps="handled">
           {!edit.id && (
             <View style={s.field}>
               <Text style={s.label}>Tipo</Text>
@@ -112,7 +113,7 @@ export function EditModal({ visible, onClose, edit, setEdit, saving, onSave, par
           >
             {saving ? <ActivityIndicator color="#fff" /> : <Text style={s.saveBtnTxt}>Salvar</Text>}
           </TouchableOpacity>
-        </ScrollView>
+        </KeyboardAwareScroll>
       </View>
     </Modal>
   );

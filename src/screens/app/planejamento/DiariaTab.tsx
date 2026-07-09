@@ -7,6 +7,7 @@ import DateTimePicker from "@react-native-community/datetimepicker";
 import * as SecureStore from "expo-secure-store";
 import { useFocusEffect } from "@react-navigation/native";
 import { fmt } from "../../../lib/financeService";
+import { KeyboardAwareScroll } from "../../../components/KeyboardAwareScroll";
 import {
   WorkType, DiariaView, DiariaExpense, DiariaLog, DiariaPerfil,
   WORK_TYPES, DIARIA_KEY, DIARIA_LOGS_KEY,
@@ -311,7 +312,7 @@ export default function DiariaTab({ refreshing, onRefresh }: Props) {
 
       {/* ══════════════ META VIEW ══════════════════════════════ */}
       {diariaView === "meta" && (
-        <ScrollView style={{ flex: 1 }} contentContainerStyle={{ padding: 18, paddingBottom: 100, gap: 16 }} refreshControl={refreshCtrl} showsVerticalScrollIndicator={false}>
+        <KeyboardAwareScroll style={{ flex: 1 }} contentContainerStyle={{ padding: 18, paddingBottom: 100, gap: 16 }} refreshControl={refreshCtrl} showsVerticalScrollIndicator={false}>
 
           {/* Tipo de trabalho */}
           <Card>
@@ -543,7 +544,7 @@ export default function DiariaTab({ refreshing, onRefresh }: Props) {
               <Text style={s.emptyTxt}>Adicione suas contas fixas acima para ver a meta diária.</Text>
             </View>
           )}
-        </ScrollView>
+        </KeyboardAwareScroll>
       )}
 
       {/* ══════════════ REGISTRO VIEW ══════════════════════════ */}

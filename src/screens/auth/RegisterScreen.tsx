@@ -1,13 +1,14 @@
 import { useState } from "react";
 import {
   View, Text, TextInput, TouchableOpacity, StyleSheet,
-  KeyboardAvoidingView, ActivityIndicator, ScrollView,
+  ActivityIndicator,
 } from "react-native";
 import { useNavigation } from "@react-navigation/native";
 import type { NativeStackNavigationProp } from "@react-navigation/native-stack";
 import type { AuthStackParamList } from "../../navigation";
 import { apiUrl } from "../../lib/api";
 import { useAppAlert } from "../../components/AppAlert";
+import { KeyboardAwareScroll } from "../../components/KeyboardAwareScroll";
 
 export default function RegisterScreen() {
   const navigation = useNavigation<NativeStackNavigationProp<AuthStackParamList>>();
@@ -58,8 +59,8 @@ export default function RegisterScreen() {
   }
 
   return (
-    <KeyboardAvoidingView style={s.root} behavior="padding">
-      <ScrollView contentContainerStyle={s.scroll} keyboardShouldPersistTaps="handled">
+    <View style={s.root}>
+      <KeyboardAwareScroll contentContainerStyle={s.scroll} keyboardShouldPersistTaps="handled">
         <Text style={s.logo}>Conciliaaí</Text>
         <Text style={s.title}>Criar conta</Text>
         <Text style={s.sub}>Comece a organizar seu dinheiro em minutos.</Text>
@@ -119,9 +120,9 @@ export default function RegisterScreen() {
         <TouchableOpacity onPress={() => navigation.goBack()} activeOpacity={0.7} style={s.backBtn}>
           <Text style={s.backTxt}>Já tenho conta — Entrar</Text>
         </TouchableOpacity>
-      </ScrollView>
+      </KeyboardAwareScroll>
       {AlertNode}
-    </KeyboardAvoidingView>
+    </View>
   );
 }
 

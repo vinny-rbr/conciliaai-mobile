@@ -13,6 +13,7 @@ import { fmt } from "../../lib/financeService";
 import {
   BankCardVisual, NovoBancoModal, CARD_COLORS, BANKS_LIST,
 } from "../../components/dashboard/BankCarousel";
+import { KeyboardAwareScroll } from "../../components/KeyboardAwareScroll";
 
 type EditState = { id: string; nick: string; accountType: "corrente" | "poupanca" | "credito"; color: string; bank: string };
 
@@ -154,7 +155,7 @@ export default function ContasBancariasScreen() {
           {editState && editPreviewAcc && (
             <View style={s.modalCard}>
               <Text style={s.modalTitle}>Editar conta</Text>
-              <ScrollView keyboardShouldPersistTaps="handled" showsVerticalScrollIndicator={false}>
+              <KeyboardAwareScroll keyboardShouldPersistTaps="handled" showsVerticalScrollIndicator={false}>
 
                 {/* Preview */}
                 <View style={{ alignItems: "center", marginBottom: 16 }}>
@@ -222,7 +223,7 @@ export default function ContasBancariasScreen() {
                     {saving ? <ActivityIndicator color="#fff" size="small" /> : <Text style={s.saveTxt}>Salvar</Text>}
                   </TouchableOpacity>
                 </View>
-              </ScrollView>
+              </KeyboardAwareScroll>
             </View>
           )}
         </View>

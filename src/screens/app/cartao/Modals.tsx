@@ -1,8 +1,9 @@
 import React, { useEffect, useState } from "react";
 import {
   Modal, View, Text, ScrollView, TouchableOpacity,
-  TextInput, ActivityIndicator, Alert,
+  TextInput, ActivityIndicator, Alert, KeyboardAvoidingView, Platform,
 } from "react-native";
+import { KeyboardAwareScroll } from "../../../components/KeyboardAwareScroll";
 import type { CreditCard } from "../../../types/creditCard";
 import type { CreditCardBrand } from "../../../types/creditCard";
 import type { BankAccount } from "../../../types/finance";
@@ -26,7 +27,7 @@ export function NewCardModal(p: NewCardProps) {
   return (
     <Modal visible={p.visible} transparent animationType="slide">
       <View style={s.modalBg}>
-        <ScrollView contentContainerStyle={s.modalBox}>
+        <KeyboardAwareScroll contentContainerStyle={s.modalBox}>
           <Text style={s.modalTitle}>Novo cartão de crédito</Text>
           <Text style={s.fieldLabel}>Banco / Emissor</Text>
           <ScrollView horizontal showsHorizontalScrollIndicator={false} style={{ marginBottom: 12 }}>
@@ -59,7 +60,7 @@ export function NewCardModal(p: NewCardProps) {
           <TouchableOpacity onPress={p.onClose} style={s.cancelBtn}>
             <Text style={s.cancelBtnTxt}>Cancelar</Text>
           </TouchableOpacity>
-        </ScrollView>
+        </KeyboardAwareScroll>
       </View>
     </Modal>
   );
@@ -77,6 +78,7 @@ type PayProps = {
 export function PayInvoiceModal(p: PayProps) {
   return (
     <Modal visible={p.visible} transparent animationType="slide">
+      <KeyboardAvoidingView behavior={Platform.OS === "ios" ? "padding" : "height"} style={{ flex: 1 }}>
       <View style={s.modalBg}>
         <View style={s.modalBox}>
           <Text style={s.modalTitle}>Pagar fatura</Text>
@@ -106,6 +108,7 @@ export function PayInvoiceModal(p: PayProps) {
           <TouchableOpacity onPress={p.onClose} style={s.cancelBtn}><Text style={s.cancelBtnTxt}>Cancelar</Text></TouchableOpacity>
         </View>
       </View>
+      </KeyboardAvoidingView>
     </Modal>
   );
 }
@@ -122,6 +125,7 @@ type GastoProps = {
 export function LancarGastoModal(p: GastoProps) {
   return (
     <Modal visible={p.visible} transparent animationType="slide">
+      <KeyboardAvoidingView behavior={Platform.OS === "ios" ? "padding" : "height"} style={{ flex: 1 }}>
       <View style={s.modalBg}>
         <View style={s.modalBox}>
           <Text style={s.modalTitle}>Lançar gasto no cartão</Text>
@@ -146,6 +150,7 @@ export function LancarGastoModal(p: GastoProps) {
           <TouchableOpacity onPress={p.onClose} style={s.cancelBtn}><Text style={s.cancelBtnTxt}>Cancelar</Text></TouchableOpacity>
         </View>
       </View>
+      </KeyboardAvoidingView>
     </Modal>
   );
 }
@@ -230,7 +235,7 @@ export function EditCardModal(p: EditCardProps) {
   return (
     <Modal visible={p.visible} transparent animationType="slide" onRequestClose={p.onClose}>
       <View style={s.modalBg}>
-        <ScrollView contentContainerStyle={s.modalBox} keyboardShouldPersistTaps="handled" showsVerticalScrollIndicator={false}>
+        <KeyboardAwareScroll contentContainerStyle={s.modalBox} keyboardShouldPersistTaps="handled" showsVerticalScrollIndicator={false}>
           <Text style={s.modalTitle}>Editar cartão</Text>
           <Text style={s.modalSub}>{b.label} •••• {p.card.last4}</Text>
 
@@ -290,7 +295,7 @@ export function EditCardModal(p: EditCardProps) {
           <TouchableOpacity onPress={p.onClose} style={s.cancelBtn}>
             <Text style={s.cancelBtnTxt}>Cancelar</Text>
           </TouchableOpacity>
-        </ScrollView>
+        </KeyboardAwareScroll>
       </View>
     </Modal>
   );

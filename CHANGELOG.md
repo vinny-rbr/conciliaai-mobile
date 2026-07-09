@@ -1,5 +1,8 @@
 # Changelog
 
+## 1.0.26
+- fix(teclado): tratamento de teclado em todo o app — 18 telas/modais agora sobem o campo focado acima do teclado (novo componente KeyboardAwareScroll)
+
 ## 1.0.25
 - feat(tags): campo de tags agora abre um seletor com busca das tags já cadastradas (criação continua só na aba Tags)
 - fix(form): teclado deixa de cobrir a observação usando a altura real do teclado (corrige em Android edge-to-edge)

@@ -1,11 +1,12 @@
 import { useRef, useState } from "react";
 import {
   ActivityIndicator, KeyboardAvoidingView, Platform,
-  ScrollView, StyleSheet, Text, TextInput, TouchableOpacity, View,
+  StyleSheet, Text, TextInput, TouchableOpacity, View,
 } from "react-native";
 import { useNavigation } from "@react-navigation/native";
 import { apiUrl } from "../../lib/api";
 import { useAppAlert } from "../../components/AppAlert";
+import { KeyboardAwareScroll } from "../../components/KeyboardAwareScroll";
 
 export default function ForgotPasswordScreen() {
   const navigation = useNavigation();
@@ -77,7 +78,7 @@ export default function ForgotPasswordScreen() {
 
   return (
     <KeyboardAvoidingView style={s.root} behavior={Platform.OS === "ios" ? "padding" : undefined}>
-      <ScrollView contentContainerStyle={s.inner} keyboardShouldPersistTaps="handled" showsVerticalScrollIndicator={false}>
+      <KeyboardAwareScroll contentContainerStyle={s.inner} keyboardShouldPersistTaps="handled" showsVerticalScrollIndicator={false}>
 
         <TouchableOpacity style={s.backBtn} onPress={() => navigation.goBack()} activeOpacity={0.7}>
           <Text style={s.backTxt}>‹ Voltar</Text>
@@ -192,7 +193,7 @@ export default function ForgotPasswordScreen() {
             </TouchableOpacity>
           </>
         )}
-      </ScrollView>
+      </KeyboardAwareScroll>
       {AlertNode}
     </KeyboardAvoidingView>
   );

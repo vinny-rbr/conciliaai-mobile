@@ -133,7 +133,7 @@ export default function ObjetivosTab({ goals, saveGoals, refreshControl }: Props
 
       {/* ── MODAL: Novo / editar objetivo ─────────────────────── */}
       <Modal visible={editGoal !== null} transparent animationType="fade" onRequestClose={() => setEditGoal(null)}>
-        <KeyboardAvoidingView behavior={Platform.OS === "ios" ? "padding" : undefined} style={{ flex: 1 }}>
+        <KeyboardAvoidingView behavior={Platform.OS === "ios" ? "padding" : "height"} style={{ flex: 1 }}>
           <View style={s.overlay}>
             <View style={s.modal}>
               <Text style={s.modalTitle}>{editGoal?.isNew ? "Novo objetivo" : "Editar objetivo"}</Text>
@@ -173,7 +173,7 @@ export default function ObjetivosTab({ goals, saveGoals, refreshControl }: Props
 
       {/* ── MODAL: Adicionar ao objetivo ───────────────────────── */}
       <Modal visible={addToGoal !== null} transparent animationType="fade" onRequestClose={() => setAddToGoal(null)}>
-        <KeyboardAvoidingView behavior={Platform.OS === "ios" ? "padding" : undefined} style={{ flex: 1 }}>
+        <KeyboardAvoidingView behavior={Platform.OS === "ios" ? "padding" : "height"} style={{ flex: 1 }}>
           <View style={s.overlay}>
             <View style={s.modal}>
               <Text style={s.modalTitle}>{addToGoal?.emoji} {addToGoal?.name}</Text>
