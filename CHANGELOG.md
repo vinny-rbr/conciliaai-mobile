@@ -1,5 +1,8 @@
 # Changelog
 
+## 1.0.27
+- fix(diaria): botão "+ Adicionar dia" no registro permite lançar dias anteriores esquecidos (antes só dava para editar o dia de hoje)
+
 ## 1.0.26
 - fix(teclado): tratamento de teclado em todo o app — 18 telas/modais agora sobem o campo focado acima do teclado (novo componente KeyboardAwareScroll)
 

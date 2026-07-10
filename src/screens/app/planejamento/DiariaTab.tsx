@@ -236,6 +236,21 @@ export default function DiariaTab({ refreshing, onRefresh }: Props) {
     setLogVal(existing ? fmtBRL(String(existing.earnedCents)) : "");
   }
 
+  // Abre o modal já no dia mais recente (<= hoje, dentro do mês) que ainda não
+  // tem registro — para "adicionar outro dia" sem trombar com o de hoje.
+  function openAddLogModal() {
+    const now = new Date();
+    const firstOfMonth = `${now.getFullYear()}-${String(now.getMonth() + 1).padStart(2, "0")}-01`;
+    const d = new Date(todayISO() + "T12:00:00");
+    for (let i = 0; i < 40; i++) {
+      const iso = d.toISOString().slice(0, 10);
+      if (iso < firstOfMonth) break;
+      if (!diariaLogs.find(l => l.date === iso)) { openLogModal(iso); return; }
+      d.setDate(d.getDate() - 1);
+    }
+    openLogModal(); // todos os dias já registrados → abre hoje
+  }
+
   async function confirmLog() {
     if (!logModal) return;
     const cents = parseCents(logVal);
@@ -640,10 +655,20 @@ export default function DiariaTab({ refreshing, onRefresh }: Props) {
               <Text style={{ fontSize: 32, marginBottom: 8 }}>📅</Text>
               <Text style={s.emptyTitle}>Nenhum dia registrado</Text>
               <Text style={s.emptyTxt}>Registre quanto ganhou hoje para acompanhar o mês.</Text>
+              <TouchableOpacity onPress={openAddLogModal}
+                style={{ marginTop: 14, paddingHorizontal: 18, paddingVertical: 11, borderRadius: 12, backgroundColor: C.accentBg, borderWidth: 1, borderColor: C.accentBorder }}>
+                <Text style={{ color: C.accent, fontSize: 13, fontWeight: "700" }}>+ Adicionar dia</Text>
+              </TouchableOpacity>
             </View>
           ) : (
             <View style={{ backgroundColor: C.card, borderRadius: 22, borderWidth: 1, borderColor: C.cardBorder, paddingHorizontal: 18, paddingTop: 6, paddingBottom: 10 }}>
-              <Text style={{ color: C.muted, fontSize: 13, fontWeight: "600", paddingVertical: 14 }}>Histórico do mês</Text>
+              <View style={{ flexDirection: "row", justifyContent: "space-between", alignItems: "center", paddingVertical: 14 }}>
+                <Text style={{ color: C.muted, fontSize: 13, fontWeight: "600" }}>Histórico do mês</Text>
+                <TouchableOpacity onPress={openAddLogModal}
+                  style={{ paddingHorizontal: 12, paddingVertical: 7, borderRadius: 10, backgroundColor: C.accentBg, borderWidth: 1, borderColor: C.accentBorder }}>
+                  <Text style={{ color: C.accent, fontSize: 12, fontWeight: "700" }}>+ Adicionar dia</Text>
+                </TouchableOpacity>
+              </View>
               {diariaLogs.map((log, i) => {
                 const isToday = log.date === todayISO();
                 const [, m, d] = log.date.split("-");
