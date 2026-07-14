@@ -8,7 +8,7 @@ import { closeFabAnim } from "../../navigation/fabAnimState";
 import { fetchFinanceItems } from "../../lib/financeService";
 import { listBankAccounts } from "../../lib/bankAccountsService";
 import { listFinanceCategories } from "../../lib/financeCategoriesService";
-import { getKnownTags } from "../../lib/tagsStore";
+import { getKnownTags, addKnownTag } from "../../lib/tagsStore";
 import { apiUrl } from "../../lib/api";
 import { getToken } from "../../lib/auth";
 import type { BankAccount, FinanceCategoryOption, FinanceItem } from "../../types/finance";
@@ -449,6 +449,10 @@ export default function AddTransactionScreen() {
           onRefillCancel={() => setRecurringGaps(null)}
           seriesGaps={seriesGaps}
           onFixGaps={() => { setSeriesGaps([]); void performSave("all", true); }}
+          onCreateTag={(tag) => {
+            setAvailableTags(prev => [...new Set([...prev, tag])].sort());
+            void addKnownTag(tag);
+          }}
           deleteModal={deleteModal}    setDeleteModal={setDeleteModal}
           onClose={closeForm}
           onSave={() => void handleSave()}

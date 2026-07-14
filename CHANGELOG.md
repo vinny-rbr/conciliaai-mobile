@@ -1,5 +1,8 @@
 # Changelog
 
+## 1.0.28
+- feat(tags): criar tag nova direto do seletor em receita/despesa (botão "+ Criar tag"), sem precisar ir até a aba Tags
+
 ## 1.0.27
 - fix(diaria): botão "+ Adicionar dia" no registro permite lançar dias anteriores esquecidos (antes só dava para editar o dia de hoje)
 

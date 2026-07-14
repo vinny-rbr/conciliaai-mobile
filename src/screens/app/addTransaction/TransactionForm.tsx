@@ -56,6 +56,9 @@ type Props = {
   onFixGaps: () => void;
   onPerformUnset: (scope: "one" | "all") => Promise<void>;
 
+  // criar uma tag nova direto do seletor
+  onCreateTag: (tag: string) => void;
+
   // tags
   tags: string; setTags: (v: string) => void;
   availableTags: string[];
@@ -79,7 +82,7 @@ export default function TransactionForm({
   isRecurring, setIsRecurring, recurringMode, setRecurringMode, recurringMonths, setRecurringMonths,
   recurringAction, setRecurringAction, deleteModal, setDeleteModal,
   recurringGaps, onRefillConfirm, onRefillCancel,
-  seriesGaps, onFixGaps, onPerformUnset,
+  seriesGaps, onFixGaps, onPerformUnset, onCreateTag,
   onClose, onSave, onPerformSave, onPerformDelete,
 }: Props) {
   const scrollRef = useRef<ScrollView>(null);
@@ -100,6 +103,15 @@ export default function TransactionForm({
     else setTags([...selectedTags, tag].join(","));
   };
   const filteredTags = availableTags.filter(t => t.toLowerCase().includes(tagSearch.trim().toLowerCase()));
+  const newTag = tagSearch.trim().toLowerCase().replace(/,/g, "");
+  const canCreateTag = newTag.length > 0 && !availableTags.some(t => t.toLowerCase() === newTag);
+  const createTag = () => {
+    if (!canCreateTag) return;
+    onCreateTag(newTag);
+    if (!selectedTags.includes(newTag)) setTags([...selectedTags, newTag].join(","));
+    setTagSearch("");
+    Keyboard.dismiss();
+  };
 
   const parseBRDate = (str: string): Date => {
     const [d, mo, y] = str.split("/").map(Number);
@@ -421,18 +433,30 @@ export default function TransactionForm({
                 style={[f.input]}
                 value={tagSearch}
                 onChangeText={setTagSearch}
-                placeholder="Pesquisar tags..."
+                placeholder="Pesquisar ou criar tag..."
                 placeholderTextColor="#475569"
                 autoCapitalize="none"
+                returnKeyType="done"
+                onSubmitEditing={createTag}
               />
             </View>
 
+            {canCreateTag && (
+              <TouchableOpacity
+                onPress={createTag}
+                activeOpacity={0.8}
+                style={{ marginHorizontal: 20, marginBottom: 12, flexDirection: "row", alignItems: "center", justifyContent: "center", gap: 6, backgroundColor: "#3B82F6", borderRadius: 12, paddingVertical: 13 }}
+              >
+                <Text style={{ color: "#fff", fontSize: 14, fontWeight: "700" }}>+ Criar tag "#{newTag}"</Text>
+              </TouchableOpacity>
+            )}
+
             <ScrollView keyboardShouldPersistTaps="handled" style={{ paddingHorizontal: 20 }}>
-              {availableTags.length === 0 ? (
+              {availableTags.length === 0 && !canCreateTag ? (
                 <Text style={{ color: "#64748B", fontSize: 14, textAlign: "center", paddingVertical: 24, lineHeight: 20 }}>
-                  Nenhuma tag cadastrada ainda.{"\n"}Crie suas tags na aba Tags.
+                  Nenhuma tag cadastrada ainda.{"\n"}Digite acima para criar a primeira.
                 </Text>
-              ) : filteredTags.length === 0 ? (
+              ) : filteredTags.length === 0 && !canCreateTag ? (
                 <Text style={{ color: "#64748B", fontSize: 14, textAlign: "center", paddingVertical: 24 }}>
                   Nenhuma tag encontrada para "{tagSearch}".
                 </Text>
