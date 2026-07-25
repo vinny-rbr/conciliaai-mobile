@@ -17,6 +17,7 @@ export default {
     ios: {
       supportsTablet: true,
       bundleIdentifier: "com.conciliaai.mobile",
+      buildNumber: "1",
       infoPlist: {
         NSFaceIDUsageDescription:
           "O ConciliaAI usa Face ID para proteger suas informações financeiras.",
