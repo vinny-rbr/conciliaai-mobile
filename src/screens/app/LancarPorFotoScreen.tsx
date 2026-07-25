@@ -16,6 +16,8 @@ import {
 } from "./lancarPorFoto/shared";
 import { SourceStage, ReadingStage, DoneStage } from "./lancarPorFoto/stages";
 import { KeyboardAwareScroll } from "../../components/KeyboardAwareScroll";
+import { PlanLimitError, throwFinanceError } from "../../lib/subscriptionService";
+import { PlanLimitModal } from "../../components/PlanLimitModal";
 
 export default function LancarPorFotoScreen() {
   const navigation = useNavigation();
@@ -34,6 +36,7 @@ export default function LancarPorFotoScreen() {
   const [categories, setCategories]   = useState<FinanceCategoryOption[]>([]);
   const [detectedFields, setDetectedFields] = useState(0);
   const [saving, setSaving]           = useState(false);
+  const [planLimit, setPlanLimit]     = useState(false);
 
   const pendingBase64 = useRef<string | null>(null);
 
@@ -126,9 +129,10 @@ export default function LancarPorFotoScreen() {
           paymentType: payType, status: "paid",
         }),
       });
-      if (!r.ok) throw new Error(`Erro ${r.status}`);
+      if (!r.ok) { await throwFinanceError(r); }
       setStage("done");
     } catch (e) {
+      if (e instanceof PlanLimitError) { setPlanLimit(true); return; }
       Alert.alert("Erro", e instanceof Error ? e.message : "Não foi possível salvar.");
     } finally {
       setSaving(false);
@@ -284,6 +288,12 @@ export default function LancarPorFotoScreen() {
           }
         </TouchableOpacity>
       </KeyboardAwareScroll>
+
+      <PlanLimitModal
+        visible={planLimit}
+        onClose={() => setPlanLimit(false)}
+        onTrialStarted={() => void handleSave()}
+      />
     </SafeAreaView>
   );
 }

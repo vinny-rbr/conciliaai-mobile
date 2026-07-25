@@ -18,6 +18,8 @@ import {
 } from "./addTransaction/shared";
 import QuickActionsSheet from "./addTransaction/QuickActionsSheet";
 import TransactionForm   from "./addTransaction/TransactionForm";
+import { PlanLimitError, throwFinanceError } from "../../lib/subscriptionService";
+import { PlanLimitModal } from "../../components/PlanLimitModal";
 
 const { height: SCREEN_H } = Dimensions.get("window");
 
@@ -65,6 +67,7 @@ export default function AddTransactionScreen() {
   const [recurringAction,  setRecurringAction]  = useState<"edit" | "delete" | "unset" | null>(null);
   const [recurringGaps,    setRecurringGaps]    = useState<string[] | null>(null);   // meses (YYYY-MM) apagados na série (modal)
   const [seriesGaps,       setSeriesGaps]       = useState<string[]>([]);            // buracos detectados ao abrir (banner inline)
+  const [planLimit,        setPlanLimit]        = useState(false);                   // popup de limite do plano gratuito
 
   // ── Mount: entrada ────────────────────────────────────────────────
   useEffect(() => {
@@ -235,7 +238,7 @@ export default function AddTransactionScreen() {
               headers: { Authorization: `Bearer ${token ?? ""}`, "Content-Type": "application/json" },
               body: JSON.stringify({ ...payload, date: addMonthsISO(dateISO, i), recurringGroupId: groupId, recurringKind: "fixo", recurringTotal: totalMonths, recurringStartDate: dateISO, status: i === 0 ? payload.status : "pending" }),
             });
-            if (!r.ok) { const e = await r.json().catch(()=>null) as {message?:string}|null; throw new Error(e?.message ?? `Erro ${r.status}`); }
+            if (!r.ok) { await throwFinanceError(r); }
           }
         } else {
           const r = await fetch(apiUrl("/api/finance"), {
@@ -243,7 +246,7 @@ export default function AddTransactionScreen() {
             headers: { Authorization: `Bearer ${token ?? ""}`, "Content-Type": "application/json" },
             body: JSON.stringify(payload),
           });
-          if (!r.ok) { const e = await r.json().catch(()=>null) as {message?:string}|null; throw new Error(e?.message ?? `Erro ${r.status}`); }
+          if (!r.ok) { await throwFinanceError(r); }
         }
       } else if (scope === "all" && editItem.recurringGroupId) {
         const groupId = editItem.recurringGroupId;
@@ -291,7 +294,7 @@ export default function AddTransactionScreen() {
                 headers: { Authorization: `Bearer ${token ?? ""}`, "Content-Type": "application/json" },
                 body: JSON.stringify({ ...payload, date: dISO, status: "pending", recurringGroupId: groupId, recurringKind: "fixo", recurringTotal: total, recurringStartDate: startDate }),
               });
-              if (!r.ok) { const e = await r.json().catch(()=>null) as {message?:string}|null; throw new Error(e?.message ?? `Erro ${r.status}`); }
+              if (!r.ok) { await throwFinanceError(r); }
             }
           }
         }
@@ -310,7 +313,7 @@ export default function AddTransactionScreen() {
             headers: { Authorization: `Bearer ${token ?? ""}`, "Content-Type": "application/json" },
             body: JSON.stringify({ ...payload, date: addMonthsISO(dateISO, i), recurringGroupId: groupId, recurringKind: "fixo", recurringTotal: totalMonths, recurringStartDate: dateISO, status: "pending" }),
           });
-          if (!r2.ok) { const e = await r2.json().catch(()=>null) as {message?:string}|null; throw new Error(e?.message ?? `Erro ${r2.status}`); }
+          if (!r2.ok) { await throwFinanceError(r2); }
         }
       } else {
         const r = await fetch(apiUrl(`/api/finance/${editItem.id}`), {
@@ -331,6 +334,7 @@ export default function AddTransactionScreen() {
         closeForm();
       }
     } catch (e) {
+      if (e instanceof PlanLimitError) { setPlanLimit(true); return; }
       Alert.alert("Erro", e instanceof Error ? e.message : "Não foi possível salvar.");
     } finally {
       setSaving(false);
@@ -461,6 +465,7 @@ export default function AddTransactionScreen() {
           onPerformUnset={performUnsetRecurring}
         />
       )}
+      <PlanLimitModal visible={planLimit} onClose={() => setPlanLimit(false)} />
     </View>
   );
 }

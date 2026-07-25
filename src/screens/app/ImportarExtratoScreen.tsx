@@ -12,6 +12,8 @@ import { listFinanceCategories } from "../../lib/financeCategoriesService";
 import { getKnownTags } from "../../lib/tagsStore";
 import { apiUrl } from "../../lib/api";
 import { getToken } from "../../lib/auth";
+import { PlanLimitError, throwFinanceError } from "../../lib/subscriptionService";
+import { PlanLimitModal } from "../../components/PlanLimitModal";
 import type { BankAccount, FinanceCategoryOption } from "../../types/finance";
 import { s } from "./importarExtrato/shared";
 import { PickStep, ImportingStep, DoneStep, ReviewStep, AdjustStep } from "./importarExtrato/stages";
@@ -34,6 +36,7 @@ export default function ImportarExtratoScreen() {
   const [adjustInfo, setAdjustInfo]   = useState<AdjustInfo | null>(null);
   const [availableTags, setAvailableTags] = useState<string[]>([]);
   const [allCategories, setAllCategories] = useState<FinanceCategoryOption[]>([]);
+  const [planLimit, setPlanLimit]     = useState(false);
 
   useEffect(() => {
     void Promise.all([fetchFinanceItems(), getKnownTags()]).then(([data, known]) => {
@@ -128,8 +131,11 @@ export default function ImportarExtratoScreen() {
             tags: it.tags || null,
           }),
         });
-        if (r.ok) added++; else skipped++;
-      } catch { skipped++; }
+        if (r.ok) { added++; } else { await throwFinanceError(r); }
+      } catch (e) {
+        if (e instanceof PlanLimitError) { setPlanLimit(true); setStep("review"); return; }
+        skipped++;
+      }
     }
 
     setResult({ added, skipped });
@@ -221,20 +227,23 @@ export default function ImportarExtratoScreen() {
   }
 
   return (
-    <ReviewStep
-      items={items}
-      accounts={accounts}
-      selAccId={selAccId}
-      setSelAccId={setSelAccId}
-      fileName={fileName}
-      totalSel={totalSel}
-      toggleAll={toggleAll}
-      toggleItem={toggleItem}
-      onEditItem={editItem}
-      handleImport={() => void handleImport()}
-      onBack={() => setStep("pick")}
-      availableTags={availableTags}
-      allCategories={allCategories}
-    />
+    <>
+      <ReviewStep
+        items={items}
+        accounts={accounts}
+        selAccId={selAccId}
+        setSelAccId={setSelAccId}
+        fileName={fileName}
+        totalSel={totalSel}
+        toggleAll={toggleAll}
+        toggleItem={toggleItem}
+        onEditItem={editItem}
+        handleImport={() => void handleImport()}
+        onBack={() => setStep("pick")}
+        availableTags={availableTags}
+        allCategories={allCategories}
+      />
+      <PlanLimitModal visible={planLimit} onClose={() => setPlanLimit(false)} />
+    </>
   );
 }

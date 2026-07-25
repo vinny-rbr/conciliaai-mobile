@@ -1,5 +1,8 @@
 # Changelog
 
+## 1.0.29
+- feat(planos): ao atingir o limite gratuito (10 lançamentos no total), abre popup para iniciar trial de 15 dias ou ver planos — em todas as telas de criação
+
 ## 1.0.28
 - feat(tags): criar tag nova direto do seletor em receita/despesa (botão "+ Criar tag"), sem precisar ir até a aba Tags
 

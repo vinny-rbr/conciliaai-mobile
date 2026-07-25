@@ -15,6 +15,8 @@ import { closeFabAnim } from "../../navigation/fabAnimState";
 import { PAY_TYPES, todayBR, brToISO, formatAmount, parseCents, s } from "./lancarTransacao/shared";
 import { CategoryModal, AccountModal } from "./lancarTransacao/Modals";
 import { KeyboardAwareScroll } from "../../components/KeyboardAwareScroll";
+import { PlanLimitError, throwFinanceError } from "../../lib/subscriptionService";
+import { PlanLimitModal } from "../../components/PlanLimitModal";
 
 type RouteP = RouteProp<RootStackParamList, "LancarTransacao">;
 
@@ -32,6 +34,7 @@ export default function LancarTransacaoScreen() {
   const [paid, setPaid]           = useState(true);
   const [note, setNote]           = useState("");
   const [saving, setSaving]       = useState(false);
+  const [planLimit, setPlanLimit] = useState(false);
 
   const [categories, setCategories]   = useState<FinanceCategoryOption[]>([]);
   const [selectedCat, setSelectedCat] = useState<FinanceCategoryOption | null>(null);
@@ -85,11 +88,11 @@ export default function LancarTransacaoScreen() {
         }),
       });
       if (!res.ok) {
-        const err = await res.json().catch(() => null) as { message?: string } | null;
-        throw new Error(err?.message ?? `Erro ${res.status}`);
+        await throwFinanceError(res);
       }
       handleClose();
     } catch (e) {
+      if (e instanceof PlanLimitError) { setPlanLimit(true); return; }
       Alert.alert("Erro", e instanceof Error ? e.message : "Não foi possível salvar.");
     } finally {
       setSaving(false);
@@ -264,6 +267,11 @@ export default function LancarTransacaoScreen() {
         accounts={accounts}
         selectedAcc={selectedAcc}
         onSelect={a => { setSelectedAcc(a); setAccModal(false); }}
+      />
+      <PlanLimitModal
+        visible={planLimit}
+        onClose={() => setPlanLimit(false)}
+        onTrialStarted={() => void handleSave()}
       />
     </Animated.View>
   );
