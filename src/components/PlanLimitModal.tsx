@@ -1,5 +1,5 @@
 import React, { useState } from "react";
-import { ActivityIndicator, Modal, Text, TouchableOpacity, View } from "react-native";
+import { ActivityIndicator, Modal, Platform, Text, TouchableOpacity, View } from "react-native";
 import { rootNavigate } from "../navigation/rootNav";
 import { startTrial } from "../lib/subscriptionService";
 
@@ -67,14 +67,17 @@ export function PlanLimitModal({ visible, onClose, onTrialStarted }: Props) {
               : <Text style={{ color: "#fff", fontSize: 15, fontWeight: "800" }}>Iniciar trial de 15 dias grátis</Text>}
           </TouchableOpacity>
 
-          <TouchableOpacity
-            onPress={verPlanos}
-            disabled={loading}
-            activeOpacity={0.85}
-            style={{ backgroundColor: "#0F172A", borderRadius: 14, paddingVertical: 15, alignItems: "center", borderWidth: 1, borderColor: "#334155", marginBottom: 4 }}
-          >
-            <Text style={{ color: "#F1F5F9", fontSize: 15, fontWeight: "700" }}>Ver planos e preços</Text>
-          </TouchableOpacity>
+          {/* Apple nao permite direcionar a pagamento externo no iOS: so mostra no Android. */}
+          {Platform.OS !== "ios" && (
+            <TouchableOpacity
+              onPress={verPlanos}
+              disabled={loading}
+              activeOpacity={0.85}
+              style={{ backgroundColor: "#0F172A", borderRadius: 14, paddingVertical: 15, alignItems: "center", borderWidth: 1, borderColor: "#334155", marginBottom: 4 }}
+            >
+              <Text style={{ color: "#F1F5F9", fontSize: 15, fontWeight: "700" }}>Ver planos e preços</Text>
+            </TouchableOpacity>
+          )}
 
           <TouchableOpacity onPress={onClose} disabled={loading} style={{ paddingVertical: 12, alignItems: "center" }}>
             <Text style={{ color: "#64748B", fontSize: 14, fontWeight: "700" }}>Agora não</Text>

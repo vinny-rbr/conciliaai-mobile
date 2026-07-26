@@ -1,5 +1,8 @@
 # Changelog
 
+## 1.0.30
+- chore(ios): oculta compra/assinatura por pagamento externo no iOS (regra da App Store); Android mantém o fluxo Asaas
+
 ## 1.0.29
 - feat(planos): ao atingir o limite gratuito (10 lançamentos no total), abre popup para iniciar trial de 15 dias ou ver planos — em todas as telas de criação
 

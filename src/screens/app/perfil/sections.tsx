@@ -1,5 +1,5 @@
 import { useState } from "react";
-import { ActivityIndicator, Image, Linking, Text, TextInput, TouchableOpacity, View } from "react-native";
+import { ActivityIndicator, Image, Linking, Platform, Text, TextInput, TouchableOpacity, View } from "react-native";
 import Svg, { Circle, Path, Rect } from "react-native-svg";
 import type { Sub } from "./shared";
 import { s, fmtDate, chipInfo } from "./shared";
@@ -283,6 +283,8 @@ export function AssinaturaSection({ sub }: AssinaturaProps) {
   const isActive = sub && (sub.status?.toLowerCase() === "active" || sub.isLifetime);
 
   if (!isActive) {
+    // iOS: sem upsell de compra (Apple nao permite pagamento externo). Android mantem.
+    if (Platform.OS === "ios") return null;
     return (
       <View style={[s.subCard, { padding: 18 }]}>
         <View style={s.subCtaHeader}>

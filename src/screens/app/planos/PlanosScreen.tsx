@@ -224,16 +224,19 @@ export default function PlanosScreen() {
                 ))}
               </View>
 
-              <TouchableOpacity
-                style={[s.assinarBtn, isRec && s.assinarBtnRec, (!!loadingPlanId) && { opacity: 0.5 }]}
-                onPress={() => void handleAssinar(plan.id)}
-                disabled={!!loadingPlanId}
-                activeOpacity={0.85}
-              >
-                {isLoading
-                  ? <ActivityIndicator color="#fff" size="small" />
-                  : <Text style={s.assinarBtnTxt}>Assinar</Text>}
-              </TouchableOpacity>
+              {/* iOS: Apple nao permite compra por pagamento externo (Asaas). Botao so no Android. */}
+              {Platform.OS !== "ios" && (
+                <TouchableOpacity
+                  style={[s.assinarBtn, isRec && s.assinarBtnRec, (!!loadingPlanId) && { opacity: 0.5 }]}
+                  onPress={() => void handleAssinar(plan.id)}
+                  disabled={!!loadingPlanId}
+                  activeOpacity={0.85}
+                >
+                  {isLoading
+                    ? <ActivityIndicator color="#fff" size="small" />
+                    : <Text style={s.assinarBtnTxt}>Assinar</Text>}
+                </TouchableOpacity>
+              )}
             </View>
           );
         })}

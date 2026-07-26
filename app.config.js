@@ -17,7 +17,7 @@ export default {
     ios: {
       supportsTablet: true,
       bundleIdentifier: "com.conciliaai.mobile",
-      buildNumber: "1",
+      buildNumber: "2",
       infoPlist: {
         NSFaceIDUsageDescription:
           "O ConciliaAI usa Face ID para proteger suas informações financeiras.",
@@ -25,7 +25,7 @@ export default {
       },
     },
     android: {
-      versionCode: 38,
+      versionCode: 39,
       adaptiveIcon: {
         backgroundColor: "#E6F4FE",
         foregroundImage: "./assets/android-icon-foreground.png",
