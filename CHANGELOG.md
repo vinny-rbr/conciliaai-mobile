@@ -1,5 +1,8 @@
 # Changelog
 
+## 1.0.32
+- feat(diária): seletor de mês na Diária (Registro e Relatórios) — dá para consultar o faturamento e a meta de meses anteriores
+
 ## 1.0.31
 - fix(saldo): valores "a receber"/"a pagar" não entram mais no saldo até serem marcados como recebido/pago (antes uma receita futura pendente já era contada no saldo)
 

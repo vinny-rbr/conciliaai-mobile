@@ -109,6 +109,7 @@ export default function DiariaTab({ refreshing, onRefresh }: Props) {
   const [diariaExpenses,   setDiariaExpenses] = useState<DiariaExpense[]>([]);
   const [diariaView,       setDiariaView]     = useState<DiariaView>("meta");
   const [diariaLogs,       setDiariaLogs]     = useState<DiariaLog[]>([]);
+  const [selMonth,         setSelMonth]       = useState(curYM());   // mês em consulta (YYYY-MM)
   const [logModal,         setLogModal]       = useState<{ date: string; current?: number } | null>(null);
   const [logVal,           setLogVal]         = useState("");
   const [showDatePicker,   setShowDatePicker] = useState(false);
@@ -128,12 +129,11 @@ export default function DiariaTab({ refreshing, onRefresh }: Props) {
 
   useFocusEffect(useCallback(() => {
     async function loadDiaria() {
-      const ym = curYM();
       const [dRaw, lRaw] = await Promise.all([
         SecureStore.getItemAsync(DIARIA_KEY),
-        SecureStore.getItemAsync(DIARIA_LOGS_KEY(ym)),
+        SecureStore.getItemAsync(DIARIA_LOGS_KEY(selMonth)),
       ]);
-      if (lRaw) setDiariaLogs(JSON.parse(lRaw) as DiariaLog[]);
+      setDiariaLogs(lRaw ? JSON.parse(lRaw) as DiariaLog[] : []);
       if (dRaw) {
         const d = JSON.parse(dRaw) as DiariaPerfil;
         const wt   = d.workType ?? "outro";
@@ -151,7 +151,7 @@ export default function DiariaTab({ refreshing, onRefresh }: Props) {
       }
     }
     void loadDiaria();
-  }, []));
+  }, [selMonth]));
 
   async function saveDiaria(patch: Partial<DiariaPerfil>) {
     const next: DiariaPerfil = {
@@ -258,14 +258,14 @@ export default function DiariaTab({ refreshing, onRefresh }: Props) {
     if (cents > 0) next.push({ date: logModal.date, earnedCents: cents });
     next.sort((a, b) => b.date.localeCompare(a.date));
     setDiariaLogs(next);
-    await SecureStore.setItemAsync(DIARIA_LOGS_KEY(curYM()), JSON.stringify(next));
+    await SecureStore.setItemAsync(DIARIA_LOGS_KEY(selMonth), JSON.stringify(next));
     setLogModal(null); setLogVal("");
   }
 
   async function deleteLog(date: string) {
     const next = diariaLogs.filter(l => l.date !== date);
     setDiariaLogs(next);
-    await SecureStore.setItemAsync(DIARIA_LOGS_KEY(curYM()), JSON.stringify(next));
+    await SecureStore.setItemAsync(DIARIA_LOGS_KEY(selMonth), JSON.stringify(next));
   }
 
   function changeLogDate(delta: number) {
@@ -308,6 +308,16 @@ export default function DiariaTab({ refreshing, onRefresh }: Props) {
 
   const refreshCtrl = <RefreshControl refreshing={refreshing} onRefresh={onRefresh} tintColor={C.accent} />;
 
+  const MONTHS_FULL = ["Janeiro", "Fevereiro", "Março", "Abril", "Maio", "Junho", "Julho", "Agosto", "Setembro", "Outubro", "Novembro", "Dezembro"];
+  const selMonthLabel = (() => { const [y, m] = selMonth.split("-").map(Number); return `${MONTHS_FULL[(m || 1) - 1]} ${y}`; })();
+  function shiftMonth(delta: number) {
+    const [y, m] = selMonth.split("-").map(Number);
+    const d = new Date(y, m - 1 + delta, 1);
+    const ny = `${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, "0")}`;
+    if (ny > curYM()) return; // não passa do mês atual
+    setSelMonth(ny);
+  }
+
   return (
     <>
       {/* ── Segmented toggle ──────────────────────────────────── */}
@@ -324,6 +334,19 @@ export default function DiariaTab({ refreshing, onRefresh }: Props) {
           );
         })}
       </View>
+
+      {/* ── Navegação de mês (Registro / Relatórios) ──────────── */}
+      {diariaView !== "meta" && (
+        <View style={{ flexDirection: "row", alignItems: "center", justifyContent: "center", gap: 18, marginHorizontal: 18, marginTop: 2, marginBottom: 6 }}>
+          <TouchableOpacity onPress={() => shiftMonth(-1)} style={{ width: 38, height: 38, borderRadius: 12, backgroundColor: "#1b2840", alignItems: "center", justifyContent: "center" }}>
+            <Text style={{ color: C.accent, fontSize: 20, fontWeight: "700" }}>‹</Text>
+          </TouchableOpacity>
+          <Text style={{ color: C.white, fontSize: 15, fontWeight: "700", minWidth: 140, textAlign: "center" }}>{selMonthLabel}</Text>
+          <TouchableOpacity onPress={() => shiftMonth(1)} disabled={selMonth >= curYM()} style={{ width: 38, height: 38, borderRadius: 12, backgroundColor: "#1b2840", alignItems: "center", justifyContent: "center", opacity: selMonth >= curYM() ? 0.35 : 1 }}>
+            <Text style={{ color: C.accent, fontSize: 20, fontWeight: "700" }}>›</Text>
+          </TouchableOpacity>
+        </View>
+      )}
 
       {/* ══════════════ META VIEW ══════════════════════════════ */}
       {diariaView === "meta" && (
@@ -817,7 +840,7 @@ export default function DiariaTab({ refreshing, onRefresh }: Props) {
                 <Text style={{ flex: 1, color: C.muted, fontSize: 10, fontWeight: "700", letterSpacing: 0.6, textAlign: "right" }}>DIFER.</Text>
               </View>
               {(() => {
-                const ym = curYM();
+                const ym = selMonth;
                 const todayDay = new Date().getDate();
                 const metaDay = Math.round(dailyGross);
 
