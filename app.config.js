@@ -10,9 +10,9 @@ export default {
     userInterfaceStyle: "dark",
     backgroundColor: "#0F172A",
     splash: {
-      image: "./assets/icon.png",
+      image: "./assets/android-icon-foreground.png",
       resizeMode: "contain",
-      backgroundColor: "#070d1a",
+      backgroundColor: "#000000",
     },
     ios: {
       supportsTablet: true,
@@ -25,12 +25,10 @@ export default {
       },
     },
     android: {
-      versionCode: 41,
+      versionCode: 42,
       adaptiveIcon: {
-        backgroundColor: "#E6F4FE",
+        backgroundColor: "#000000",
         foregroundImage: "./assets/android-icon-foreground.png",
-        backgroundImage: "./assets/android-icon-background.png",
-        monochromeImage: "./assets/android-icon-monochrome.png",
       },
       predictiveBackGestureEnabled: false,
       package: "br.app.conciliaai.www.twa",
@@ -56,7 +54,7 @@ export default {
       [
         "expo-notifications",
         {
-          icon: "./assets/icon.png",
+          icon: "./assets/android-icon-foreground.png",
           color: "#3B82F6",
           defaultChannel: "conciliaai_v2",
           sounds: [
