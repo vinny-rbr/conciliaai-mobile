@@ -96,7 +96,7 @@ export default function AddTransactionScreen() {
         let rec = 0, des = 0, cumR = 0, cumD = 0;
         for (const it of items) {
           if (it.dateISO.startsWith(ym)) { if (it.type==="RECEITA") rec+=it.amountCents; else des+=it.amountCents; }
-          if (it.type==="RECEITA") cumR+=it.amountCents; else cumD+=it.amountCents;
+          if (it.status === "paid") { if (it.type==="RECEITA") cumR+=it.amountCents; else cumD+=it.amountCents; }
         }
         const stored = accs.reduce((s, a) => s + a.balanceCents, 0);
         setSummary({ saldo: accs.length > 0 && stored !== 0 ? stored : cumR - cumD, receitas: rec, despesas: des });

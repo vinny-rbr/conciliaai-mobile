@@ -136,6 +136,7 @@ export function computeAccountBalance(accountId: string, items: FinanceItem[]): 
   let rec = 0, des = 0;
   for (const it of items) {
     if (it.accountId !== accountId) continue;
+    if (it.status !== "paid") continue; // "a receber"/"a pagar" nao entra no saldo ate ser recebido/pago
     if (it.type === "RECEITA") rec += it.amountCents;
     if (it.type === "DESPESA") des += it.amountCents;
   }

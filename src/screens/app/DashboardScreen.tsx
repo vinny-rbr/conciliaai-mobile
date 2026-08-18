@@ -87,7 +87,7 @@ export default function DashboardScreen() {
         const _next = new Date(_now.getFullYear(), _now.getMonth() + 1, 1);
         const _endExcl = `${_next.getFullYear()}-${String(_next.getMonth() + 1).padStart(2, "0")}`;
         const cumBalance = data
-          .filter(it => it.dateISO < _endExcl)
+          .filter(it => it.dateISO < _endExcl && it.status === "paid")
           .reduce((sum, it) => sum + (it.type === "RECEITA" ? it.amountCents : -it.amountCents), 0);
         const nonZero = accs.filter(a => a.balanceCents !== 0);
         if (nonZero.length === 1 && nonZero[0].balanceCents !== cumBalance) {
@@ -119,7 +119,7 @@ export default function DashboardScreen() {
         if (item.type === "RECEITA") rec += item.amountCents;
         if (item.type === "DESPESA") des += item.amountCents;
       }
-      if (item.dateISO < endExclusive) {
+      if (item.dateISO < endExclusive && item.status === "paid") {
         if (item.type === "RECEITA") cumRec += item.amountCents;
         if (item.type === "DESPESA") cumDes += item.amountCents;
       }

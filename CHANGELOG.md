@@ -1,5 +1,8 @@
 # Changelog
 
+## 1.0.31
+- fix(saldo): valores "a receber"/"a pagar" não entram mais no saldo até serem marcados como recebido/pago (antes uma receita futura pendente já era contada no saldo)
+
 ## 1.0.30
 - chore(ios): oculta compra/assinatura por pagamento externo no iOS (regra da App Store); Android mantém o fluxo Asaas
 
