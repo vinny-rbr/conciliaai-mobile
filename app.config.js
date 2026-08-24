@@ -25,7 +25,7 @@ export default {
       },
     },
     android: {
-      versionCode: 42,
+      versionCode: 43,
       adaptiveIcon: {
         backgroundColor: "#000000",
         foregroundImage: "./assets/android-icon-foreground.png",

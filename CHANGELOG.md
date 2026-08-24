@@ -1,5 +1,8 @@
 # Changelog
 
+## 1.0.34
+- chore(build): novo AAB (código 43) para atualizar as faixas de teste interno e fechado com a versão mais recente (ícone donut + todas as correções acumuladas)
+
 ## 1.0.32
 - feat(diária): seletor de mês na Diária (Registro e Relatórios) — dá para consultar o faturamento e a meta de meses anteriores
 
