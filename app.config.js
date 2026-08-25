@@ -17,10 +17,14 @@ export default {
     ios: {
       supportsTablet: true,
       bundleIdentifier: "com.conciliaai.mobile",
-      buildNumber: "4",
+      buildNumber: "5",
       infoPlist: {
         NSFaceIDUsageDescription:
           "O ConciliaAI usa Face ID para proteger suas informações financeiras.",
+        NSPhotoLibraryUsageDescription:
+          "O ConciliaAI acessa suas fotos para você escolher a imagem de um comprovante ou nota e registrar um lançamento financeiro a partir dela, e também para definir a foto do seu perfil. Por exemplo, você seleciona a foto de um recibo do supermercado e o app cria a despesa com o valor.",
+        NSCameraUsageDescription:
+          "O ConciliaAI usa a câmera para você fotografar um comprovante ou nota fiscal e registrar o lançamento a partir da foto. Por exemplo, tire uma foto do cupom da farmácia e o app cria a despesa automaticamente.",
         ITSAppUsesNonExemptEncryption: false,
       },
     },
